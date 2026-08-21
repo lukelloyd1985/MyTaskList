@@ -100,15 +100,35 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
     }
 }
 
+/**
+ * Looked up by name instead of a compile-time `R.string.default_web_client_id`
+ * reference: that resource only exists once Google sign-in is enabled in
+ * Firebase Console (see README "Backend setup" step 5), which regenerates
+ * google-services.json with a Web OAuth client for the google-services
+ * Gradle plugin to emit it from. Referencing it directly would make the
+ * whole app fail to compile until that Firebase Console step is done -
+ * this way it's a clear runtime message instead.
+ */
+private fun webClientIdOrNull(context: android.content.Context): String? {
+    val id = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    return if (id != 0) context.getString(id) else null
+}
+
 private suspend fun signInWithGoogle(
     context: android.content.Context,
     viewModel: AuthViewModel,
     snackbarHostState: SnackbarHostState,
 ) {
+    val webClientId = webClientIdOrNull(context)
+    if (webClientId == null) {
+        snackbarHostState.showSnackbar("Google sign-in isn't configured yet - see README Backend setup")
+        return
+    }
+
     val credentialManager = CredentialManager.create(context)
     val googleIdOption = GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(context.getString(R.string.default_web_client_id))
+        .setServerClientId(webClientId)
         .build()
     val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
 

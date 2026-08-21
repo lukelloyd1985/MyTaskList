@@ -71,18 +71,20 @@ its owner and everyone in `memberIds`.
    ```
 5. **Enable Google sign-in** in Firebase Console → Authentication →
    Sign-in method → Google. Note the auto-created Web client - the
-   `com.google.gms.google-services` Gradle plugin generates
-   `R.string.default_web_client_id` from it automatically, which is what
-   Credential Manager uses (see `LoginScreen.kt`). No further app
+   `com.google.gms.google-services` Gradle plugin generates a
+   `default_web_client_id` string resource from it automatically, which is
+   what Credential Manager uses (see `LoginScreen.kt`). No further app
    registration is needed beyond the Android app already added in step 1.
 
-   **This step is required before the app will compile.** Until Google
-   sign-in is enabled, `google-services.json`'s `oauth_client` array stays
-   empty, the plugin has nothing to generate `default_web_client_id` from,
-   and `LoginScreen.kt` fails with `Unresolved reference
-   'default_web_client_id'`. After enabling it, re-download
-   `google-services.json` and replace `app/google-services.json` (or
-   update the `GOOGLE_SERVICES_JSON` CI secret).
+   Until this is done, `google-services.json`'s `oauth_client` array stays
+   empty and the plugin has nothing to generate that resource from -
+   `LoginScreen.kt` looks it up by name at runtime rather than a
+   compile-time `R.string` reference specifically so the app still builds
+   in that state, but tapping "Continue with Google" will show "Google
+   sign-in isn't configured yet" until you complete this step. After
+   enabling it, re-download `google-services.json` and replace
+   `app/google-services.json` (or update the `GOOGLE_SERVICES_JSON` CI
+   secret).
 
 ## Building the APK
 
