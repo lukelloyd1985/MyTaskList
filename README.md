@@ -104,11 +104,13 @@ produces an installable APK even before you've set up a keystore.
 [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml):
 
 - **Run it manually** any time from the repo's **Actions** tab → *Android
-  Build* → **Run workflow**. It builds debug + release APKs and attaches
-  them to the workflow run as downloadable artifacts - handy for giving
-  testers a build without cutting a release.
+  Build* → **Run workflow**. It builds a debug APK and attaches it to the
+  workflow run as a downloadable artifact - handy for giving testers a
+  build without cutting a release.
 - **Publishing a GitHub Release** automatically builds a release APK and
-  attaches it to that release.
+  attaches it to that release (and to the workflow run as an artifact).
+  The release-signing steps (keystore decode, `assembleRelease`, release
+  artifact upload) only run for this trigger, not for manual runs.
 
 To get a properly **signed** release build (instead of the debug-keystore
 fallback), generate a keystore and add these repository secrets
