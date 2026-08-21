@@ -76,6 +76,14 @@ its owner and everyone in `memberIds`.
    Credential Manager uses (see `LoginScreen.kt`). No further app
    registration is needed beyond the Android app already added in step 1.
 
+   **This step is required before the app will compile.** Until Google
+   sign-in is enabled, `google-services.json`'s `oauth_client` array stays
+   empty, the plugin has nothing to generate `default_web_client_id` from,
+   and `LoginScreen.kt` fails with `Unresolved reference
+   'default_web_client_id'`. After enabling it, re-download
+   `google-services.json` and replace `app/google-services.json` (or
+   update the `GOOGLE_SERVICES_JSON` CI secret).
+
 ## Building the APK
 
 ### Locally
