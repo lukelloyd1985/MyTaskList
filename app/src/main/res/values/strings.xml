@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MyTasks</string>
+
+    <string name="notification_channel_tasks_id">tasks_channel</string>
+    <string name="notification_channel_tasks_name">Task reminders</string>
+    <string name="notification_channel_tasks_desc">Due-date reminders and task assignment alerts</string>
+
+    <!-- Facebook Login SDK. Replace with real values from
+         developers.facebook.com before Facebook sign-in will work. -->
+    <string name="facebook_app_id">0000000000000000</string>
+    <string name="facebook_client_token">00000000000000000000000000000000</string>
+    <string name="fb_login_protocol_scheme">fb0000000000000000</string>
+
+    <!-- default_web_client_id is intentionally NOT declared here: the
+         com.google.gms.google-services Gradle plugin generates it at build
+         time from google-services.json's client_type == 3 oauth_client
+         entry, and is what Credential Manager / Google Identity uses for
+         Google sign-in (see LoginScreen.kt). -->
+</resources>

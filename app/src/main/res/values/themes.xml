@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme for the single Activity that hosts Jetpack Compose.
+         All real theming (colors, typography, dark mode) lives in
+         ui/theme/Theme.kt via Material 3's Compose APIs. -->
+    <style name="Theme.MyTasks" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/launcher_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>
