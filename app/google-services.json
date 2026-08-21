@@ -1,50 +1,21 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "mytasks-app-placeholder",
-    "storage_bucket": "mytasks-app-placeholder.appspot.com"
+    "project_number": "91013088892",
+    "project_id": "mytasks-baffb",
+    "storage_bucket": "mytasks-baffb.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:aaaaaaaaaaaaaaaaaaaaaa",
+        "mobilesdk_app_id": "1:91013088892:android:2abc3491641df0e71b6bf9",
         "android_client_info": {
           "package_name": "com.mytasks.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "000000000000-placeholder0release0000000000.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyPlaceholder00000000000000000000000"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:bbbbbbbbbbbbbbbbbbbbbb",
-        "android_client_info": {
-          "package_name": "com.mytasks.app.debug"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "000000000000-placeholder00debug0000000000.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyPlaceholder00000000000000000000000"
+          "current_key": "AIzaSyBnF8h_FNX9QC5QLxwwjmbhQHGUCdE28-o"
         }
       ],
       "services": {
