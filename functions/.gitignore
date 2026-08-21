@@ -3,4 +3,3 @@ lib/
 *.log
 .env
 .env.*
-!.env.example

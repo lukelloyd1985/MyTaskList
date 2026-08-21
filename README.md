@@ -8,7 +8,7 @@ you organize your life into.
   you) or `Shared` (invite people by email).
 - **Tasks** can be **assigned** to a list member, given a **due date**, and
   optionally trigger a **reminder notification**.
-- **Sign in** with Google, Microsoft, Facebook, LinkedIn, or Proton.
+- **Sign in** with Google.
 - **CI/CD**: a GitHub Actions workflow builds an APK on every manual run
   (for testing) and attaches a release APK to every published GitHub
   Release.
@@ -24,19 +24,13 @@ real backend - see [Backend setup](#backend-setup) below.
 - **Data**: Cloud Firestore (offline-persistence enabled), with the schema
   below. `lists/{listId}/tasks/{taskId}` is a subcollection so Firestore
   security rules can authorize per-list.
-- **Auth**: Firebase Authentication.
-  - Google, Facebook, and Microsoft are Firebase's built-in providers.
-  - LinkedIn and Proton are **not** built into Firebase Auth. They're
-    federated via a generic OAuth/OIDC "authorization code" flow
-    ([AppAuth](https://github.com/openid/AppAuth-Android)) whose ID token
-    is verified and exchanged for a **Firebase custom token** by the
-    `exchangeOAuthToken` Cloud Function in `/functions`. See
-    [`OAuthConfig.kt`](app/src/main/java/com/mytasks/app/data/oauth/OAuthConfig.kt).
+- **Auth**: Firebase Authentication, Google sign-in only (via Credential
+  Manager / Google Identity - see `AuthRepository.kt` and `LoginScreen.kt`).
 - **Notifications**: Cloud Functions send FCM pushes when a task is
   assigned and on a 15-minute due-date sweep; `ReminderScheduler.kt` also
   schedules a local WorkManager reminder on-device as a fallback.
 - **Backend**: Cloud Functions (TypeScript) in `/functions` handle push
-  notifications and the LinkedIn/Proton token exchange.
+  notifications.
 
 ### Firestore schema
 
@@ -75,39 +69,12 @@ its owner and everyone in `memberIds`.
    cd ..
    firebase deploy --only functions
    ```
-5. **Enable sign-in providers** in Firebase Console → Authentication →
-   Sign-in method:
-   - **Google**: enable it; note the auto-created Web client - the
-     `com.google.gms.google-services` Gradle plugin generates
-     `R.string.default_web_client_id` from it automatically.
-   - **Microsoft**: enable the built-in `microsoft.com` provider; register
-     an app in [Azure AD](https://portal.azure.com) and paste its
-     Application (client) ID + secret into the Firebase Console. Add
-     Firebase's OAuth redirect URI (shown in the console) as a redirect URI
-     on the Azure app.
-   - **Facebook**: enable it, create an app at
-     <https://developers.facebook.com>, add Firebase's OAuth redirect URI
-     to the Facebook app's Valid OAuth Redirect URIs, then put the
-     Facebook App ID / Client Token into
-     `app/src/main/res/values/strings.xml` (`facebook_app_id`,
-     `facebook_client_token`, `fb_login_protocol_scheme` - the last one is
-     `"fb" + App ID`).
-6. **LinkedIn sign-in**: create an app at
-   <https://www.linkedin.com/developers/apps>, add the **"Sign In with
-   LinkedIn using OpenID Connect"** product, and add
-   `com.mytasks.app.oauth://oauth2redirect` as an authorized redirect URL.
-   Then set:
-   - Android: pass `-PLINKEDIN_CLIENT_ID=<id>` to Gradle (or add
-     `LINKEDIN_CLIENT_ID=<id>` to a `gradle.properties`/`local.properties`
-     you don't commit).
-   - Functions: `firebase functions:secrets:set LINKEDIN_CLIENT_ID`.
-7. **Proton sign-in**: Proton does not currently offer a fully self-serve
-   OAuth/OIDC program for third-party consumer apps the way Google,
-   Microsoft, and LinkedIn do. Once you have been onboarded (Proton
-   Business/Pass API access), fill in `PROTON_ISSUER`, `PROTON_JWKS_URI`,
-   and `PROTON_CLIENT_ID` as Functions secrets and
-   `PROTON_CLIENT_ID` as a Gradle property, mirroring the LinkedIn setup
-   above. The "Continue with Proton" button stays disabled until then.
+5. **Enable Google sign-in** in Firebase Console → Authentication →
+   Sign-in method → Google. Note the auto-created Web client - the
+   `com.google.gms.google-services` Gradle plugin generates
+   `R.string.default_web_client_id` from it automatically, which is what
+   Credential Manager uses (see `LoginScreen.kt`). No further app
+   registration is needed beyond the Android app already added in step 1.
 
 ## Building the APK
 
@@ -156,9 +123,9 @@ Firebase project instead of the committed placeholder.
 
 ## Notes & tradeoffs
 
-- The provider icons in `res/drawable/ic_provider_*.xml` are simple
-  stand-ins, not official brand marks - swap them for the real logos per
-  each provider's brand guidelines before shipping.
+- `res/drawable/ic_provider_google.xml` is a simple stand-in, not the
+  official brand mark - swap it for Google's real logo asset per their
+  brand guidelines before shipping.
 - Any signed-in user can look up any other user's basic profile (name,
   email, photo) by email, which is what powers "invite by email" on a
   shared list. See `firestore.rules` if you want to tighten this further.
