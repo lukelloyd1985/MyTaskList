@@ -1,0 +1,161 @@
+package com.mytasks.app.ui.listdetail
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.util.Date
+import javax.inject.Inject
+import com.mytasks.app.data.model.ListMember
+import com.mytasks.app.data.model.ListVisibility
+import com.mytasks.app.data.model.TaskItem
+import com.mytasks.app.data.model.TaskList
+import com.mytasks.app.data.model.TaskPriority
+import com.mytasks.app.data.remote.AuthRepository
+import com.mytasks.app.data.remote.ListRepository
+import com.mytasks.app.data.remote.TaskRepository
+import com.mytasks.app.data.remote.UserRepository
+import com.mytasks.app.notifications.ReminderScheduler
+
+data class InviteUiState(val isLoading: Boolean = false, val errorMessage: String? = null)
+
+@HiltViewModel
+class ListDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val authRepository: AuthRepository,
+    private val listRepository: ListRepository,
+    private val taskRepository: TaskRepository,
+    private val userRepository: UserRepository,
+    private val reminderScheduler: ReminderScheduler,
+) : ViewModel() {
+
+    val listId: String = checkNotNull(savedStateHandle["listId"])
+    val currentUid: String? get() = authRepository.currentUser?.uid
+
+    val list: StateFlow<TaskList?> = listRepository.observeList(listId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val tasks: StateFlow<List<TaskItem>> = taskRepository.observeTasks(listId)
+        .onEach { taskItems ->
+            val uid = currentUid ?: return@onEach
+            taskItems.forEach { task ->
+                if (task.assigneeId == uid) reminderScheduler.schedule(task) else reminderScheduler.cancel(task.id)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _inviteState = MutableStateFlow(InviteUiState())
+    val inviteState: StateFlow<InviteUiState> = _inviteState
+
+    fun assignableMembers(currentList: TaskList?): List<ListMember> {
+        val list = currentList ?: return emptyList()
+        val ownerMember = ListMember(uid = list.ownerId, displayName = list.ownerName, email = "", photoUrl = "")
+        return listOf(ownerMember) + list.members
+    }
+
+    fun saveTask(
+        taskId: String?,
+        title: String,
+        description: String,
+        assigneeId: String,
+        assigneeName: String,
+        priority: TaskPriority,
+        dueAt: Date?,
+        notify: Boolean,
+    ) {
+        val user = authRepository.currentUser ?: return
+        viewModelScope.launch {
+            if (taskId == null) {
+                taskRepository.createTask(
+                    listId = listId,
+                    title = title,
+                    description = description,
+                    assigneeId = assigneeId,
+                    assigneeName = assigneeName,
+                    priority = priority,
+                    dueAt = dueAt,
+                    notify = notify,
+                    createdBy = user.uid,
+                    createdByName = user.displayName ?: user.email.orEmpty(),
+                )
+            } else {
+                taskRepository.updateTask(
+                    listId = listId,
+                    taskId = taskId,
+                    title = title,
+                    description = description,
+                    assigneeId = assigneeId,
+                    assigneeName = assigneeName,
+                    priority = priority,
+                    dueAt = dueAt,
+                    notify = notify,
+                )
+            }
+        }
+    }
+
+    fun setCompleted(taskId: String, completed: Boolean) {
+        viewModelScope.launch { taskRepository.setCompleted(listId, taskId, completed) }
+    }
+
+    fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            reminderScheduler.cancel(taskId)
+            taskRepository.deleteTask(listId, taskId)
+        }
+    }
+
+    fun setVisibility(visibility: ListVisibility) {
+        viewModelScope.launch { listRepository.setVisibility(listId, visibility) }
+    }
+
+    fun renameList(name: String) {
+        viewModelScope.launch { listRepository.renameList(listId, name) }
+    }
+
+    fun deleteList(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            listRepository.deleteList(listId)
+            onDeleted()
+        }
+    }
+
+    fun removeMember(uid: String) {
+        viewModelScope.launch { listRepository.removeMember(listId, uid) }
+    }
+
+    fun inviteMember(email: String) {
+        val normalized = email.trim().lowercase()
+        if (normalized.isBlank()) return
+        viewModelScope.launch {
+            _inviteState.value = InviteUiState(isLoading = true)
+            val profile = userRepository.findByEmail(normalized)
+            if (profile == null) {
+                _inviteState.value = InviteUiState(
+                    errorMessage = "No MyTasks user found for $normalized. They need to sign in at least once first.",
+                )
+                return@launch
+            }
+            listRepository.addMember(
+                listId,
+                ListMember(
+                    uid = profile.uid,
+                    displayName = profile.displayName,
+                    email = profile.email,
+                    photoUrl = profile.photoUrl,
+                ),
+            )
+            _inviteState.value = InviteUiState()
+        }
+    }
+
+    fun clearInviteError() {
+        _inviteState.value = _inviteState.value.copy(errorMessage = null)
+    }
+}
