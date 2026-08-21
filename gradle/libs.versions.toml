@@ -13,10 +13,8 @@ googleServices = "4.4.2"
 credentials = "1.3.0"
 googleid = "1.1.1"
 workManager = "2.10.0"
-appauth = "0.11.1"
 coil = "2.7.0"
 coroutines = "1.9.0"
-facebookSdk = "16.3.0"
 junit = "4.13.2"
 androidxJunit = "1.2.1"
 espresso = "3.6.1"
@@ -48,13 +46,10 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
-firebase-functions = { group = "com.google.firebase", name = "firebase-functions-ktx" }
 
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
-facebook-login = { group = "com.facebook.android", name = "facebook-login", version.ref = "facebookSdk" }
-appauth = { group = "net.openid", name = "appauth", version.ref = "appauth" }
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

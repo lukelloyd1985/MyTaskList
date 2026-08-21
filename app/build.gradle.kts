@@ -19,13 +19,6 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Redirect URI scheme used by the generic OAuth (AppAuth) flow for
-        // providers Firebase does not support natively (LinkedIn, Proton).
-        manifestPlaceholders["appAuthRedirectScheme"] = "com.mytasks.app.oauth"
-
-        buildConfigField("String", "LINKEDIN_CLIENT_ID", "\"${project.findProperty("LINKEDIN_CLIENT_ID") ?: ""}\"")
-        buildConfigField("String", "PROTON_CLIENT_ID", "\"${project.findProperty("PROTON_CLIENT_ID") ?: ""}\"")
     }
 
     signingConfigs {
@@ -72,7 +65,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging {
@@ -110,13 +102,10 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
-    implementation(libs.firebase.functions)
 
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
-    implementation(libs.facebook.login)
-    implementation(libs.appauth)
 
     implementation(libs.work.runtime.ktx)
     implementation(libs.coil.compose)
