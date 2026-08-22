@@ -24,6 +24,10 @@ jobs:
       # the presence checks below go through these job-level booleans instead.
       HAS_GOOGLE_SERVICES_SECRET: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
       HAS_KEYSTORE_SECRET: ${{ secrets.MYTASKS_KEYSTORE_BASE64 != '' }}
+      HAS_PLAY_SERVICE_ACCOUNT_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      # Baked into the release build's versionName (see app/build.gradle.kts).
+      # Unused outside release-triggered steps, so harmless on other events.
+      RELEASE_VERSION_NAME: ${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -84,13 +88,16 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Build release APK
+      # Builds both the sideloadable APK (for the GitHub Release / direct
+      # install) and the App Bundle Google Play requires for a Play Store
+      # upload, from the same signed, compiled sources.
+      - name: Build release APK + AAB
         if: ${{ github.event_name == 'release' }}
         env:
           MYTASKS_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_KEYSTORE_PASSWORD }}
           MYTASKS_KEY_ALIAS: ${{ secrets.MYTASKS_KEY_ALIAS }}
           MYTASKS_KEY_PASSWORD: ${{ secrets.MYTASKS_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease bundleRelease --stacktrace
 
       - name: Upload debug APK artifact
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -108,8 +115,29 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           retention-days: 30
 
-      - name: Attach release APK to GitHub Release
+      - name: Upload release AAB artifact
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mytasks-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: Attach release APK + AAB to GitHub Release
         if: ${{ github.event_name == 'release' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+
+      # Uploads the AAB straight to the Play Console "internal testing"
+      # track - never production, see README "Publishing to Google Play".
+      # Requires the app to already exist in Play Console and its very
+      # first release to have been done manually there; see the README for
+      # why and for the one-time service account setup this secret needs.
+      - name: Publish to Google Play (internal track)
+        if: ${{ github.event_name == 'release' && env.HAS_PLAY_SERVICE_ACCOUNT_SECRET == 'true' }}
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: ./gradlew publishReleaseBundle --stacktrace
