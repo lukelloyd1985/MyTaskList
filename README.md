@@ -221,3 +221,8 @@ everything after that, which CI automates.
   need to remove the user's `users/{uid}` doc, their Firebase Auth
   account, and either delete or reassign ownership of any lists they own
   (a shared list they own can't just vanish for its other members).
+- Kotlin sources compile via AGP 9's built-in Kotlin support (no
+  `org.jetbrains.kotlin.android` plugin applied), and Hilt's annotation
+  processing runs via KSP rather than the now-incompatible `kapt`. Both
+  changes were required together - `kapt` doesn't work under built-in
+  Kotlin - see <https://developer.android.com/build/migrate-to-built-in-kotlin>.
