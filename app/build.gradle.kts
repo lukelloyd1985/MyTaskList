@@ -1,8 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // Kotlin sources compile via AGP's built-in Kotlin support (default
+    // since AGP 9.0) - no separate org.jetbrains.kotlin.android plugin.
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.play.publisher)
@@ -67,9 +68,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // No explicit Kotlin jvmTarget: built-in Kotlin defaults it from
+    // compileOptions.targetCompatibility above.
 
     buildFeatures {
         compose = true
@@ -114,10 +114,10 @@ dependencies {
     implementation(libs.navigation.compose)
 
     implementation(libs.hilt.android)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.work)
-    kapt(libs.androidx.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)

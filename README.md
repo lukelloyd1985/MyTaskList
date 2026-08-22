@@ -221,11 +221,8 @@ everything after that, which CI automates.
   need to remove the user's `users/{uid}` doc, their Firebase Auth
   account, and either delete or reassign ownership of any lists they own
   (a shared list they own can't just vanish for its other members).
-- **The Kotlin/kapt setup is on borrowed time.** AGP 9.0+ defaults to
-  "built-in Kotlin" and this project opts out of it
-  (`android.builtInKotlin=false` / `android.newDsl=false` in
-  `gradle.properties`) to keep `org.jetbrains.kotlin.android` and `kapt`
-  working as-is. That opt-out stops being available in AGP 10.0 - by then
-  this needs to migrate to AGP's built-in Kotlin support and swap `kapt`
-  for `com.android.legacy-kapt` (or migrate Hilt to KSP instead). See
-  <https://developer.android.com/build/migrate-to-built-in-kotlin>.
+- Kotlin sources compile via AGP 9's built-in Kotlin support (no
+  `org.jetbrains.kotlin.android` plugin applied), and Hilt's annotation
+  processing runs via KSP rather than the now-incompatible `kapt`. Both
+  changes were required together - `kapt` doesn't work under built-in
+  Kotlin - see <https://developer.android.com/build/migrate-to-built-in-kotlin>.
