@@ -22,7 +22,6 @@ jobs:
       # `if:` conditions can't reference the `secrets` context directly
       # ("Unrecognized named-value: 'secrets'") - only `env:` blocks can, so
       # the presence checks below go through these job-level booleans instead.
-      HAS_GOOGLE_SERVICES_SECRET: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
       HAS_KEYSTORE_SECRET: ${{ secrets.MYTASKS_KEYSTORE_BASE64 != '' }}
       HAS_DEBUG_KEYSTORE_SECRET: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_BASE64 != '' }}
       HAS_PLAY_SERVICE_ACCOUNT_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
@@ -59,17 +58,6 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', 'gradle/libs.versions.toml') }}
           restore-keys: |
             gradle-${{ runner.os }}-
-
-      # google-services.json is safe to commit (see README) and a working
-      # placeholder already lives at app/google-services.json so the build
-      # always succeeds out of the box. If a real Firebase project's file
-      # has been added as the GOOGLE_SERVICES_JSON secret, it's swapped in
-      # here so the resulting APK actually authenticates against it.
-      - name: Use real google-services.json if configured
-        if: ${{ env.HAS_GOOGLE_SERVICES_SECRET == 'true' }}
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: echo "$GOOGLE_SERVICES_JSON" | base64 --decode > app/google-services.json
 
       # Without a signing secret, release builds fall back to the debug
       # keystore (see app/build.gradle.kts) so a testable APK is always
