@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.play.publisher)
 }
 
 android {
@@ -15,8 +16,15 @@ android {
         applicationId = "com.mytasks.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+
+        // Play Store rejects any upload whose versionCode isn't strictly
+        // greater than every previous upload's. GITHUB_RUN_NUMBER
+        // increments on every run of this workflow, so it's a reliable
+        // monotonic source in CI; local builds fall back to 1.
+        // RELEASE_VERSION_NAME is set by the release workflow job to the
+        // git tag (e.g. "v1.2.3"); local builds fall back to "1.0.0-dev".
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionName = System.getenv("RELEASE_VERSION_NAME") ?: "1.0.0-dev"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -73,6 +81,18 @@ android {
             excludes += "/META-INF/DEPENDENCIES"
         }
     }
+}
+
+// Publishes the release App Bundle to Google Play via `publishReleaseBundle`
+// (see .github/workflows/android-build.yml and README "Publishing to Google
+// Play"). Configuring this block never requires credentials - only running
+// a publish task does, via the ANDROID_PUBLISHER_CREDENTIALS environment
+// variable (a Play Console service account's JSON key) - so this is a no-op
+// for every other build until that's set.
+play {
+    track.set("internal")
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.COMPLETED)
+    defaultToAppBundles.set(true)
 }
 
 dependencies {

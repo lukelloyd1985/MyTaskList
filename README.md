@@ -107,10 +107,14 @@ produces an installable APK even before you've set up a keystore.
   Build* → **Run workflow**. It builds a debug APK and attaches it to the
   workflow run as a downloadable artifact - handy for giving testers a
   build without cutting a release.
-- **Publishing a GitHub Release** automatically builds a release APK and
-  attaches it to that release (and to the workflow run as an artifact).
-  The release-signing steps (keystore decode, `assembleRelease`, release
-  artifact upload) only run for this trigger, not for manual runs.
+- **Publishing a GitHub Release** automatically builds a release APK *and*
+  an Android App Bundle (`.aab`, what Google Play requires), attaches both
+  to that release (and to the workflow run as artifacts), and - if the
+  `PLAY_SERVICE_ACCOUNT_JSON` secret is set - uploads the AAB to Google
+  Play's internal testing track. See
+  [Publishing to Google Play](#publishing-to-google-play) below. None of
+  the release-signing/AAB/Play-publish steps run for manual
+  `workflow_dispatch` runs, only for this trigger.
 
 To get a properly **signed** release build (instead of the debug-keystore
 fallback), generate a keystore and add these repository secrets
@@ -133,6 +137,71 @@ Optionally also add `GOOGLE_SERVICES_JSON` (the real `google-services.json`,
 base64-encoded) as a secret so CI builds authenticate against your real
 Firebase project instead of the committed placeholder.
 
+## Publishing to Google Play
+
+Getting onto Google Play has two kinds of steps: a handful that **only you
+can do**, by hand, in Play Console (there's no API for them - creating an
+app and its first release requires a human in the Play Console UI), and
+everything after that, which CI automates.
+
+### 1. One-time setup you do by hand
+
+1. **Host the privacy policy.** Play requires a live URL for one.
+   [`docs/privacy.html`](docs/privacy.html) is a starting draft - replace
+   every `[bracketed placeholder]` in it (especially the support email),
+   then enable it at Settings → Pages → *Build and deployment* → *Deploy
+   from a branch* → branch `feature/mvp`, folder `/docs`. It'll be served
+   at `https://<your-github-username>.github.io/MyTasks/privacy.html`.
+2. **Create the app** in [Play Console](https://play.google.com/console):
+   *Create app* → name it, set default language, "App" (not game), and
+   Free. The package name is fixed at creation to whatever you tell it -
+   use `com.mytasks.app` to match `applicationId` in
+   `app/build.gradle.kts`.
+3. **Complete "App content"** (Play Console won't allow any release
+   without these): Privacy policy URL (from step 1), Ads (No ads, unless
+   you've added some), App access (all functionality is available without
+   special access), Content ratings questionnaire, Target audience,
+   **Data safety** section - this should mirror `docs/privacy.html`:
+   personal info collected (name, email, photo - via Google Sign-In),
+   task/list content, shared with third parties = **No**, encrypted in
+   transit = **Yes**, users can request data deletion = **Yes**, pointing
+   at the same privacy policy page.
+4. **Fill in the Store listing**: short/full description, app icon
+   (512×512 PNG), feature graphic (1024×500 PNG), and at least 2 phone
+   screenshots. There's nothing in this repo for these yet - the launcher
+   icon vectors in `app/src/main/res/drawable` aren't a substitute for a
+   proper Play Store icon/graphics set.
+5. **Do the first release by hand.** Build an AAB
+   (`./gradlew bundleRelease`, or download one from a GitHub Release once
+   you've tagged one - see below), go to Testing → Internal testing →
+   *Create new release*, upload it, add release notes, and roll it out.
+   Add yourself (and any other testers) as an internal tester so you can
+   install it.
+
+### 2. Let CI handle every release after that
+
+1. In Play Console, go to **Setup → API access** and follow its prompt to
+   create a Google Cloud service account (or link an existing project).
+   In the Cloud Console, create a JSON key for that service account.
+2. Back in Play Console's API access page, grant that service account
+   **Release manager**-level access to this app (or a custom role limited
+   to managing releases on the internal track, if you'd rather keep it
+   narrower).
+3. Add the JSON key's full contents as the `PLAY_SERVICE_ACCOUNT_JSON`
+   repository secret (Settings → Secrets and variables → Actions) -
+   paste the raw JSON, not base64.
+4. From then on, **publishing a GitHub Release** builds the AAB and runs
+   `publishReleaseBundle`, which uploads it straight to the **internal
+   testing** track with `releaseStatus = COMPLETED` (see the `play { }`
+   block in `app/build.gradle.kts`). CI never touches the production
+   track - promote a release from internal testing to production
+   yourself in Play Console once you're happy with it.
+5. **Version each release with a git tag** (e.g. `v1.0.1`) when you
+   create the GitHub Release - it becomes the app's `versionName`.
+   `versionCode` auto-increments from `GITHUB_RUN_NUMBER`, so Play's
+   "each upload needs a higher version code than the last" requirement is
+   handled for you automatically.
+
 ## Notes & tradeoffs
 
 - `res/drawable/ic_provider_google.xml` is a simple stand-in, not the
@@ -144,3 +213,11 @@ Firebase project instead of the committed placeholder.
 - Due-date reminders are best-effort: an on-device WorkManager job covers
   the device that set the reminder, and the `dueDateReminders` Cloud
   Function sweeps every 15 minutes as the cross-device fallback.
+- **Account deletion isn't implemented yet.** `docs/privacy.html` points
+  people at a support email for now, which satisfies Play's account
+  deletion policy on its own, but Google increasingly expects (and
+  reviewers may ask for) an in-app "Delete my account" action for apps
+  that support Google Sign-In. Worth adding before a real launch: it'd
+  need to remove the user's `users/{uid}` doc, their Firebase Auth
+  account, and either delete or reassign ownership of any lists they own
+  (a shared list they own can't just vanish for its other members).
