@@ -40,6 +40,26 @@ android {
                 keyPassword = System.getenv("MYTASKS_KEY_PASSWORD")
             }
         }
+        // GitHub Actions runners are a fresh VM every run, so with no
+        // override here AGP's built-in debug signing would auto-generate a
+        // brand-new, random debug.keystore on every CI build. Google Sign-In
+        // verifies the calling app's signing certificate as part of its
+        // account-reauth check, so a debug APK signed with a different,
+        // unregistered certificate every run fails that check every time
+        // (surfaces as GetCredentialException type TYPE_USER_CANCELED,
+        // message "[16] Account reauth failed"). Overriding with a stable,
+        // CI-provided keystore (see README) - whose SHA-1 gets registered in
+        // Firebase once - fixes this. Falls back to AGP's default debug
+        // signing (unaffected) for local builds where this isn't set.
+        getByName("debug") {
+            val keystorePath = System.getenv("MYTASKS_DEBUG_KEYSTORE_PATH")
+            if (!keystorePath.isNullOrBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("MYTASKS_DEBUG_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MYTASKS_DEBUG_KEY_ALIAS")
+                keyPassword = System.getenv("MYTASKS_DEBUG_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {

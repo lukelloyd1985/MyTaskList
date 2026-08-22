@@ -24,6 +24,7 @@ jobs:
       # the presence checks below go through these job-level booleans instead.
       HAS_GOOGLE_SERVICES_SECRET: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
       HAS_KEYSTORE_SECRET: ${{ secrets.MYTASKS_KEYSTORE_BASE64 != '' }}
+      HAS_DEBUG_KEYSTORE_SECRET: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_BASE64 != '' }}
       HAS_PLAY_SERVICE_ACCOUNT_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       # Baked into the release build's versionName (see app/build.gradle.kts).
       # Unused outside release-triggered steps, so harmless on other events.
@@ -83,11 +84,30 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
           echo "MYTASKS_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
+      # Without this, AGP's built-in debug signing auto-generates a brand
+      # new, random debug.keystore on every run (runners are a fresh VM each
+      # time), so the resulting APK's signing certificate is never the same
+      # twice - Google Sign-In's account-reauth check can never trust an
+      # unregistered, ever-changing certificate. Decoding a stable keystore
+      # here (see README) makes every CI debug build carry the same
+      # signature, so its SHA-1 can be registered in Firebase once.
+      - name: Decode debug keystore
+        if: ${{ github.event_name == 'workflow_dispatch' && env.HAS_DEBUG_KEYSTORE_SECRET == 'true' }}
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          echo "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/debug.keystore"
+          echo "MYTASKS_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build debug APK
         if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          MYTASKS_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_PASSWORD }}
+          MYTASKS_DEBUG_KEY_ALIAS: ${{ secrets.MYTASKS_DEBUG_KEY_ALIAS }}
+          MYTASKS_DEBUG_KEY_PASSWORD: ${{ secrets.MYTASKS_DEBUG_KEY_PASSWORD }}
         run: ./gradlew assembleDebug --stacktrace
 
       # Builds both the sideloadable APK (for the GitHub Release / direct
