@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isListOwner(listData) {
+      return listData.ownerId == request.auth.uid;
+    }
+
+    // memberIds is the single source of truth for who can see a shared
+    // list; the app clears it whenever a list is switched back to
+    // private (see ListRepository.setVisibility), so this stays
+    // consistent with the `visibility` field without this rule needing to
+    // read it too. That consistency matters: Firestore fails a *whole*
+    // query - not just the offending document - if any potential result
+    // would be denied, so the read rule must be satisfiable purely from
+    // fields the app's queries already filter on (ownerId / memberIds).
+    function isListMember(listData) {
+      return isListOwner(listData) || (request.auth.uid in listData.memberIds);
+    }
+
+    // Basic profile documents, keyed by uid. Any signed-in user may read any
+    // profile so that a list owner can look up an invitee by email and so
+    // an assignee's display name can be shown in a shared list. Only the
+    // owning user may write their own document.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    match /lists/{listId} {
+      allow read: if signedIn() && isListMember(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      // Renaming, changing visibility, and managing membership are all
+      // owner-only actions in the app today (see ListSettingsScreen.kt).
+      allow update: if signedIn() && isListOwner(resource.data);
+      allow delete: if signedIn() && isListOwner(resource.data);
+
+      match /tasks/{taskId} {
+        function parentList() {
+          return get(/databases/$(database)/documents/lists/$(listId)).data;
+        }
+
+        allow read: if signedIn() && isListMember(parentList());
+        allow create, update, delete: if signedIn() && isListMember(parentList());
+      }
+    }
+  }
+}

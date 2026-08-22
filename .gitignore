@@ -1,0 +1,34 @@
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+app/release/
+app/debug/
+
+# Keystores - never commit real signing material.
+*.jks
+*.keystore
+!app/debug.keystore
+
+# Firebase (google-services.json is safe to commit - see README - but keep
+# a local override out of version control if a developer swaps in their own
+# project's file for testing without meaning to publish it here).
+/app/google-services.local.json
+
+# Node / Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.env
+firebase-debug.log
+firestore-debug.log
+.firebase/
+
+# Misc
+*.log

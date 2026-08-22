@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MyTasks</string>
+
+    <string name="notification_channel_tasks_id">tasks_channel</string>
+    <string name="notification_channel_tasks_name">Task reminders</string>
+    <string name="notification_channel_tasks_desc">Due-date reminders and task assignment alerts</string>
+
+    <!-- default_web_client_id is intentionally NOT declared here: the
+         com.google.gms.google-services Gradle plugin generates it at build
+         time from google-services.json's client_type == 3 oauth_client
+         entry, and is what Credential Manager / Google Identity uses for
+         Google sign-in (see LoginScreen.kt). -->
+</resources>
