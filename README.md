@@ -13,9 +13,10 @@ you organize your life into.
   (for testing) and attaches a release APK to every published GitHub
   Release.
 
-The app builds and runs out of the box against a placeholder Firebase
-project so you can try the UI immediately, but sign-in and data sync need a
-real backend - see [Backend setup](#backend-setup) below.
+`app/google-services.json` is already configured against a real Firebase
+project, so the app builds and runs against real sign-in and data sync out
+of the box. If you're standing up your own backend instead - see
+[Backend setup](#backend-setup) below for that.
 
 ## Architecture
 
@@ -51,8 +52,11 @@ its owner and everyone in `memberIds`.
 1. **Create a Firebase project** at <https://console.firebase.google.com>,
    add an Android app with package name `com.mytasks.app` (and, for local
    debug builds, `com.mytasks.app.debug`), and download the real
-   `google-services.json` over the placeholder committed at
-   `app/google-services.json`.
+   `google-services.json` over `app/google-services.json`. It's committed
+   directly to the repo - Google designed this file to be safe for public
+   repos (the API key in it only identifies the project; it isn't a
+   credential on its own) - and CI builds from it as-is, so this is the
+   only place it needs to live.
 2. **Enable Firestore** (production mode) and deploy the rules/indexes:
    ```
    npm install -g firebase-tools
@@ -83,8 +87,7 @@ its owner and everyone in `memberIds`.
    in that state, but tapping "Continue with Google" will show "Google
    sign-in isn't configured yet" until you complete this step. After
    enabling it, re-download `google-services.json` and replace
-   `app/google-services.json` (or update the `GOOGLE_SERVICES_JSON` CI
-   secret).
+   `app/google-services.json`.
 6. **Register your signing certificates' SHA-1/SHA-256 fingerprints** in
    Firebase Console → Project settings → Your apps, on both the
    `com.mytasks.app` and `com.mytasks.app.debug` entries. Google Sign-In
@@ -150,10 +153,6 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEYSTORE_PASSWORD` | keystore password |
 | `MYTASKS_KEY_ALIAS` | key alias (e.g. `mytasks`) |
 | `MYTASKS_KEY_PASSWORD` | key password |
-
-Optionally also add `GOOGLE_SERVICES_JSON` (the real `google-services.json`,
-base64-encoded) as a secret so CI builds authenticate against your real
-Firebase project instead of the committed placeholder.
 
 **Debug builds from CI need their own stable keystore too**, or Google
 Sign-In won't work on them (see [Backend setup](#backend-setup) step 6).
