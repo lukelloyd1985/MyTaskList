@@ -53,6 +53,9 @@ class ListDetailViewModel @Inject constructor(
     private val _inviteState = MutableStateFlow(InviteUiState())
     val inviteState: StateFlow<InviteUiState> = _inviteState
 
+    private val _deleteError = MutableStateFlow<String?>(null)
+    val deleteError: StateFlow<String?> = _deleteError
+
     fun assignableMembers(currentList: TaskList?): List<ListMember> {
         val list = currentList ?: return emptyList()
         val ownerMember = ListMember(uid = list.ownerId, displayName = list.ownerName, email = "", photoUrl = "")
@@ -119,11 +122,23 @@ class ListDetailViewModel @Inject constructor(
         viewModelScope.launch { listRepository.renameList(listId, name) }
     }
 
+    // The confirm dialog dismisses itself as soon as this is called (see
+    // ListSettingsScreen) rather than waiting for this delete to finish, so
+    // any failure surfaces afterward via deleteError instead of leaving
+    // the dialog open with no feedback.
     fun deleteList(onDeleted: () -> Unit) {
         viewModelScope.launch {
-            listRepository.deleteList(listId)
-            onDeleted()
+            try {
+                listRepository.deleteList(listId)
+                onDeleted()
+            } catch (t: Throwable) {
+                _deleteError.value = t.message ?: "Couldn't delete list"
+            }
         }
+    }
+
+    fun clearDeleteError() {
+        _deleteError.value = null
     }
 
     fun removeMember(uid: String) {
