@@ -85,6 +85,24 @@ its owner and everyone in `memberIds`.
    enabling it, re-download `google-services.json` and replace
    `app/google-services.json` (or update the `GOOGLE_SERVICES_JSON` CI
    secret).
+6. **Register your signing certificates' SHA-1/SHA-256 fingerprints** in
+   Firebase Console → Project settings → Your apps, on both the
+   `com.mytasks.app` and `com.mytasks.app.debug` entries. Google Sign-In
+   verifies the calling app's certificate as part of its silent
+   account-reauth check, so a build signed with an unregistered
+   certificate fails sign-in with a `GetCredentialException` of type
+   `TYPE_USER_CANCELED` and message `[16] Account reauth failed` - it
+   looks like a cancel, but it's really an unrecognized signer. Get each
+   fingerprint with:
+   ```
+   keytool -list -v -keystore <path-to-keystore> -alias <alias> -storepass <password>
+   ```
+   For a **release** build, that's your `MYTASKS_KEYSTORE_BASE64` keystore.
+   For a **local debug** build, it's Android Studio's per-machine
+   `~/.android/debug.keystore` (alias `androiddebugkey`, password
+   `android`). For a **CI-built debug APK**, see the debug keystore secrets
+   below - CI runners are a fresh VM every run, so without a keystore
+   secret configured there's no stable certificate to register at all.
 
 ## Building the APK
 
@@ -136,6 +154,31 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 Optionally also add `GOOGLE_SERVICES_JSON` (the real `google-services.json`,
 base64-encoded) as a secret so CI builds authenticate against your real
 Firebase project instead of the committed placeholder.
+
+**Debug builds from CI need their own stable keystore too**, or Google
+Sign-In won't work on them (see [Backend setup](#backend-setup) step 6).
+Without it, `assembleDebug` falls back to AGP's built-in debug signing,
+which auto-generates a brand-new random keystore on every run - since CI
+runners are a fresh VM each time - so there's never a consistent
+certificate for Firebase to recognize. Generate one the same way and add
+it as its own set of secrets:
+
+```
+keytool -genkeypair -v -keystore debug.keystore -alias mytasksdebug \
+  -keyalg RSA -keysize 2048 -validity 10000
+base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
+```
+
+| Secret | Value |
+| --- | --- |
+| `MYTASKS_DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
+| `MYTASKS_DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
+| `MYTASKS_DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasksdebug`) |
+| `MYTASKS_DEBUG_KEY_PASSWORD` | debug key password |
+
+Then register this keystore's SHA-1 (and SHA-256) fingerprint against the
+`com.mytasks.app.debug` app in Firebase Console per step 6 above - that's
+the step that actually fixes Google Sign-In on CI-built debug APKs.
 
 ## Publishing to Google Play
 
