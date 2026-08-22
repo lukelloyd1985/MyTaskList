@@ -17,6 +17,8 @@ import com.mytasks.app.data.model.TaskList
 import com.mytasks.app.data.remote.AuthRepository
 import com.mytasks.app.data.remote.ListRepository
 
+data class ListsUiState(val errorMessage: String? = null)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ListsViewModel @Inject constructor(
@@ -30,7 +32,16 @@ class ListsViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun createList(name: String, visibility: ListVisibility, onCreated: (String) -> Unit = {}) {
+    private val _uiState = MutableStateFlow(ListsUiState())
+    val uiState: StateFlow<ListsUiState> = _uiState
+
+    // The create dialog dismisses itself as soon as this is called (see
+    // ListsScreen) rather than waiting for this write to finish - lists
+    // are offline-first (see FirebaseModule), so the new list shows up via
+    // `lists` above the moment it's applied locally, with or without a
+    // network round trip. Any failure surfaces afterward via uiState
+    // instead of leaving the dialog open with no feedback.
+    fun createList(name: String, visibility: ListVisibility) {
         val user = authRepository.currentUser ?: return
         val owner = ListMember(
             uid = user.uid,
@@ -39,14 +50,21 @@ class ListsViewModel @Inject constructor(
             photoUrl = user.photoUrl?.toString().orEmpty(),
         )
         viewModelScope.launch {
-            val id = listRepository.createList(
-                name = name.trim(),
-                icon = "checklist",
-                colorHex = "#1B5E20",
-                visibility = visibility,
-                owner = owner,
-            )
-            onCreated(id)
+            try {
+                listRepository.createList(
+                    name = name.trim(),
+                    icon = "checklist",
+                    colorHex = "#1B5E20",
+                    visibility = visibility,
+                    owner = owner,
+                )
+            } catch (t: Throwable) {
+                _uiState.value = ListsUiState(errorMessage = t.message ?: "Couldn't create list")
+            }
         }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 }

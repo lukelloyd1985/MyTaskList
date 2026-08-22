@@ -61,10 +61,19 @@ fun ListSettingsScreen(
     var inviteEmail by remember { mutableStateOf("") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
+    val deleteError by viewModel.deleteError.collectAsStateWithLifecycle()
+
     LaunchedEffect(inviteState.errorMessage) {
         inviteState.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearInviteError()
+        }
+    }
+
+    LaunchedEffect(deleteError) {
+        deleteError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearDeleteError()
         }
     }
 
@@ -194,7 +203,10 @@ fun ListSettingsScreen(
             title = { Text("Delete this list?") },
             text = { Text("All tasks in \"${list?.name}\" will be permanently deleted for everyone.") },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteList(onListDeleted) }) { Text("Delete") }
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    viewModel.deleteList(onListDeleted)
+                }) { Text("Delete") }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
