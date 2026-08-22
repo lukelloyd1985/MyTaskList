@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.Credential
@@ -41,6 +42,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 import com.mytasks.app.R
 import com.mytasks.app.ui.components.SocialLoginButton
+
+private const val TAG = "GoogleSignIn"
 
 @Composable
 fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
@@ -145,18 +148,23 @@ private suspend fun signInWithGoogle(
 
     try {
         val response = credentialManager.getCredential(context, primaryRequest)
+        Log.i(TAG, "Primary GetGoogleIdOption flow returned a credential")
         handleGoogleCredential(response.credential, viewModel, snackbarHostState)
     } catch (e: NoCredentialException) {
+        Log.w(TAG, "Primary flow found no credential (type=${e.type}), falling back to GetSignInWithGoogleOption", e)
         val fallbackOption = GetSignInWithGoogleOption.Builder(serverClientId = webClientId).build()
         val fallbackRequest = GetCredentialRequest.Builder().addCredentialOption(fallbackOption).build()
         try {
             val response = credentialManager.getCredential(context, fallbackRequest)
+            Log.i(TAG, "Fallback GetSignInWithGoogleOption flow returned a credential")
             handleGoogleCredential(response.credential, viewModel, snackbarHostState)
         } catch (e2: GetCredentialException) {
-            snackbarHostState.showSnackbar(e2.message ?: "Google sign-in was cancelled")
+            Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message}", e2)
+            snackbarHostState.showSnackbar("Google sign-in failed [${e2.type}]: ${e2.message ?: "cancelled"}")
         }
     } catch (e: GetCredentialException) {
-        snackbarHostState.showSnackbar(e.message ?: "Google sign-in was cancelled")
+        Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message}", e)
+        snackbarHostState.showSnackbar("Google sign-in failed [${e.type}]: ${e.message ?: "cancelled"}")
     }
 }
 
@@ -169,6 +177,7 @@ private suspend fun handleGoogleCredential(
         val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
         viewModel.onGoogleIdToken(googleIdTokenCredential.idToken)
     } else {
-        snackbarHostState.showSnackbar("Unexpected credential type from Google")
+        Log.e(TAG, "Unexpected credential type from Google: ${credential.type}")
+        snackbarHostState.showSnackbar("Unexpected credential type from Google: ${credential.type}")
     }
 }
