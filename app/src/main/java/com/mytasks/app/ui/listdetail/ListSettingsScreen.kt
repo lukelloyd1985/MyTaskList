@@ -61,19 +61,10 @@ fun ListSettingsScreen(
     var inviteEmail by remember { mutableStateOf("") }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val deleteError by viewModel.deleteError.collectAsStateWithLifecycle()
-
     LaunchedEffect(inviteState.errorMessage) {
         inviteState.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearInviteError()
-        }
-    }
-
-    LaunchedEffect(deleteError) {
-        deleteError?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearDeleteError()
         }
     }
 

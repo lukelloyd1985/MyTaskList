@@ -1,15 +1,21 @@
 package com.mytasks.app.ui.listdetail
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Date
 import javax.inject.Inject
 import com.mytasks.app.data.model.ListMember
@@ -21,6 +27,7 @@ import com.mytasks.app.data.remote.AuthRepository
 import com.mytasks.app.data.remote.ListRepository
 import com.mytasks.app.data.remote.TaskRepository
 import com.mytasks.app.data.remote.UserRepository
+import com.mytasks.app.di.ApplicationScope
 import com.mytasks.app.notifications.ReminderScheduler
 
 data class InviteUiState(val isLoading: Boolean = false, val errorMessage: String? = null)
@@ -33,6 +40,8 @@ class ListDetailViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
     private val userRepository: UserRepository,
     private val reminderScheduler: ReminderScheduler,
+    @ApplicationContext private val appContext: Context,
+    @ApplicationScope private val applicationScope: CoroutineScope,
 ) : ViewModel() {
 
     val listId: String = checkNotNull(savedStateHandle["listId"])
@@ -52,9 +61,6 @@ class ListDetailViewModel @Inject constructor(
 
     private val _inviteState = MutableStateFlow(InviteUiState())
     val inviteState: StateFlow<InviteUiState> = _inviteState
-
-    private val _deleteError = MutableStateFlow<String?>(null)
-    val deleteError: StateFlow<String?> = _deleteError
 
     fun assignableMembers(currentList: TaskList?): List<ListMember> {
         val list = currentList ?: return emptyList()
@@ -122,23 +128,24 @@ class ListDetailViewModel @Inject constructor(
         viewModelScope.launch { listRepository.renameList(listId, name) }
     }
 
-    // The confirm dialog dismisses itself as soon as this is called (see
-    // ListSettingsScreen) rather than waiting for this delete to finish, so
-    // any failure surfaces afterward via deleteError instead of leaving
-    // the dialog open with no feedback.
+    // Navigates back immediately rather than waiting for the delete to
+    // finish - same offline-first reasoning as ListsViewModel.createList.
+    // The delete itself runs on applicationScope, not viewModelScope:
+    // navigating away clears this screen's ViewModel, which would
+    // otherwise cancel the in-flight write before it ever reaches
+    // Firestore. A failure can't be shown on this screen anymore by the
+    // time it's known, so it's reported via a Toast instead.
     fun deleteList(onDeleted: () -> Unit) {
-        viewModelScope.launch {
+        onDeleted()
+        applicationScope.launch {
             try {
                 listRepository.deleteList(listId)
-                onDeleted()
             } catch (t: Throwable) {
-                _deleteError.value = t.message ?: "Couldn't delete list"
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(appContext, t.message ?: "Couldn't delete list", Toast.LENGTH_LONG).show()
+                }
             }
         }
-    }
-
-    fun clearDeleteError() {
-        _deleteError.value = null
     }
 
     fun removeMember(uid: String) {
