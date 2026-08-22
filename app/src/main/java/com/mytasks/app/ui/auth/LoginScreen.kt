@@ -29,11 +29,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
+import androidx.credentials.Credential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 import com.mytasks.app.R
@@ -126,24 +129,46 @@ private suspend fun signInWithGoogle(
     }
 
     val credentialManager = CredentialManager.create(context)
+
+    // GetGoogleIdOption's bottom-sheet flow only offers accounts Android
+    // already has some signal for. On a real device with a Google account
+    // that hasn't used this exact flow before - or isn't surfaced for
+    // other reasons - it throws NoCredentialException ("No credentials
+    // available") rather than falling back on its own. Per Google's docs,
+    // the fix is to retry with GetSignInWithGoogleOption, which shows the
+    // full account picker instead: https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
     val googleIdOption = GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)
         .setServerClientId(webClientId)
         .build()
-    val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
+    val primaryRequest = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
 
     try {
-        val response = credentialManager.getCredential(context, request)
-        val credential = response.credential
-        if (credential is CustomCredential &&
-            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-        ) {
-            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-            viewModel.onGoogleIdToken(googleIdTokenCredential.idToken)
-        } else {
-            snackbarHostState.showSnackbar("Unexpected credential type from Google")
+        val response = credentialManager.getCredential(context, primaryRequest)
+        handleGoogleCredential(response.credential, viewModel, snackbarHostState)
+    } catch (e: NoCredentialException) {
+        val fallbackOption = GetSignInWithGoogleOption.Builder(serverClientId = webClientId).build()
+        val fallbackRequest = GetCredentialRequest.Builder().addCredentialOption(fallbackOption).build()
+        try {
+            val response = credentialManager.getCredential(context, fallbackRequest)
+            handleGoogleCredential(response.credential, viewModel, snackbarHostState)
+        } catch (e2: GetCredentialException) {
+            snackbarHostState.showSnackbar(e2.message ?: "Google sign-in was cancelled")
         }
     } catch (e: GetCredentialException) {
         snackbarHostState.showSnackbar(e.message ?: "Google sign-in was cancelled")
+    }
+}
+
+private suspend fun handleGoogleCredential(
+    credential: Credential,
+    viewModel: AuthViewModel,
+    snackbarHostState: SnackbarHostState,
+) {
+    if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+        viewModel.onGoogleIdToken(googleIdTokenCredential.idToken)
+    } else {
+        snackbarHostState.showSnackbar("Unexpected credential type from Google")
     }
 }
