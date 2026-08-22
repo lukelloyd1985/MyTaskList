@@ -189,12 +189,15 @@ everything after that, which CI automates.
 
 ### 1. One-time setup you do by hand
 
-1. **Host the privacy policy.** Play requires a live URL for one.
-   [`docs/privacy.html`](docs/privacy.html) is a starting draft - replace
-   every `[bracketed placeholder]` in it (especially the support email),
-   then enable it at Settings → Pages → *Build and deployment* → *Deploy
-   from a branch* → branch `feature/mvp`, folder `/docs`. It'll be served
-   at `https://<your-github-username>.github.io/MyTasks/privacy.html`.
+1. **Host the privacy policy and account deletion page.** Play requires a
+   live URL for each. [`docs/privacy.html`](docs/privacy.html) and
+   [`docs/delete-account.html`](docs/delete-account.html) are starting
+   drafts - replace every `[bracketed placeholder]` in both (especially
+   the support email), then enable Pages at Settings → Pages → *Build and
+   deployment* → *Deploy from a branch* → branch `feature/mvp`, folder
+   `/docs`. Both are served from the same deployment, at
+   `https://<your-github-username>.github.io/MyTasks/privacy.html` and
+   `.../delete-account.html`.
 2. **Create the app** in [Play Console](https://play.google.com/console):
    *Create app* → name it, set default language, "App" (not game), and
    Free. The package name is fixed at creation to whatever you tell it -
@@ -207,8 +210,10 @@ everything after that, which CI automates.
    **Data safety** section - this should mirror `docs/privacy.html`:
    personal info collected (name, email, photo - via Google Sign-In),
    task/list content, shared with third parties = **No**, encrypted in
-   transit = **Yes**, users can request data deletion = **Yes**, pointing
-   at the same privacy policy page.
+   transit = **Yes**, users can request data deletion = **Yes**, with the
+   account deletion URL set to `docs/delete-account.html`'s published
+   address from step 1 (see [Notes & tradeoffs](#notes--tradeoffs) for
+   what that page and the in-app "Delete my account" action actually do).
 4. **Fill in the Store listing**: short/full description, app icon
    (512×512 PNG), feature graphic (1024×500 PNG), and at least 2 phone
    screenshots. There's nothing in this repo for these yet - the launcher
@@ -256,14 +261,20 @@ everything after that, which CI automates.
 - Due-date reminders are best-effort: an on-device WorkManager job covers
   the device that set the reminder, and the `dueDateReminders` Cloud
   Function sweeps every 15 minutes as the cross-device fallback.
-- **Account deletion isn't implemented yet.** `docs/privacy.html` points
-  people at a support email for now, which satisfies Play's account
-  deletion policy on its own, but Google increasingly expects (and
-  reviewers may ask for) an in-app "Delete my account" action for apps
-  that support Google Sign-In. Worth adding before a real launch: it'd
-  need to remove the user's `users/{uid}` doc, their Firebase Auth
-  account, and either delete or reassign ownership of any lists they own
-  (a shared list they own can't just vanish for its other members).
+- **Account deletion** satisfies Play's dual in-app + web requirement:
+  the Profile screen's "Delete my account" action calls the `deleteAccount`
+  callable Cloud Function (`functions/src/accountDeletion.ts`), which
+  transfers or removes the user's membership on every list they're part
+  of (a shared list they own is handed to another member rather than
+  deleted out from under them), unassigns their tasks elsewhere, deletes
+  their `users/{uid}` doc, then deletes their Firebase Auth account.
+  `docs/delete-account.html` covers the same thing for someone who no
+  longer has the app installed, and gets registered as the "Delete
+  account" URL in Play Console's Data safety section (see
+  [Publishing to Google Play](#publishing-to-google-play)). This runs
+  server-side rather than from the client both because one user must
+  never be able to delete another's account, and because
+  `firestore.rules` blocks client deletes of `users/{uid}` outright.
 - Kotlin sources compile via AGP 9's built-in Kotlin support (no
   `org.jetbrains.kotlin.android` plugin applied), and Hilt's annotation
   processing runs via KSP rather than the now-incompatible `kapt`. Both

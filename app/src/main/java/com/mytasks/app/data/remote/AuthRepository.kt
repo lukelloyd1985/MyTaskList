@@ -3,6 +3,7 @@ package com.mytasks.app.data.remote
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -17,11 +18,17 @@ interface AuthRepository {
     suspend fun signInWithGoogleIdToken(idToken: String): FirebaseUser
 
     fun signOut()
+
+    /** Calls the `deleteAccount` Cloud Function, which deletes this user's
+     *  data (see `functions/src/accountDeletion.ts`) and their Firebase
+     *  Auth account, then clears the local session. */
+    suspend fun deleteAccount()
 }
 
 @Singleton
 class FirebaseAuthRepository @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
+    private val functions: FirebaseFunctions,
 ) : AuthRepository {
 
     override val authState: Flow<FirebaseUser?> = callbackFlow {
@@ -40,6 +47,11 @@ class FirebaseAuthRepository @Inject constructor(
     }
 
     override fun signOut() {
+        firebaseAuth.signOut()
+    }
+
+    override suspend fun deleteAccount() {
+        functions.getHttpsCallable("deleteAccount").call().await()
         firebaseAuth.signOut()
     }
 }
