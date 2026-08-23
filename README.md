@@ -251,9 +251,10 @@ everything after that, which CI automates.
 
 ## Notes & tradeoffs
 
-- `res/drawable/ic_provider_google.xml` is a simple stand-in, not the
-  official brand mark - swap it for Google's real logo asset per their
-  brand guidelines before shipping.
+- `res/drawable/ic_provider_google.xml` is Google's official "G" identity
+  mark (sourced from Google's own FirebaseUI-Android library), matching
+  their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
+  Don't recolor or restyle it.
 - Any signed-in user can look up any other user's basic profile (name,
   email, photo) by email, which is what powers "invite by email" on a
   shared list. See `firestore.rules` if you want to tighten this further.
