@@ -1,0 +1,17 @@
+MyTasks is a simple, shared task-list app for the things you organize together - or keep to yourself.
+
+Create as many lists as you need: Short term, Long term, Garden, House, or anything else you organize your life into. Each list is private by default, or you can share it and invite people by email to see and edit it with you.
+
+Add tasks with a due date, priority, and an assignee, and get a reminder notification when something's due. Everyone on a shared list sees updates in real time.
+
+Sign in with your Google account - no separate account or password to create.
+
+Highlights:
+- Multiple lists, each private or shared
+- Invite people to a shared list by email
+- Assign tasks, set due dates and priorities
+- Due-date reminder notifications
+- Works offline and syncs when you're back online
+- Sign in with Google - nothing else to set up
+
+MyTasks doesn't use ads or tracking, and doesn't sell your data. See the in-app privacy policy for details, including how to delete your account and data at any time.

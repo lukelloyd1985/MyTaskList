@@ -151,3 +151,13 @@ jobs:
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: ./gradlew publishReleaseBundle --stacktrace
+
+      # Publishes the store listing text and graphics committed under
+      # app/src/main/play/ (title, descriptions, icon, feature graphic,
+      # screenshots - see README "Publishing to Google Play"). Independent
+      # of the release track above; same prerequisite and credentials.
+      - name: Publish Play Store listing
+        if: ${{ github.event_name == 'release' && env.HAS_PLAY_SERVICE_ACCOUNT_SECRET == 'true' }}
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: ./gradlew publishListing --stacktrace
