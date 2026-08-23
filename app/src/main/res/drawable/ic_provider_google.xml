@@ -1,19 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Google's official "G" identity mark, as shipped by Google's own
+  FirebaseUI-Android library (fui_ic_googleg_color_24dp.xml) - see
+  https://github.com/firebase/FirebaseUI-Android and the "Sign in with
+  Google" branding guidelines at
+  https://developers.google.com/identity/branding-guidelines. Don't
+  recolor or restyle this path data.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportWidth="512"
+    android:viewportHeight="512">
     <path
-        android:fillColor="#4285F4"
-        android:pathData="M21.6,12.23c0,-0.66 -0.06,-1.29 -0.17,-1.9H12v3.6h5.4c-0.23,1.25 -0.95,2.31 -2.03,3.02v2.5h3.28c1.92,-1.77 3.02,-4.37 3.02,-7.22z" />
+        android:fillColor="#4285f4"
+        android:pathData="M482.6,261.4c0,-16.7 -1.5,-32.8 -4.3,-48.3H256v91.3h127c-5.5,29.5 -22.1,54.5 -47.1,71.2v59.2h76.3c44.6,-41.1 70.4,-101.6 70.4,-173.5z" />
     <path
-        android:fillColor="#34A853"
-        android:pathData="M12,22c2.7,0 4.97,-0.9 6.63,-2.43l-3.28,-2.55c-0.91,0.61 -2.07,0.97 -3.35,0.97 -2.58,0 -4.76,-1.74 -5.54,-4.08H3.06v2.6C4.71,19.6 8.08,22 12,22z" />
+        android:fillColor="#34a853"
+        android:pathData="M256,492c63.7,0 117.1,-21.1 156.2,-57.2l-76.3,-59.2c-21.1,14.2 -48.2,22.5 -79.9,22.5 -61.5,0 -113.5,-41.5 -132.1,-97.3H45.1v61.2c38.8,77.1 118.6,130 210.9,130z" />
     <path
-        android:fillColor="#FBBC05"
-        android:pathData="M6.46,13.91c-0.2,-0.61 -0.32,-1.25 -0.32,-1.91s0.11,-1.3 0.32,-1.91v-2.6H3.06C2.39,8.9 2,10.4 2,12s0.39,3.1 1.06,4.51z" />
+        android:fillColor="#fbbc05"
+        android:pathData="M123.9,300.8c-4.7,-14.2 -7.4,-29.3 -7.4,-44.8s2.7,-30.7 7.4,-44.8V150H45.1C29.1,181.9 20,217.9 20,256c0,38.1 9.1,74.1 25.1,106l78.8,-61.2z" />
     <path
-        android:fillColor="#EA4335"
-        android:pathData="M12,5.98c1.47,0 2.79,0.51 3.83,1.5l2.87,-2.87C16.96,2.99 14.7,2 12,2 8.08,2 4.71,4.4 3.06,7.49l3.4,2.6C7.24,7.75 9.42,5.98 12,5.98z" />
+        android:fillColor="#ea4335"
+        android:pathData="M256,113.9c34.7,0 65.8,11.9 90.2,35.3l67.7,-67.7C373,43.4 319.6,20 256,20c-92.3,0 -172.1,52.9 -210.9,130l78.8,61.2c18.6,-55.8 70.6,-97.3 132.1,-97.3z" />
 </vector>
