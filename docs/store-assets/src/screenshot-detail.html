@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html,body{margin:0;padding:0;width:1080px;height:1920px;overflow:hidden;}
+  body{font-family:"Roboto","Helvetica Neue",Arial,sans-serif;background:#FFFBFE;}
+  .wrap{position:relative;height:1920px;}
+  .appbar{
+    height:190px;box-sizing:border-box;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 32px;box-shadow:0 2px 12px rgba(0,0,0,0.08);
+    position:relative;z-index:2;background:#FFFBFE;
+  }
+  .appbar .side{display:flex;align-items:center;width:64px;}
+  .appbar svg{width:56px;height:56px;color:#1C1B1F;}
+  .appbar .title{font-size:56px;font-weight:600;color:#1C1B1F;margin:0;}
+  .list{padding:24px 48px;}
+  .section{font-size:36px;font-weight:500;color:#49454F;margin:40px 0 12px;}
+  .row{display:flex;align-items:center;padding:26px 8px;border-bottom:2px solid #ECECE6;}
+  .checkbox{width:52px;height:52px;border-radius:10px;border:3px solid #79747E;margin-right:30px;flex:0 0 auto;box-sizing:border-box;}
+  .checkbox.checked{background:#1B5E20;border-color:#1B5E20;position:relative;}
+  .checkbox.checked::after{content:"";position:absolute;left:14px;top:6px;width:14px;height:26px;border:solid #FFFFFF;border-width:0 5px 5px 0;transform:rotate(45deg);}
+  .dot{width:26px;height:26px;border-radius:50%;margin-right:26px;flex:0 0 auto;}
+  .body{flex:1;min-width:0;}
+  .task-title{font-size:44px;color:#1C1B1F;margin:0;}
+  .task-title.done{color:#8b8b83;text-decoration:line-through;}
+  .meta{display:flex;align-items:center;margin-top:10px;}
+  .meta svg{width:32px;height:32px;color:#49454F;margin-right:8px;}
+  .meta span{font-size:32px;color:#49454F;margin-right:22px;}
+  .meta span.overdue{color:#D32F2F;}
+  .fab{
+    position:absolute;right:56px;bottom:110px;
+    background:#1B5E20;color:#FFFFFF;border-radius:50%;
+    width:130px;height:130px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+  }
+  .fab svg{width:56px;height:56px;}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="appbar">
+    <div class="side"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></div>
+    <p class="title">Garden</p>
+    <div class="side" style="justify-content:flex-end;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.44.17-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></div>
+  </div>
+  <div class="list">
+    <div class="row">
+      <div class="checkbox"></div>
+      <div class="dot" style="background:#D32F2F;"></div>
+      <div class="body">
+        <p class="task-title">Water the tomatoes</p>
+        <div class="meta">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 8 1.34 8 4v2H4v-2c0-2.66 5.3-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+          <span>Luke</span>
+          <span class="overdue">Today</span>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="checkbox"></div>
+      <div class="dot" style="background:#F9A825;"></div>
+      <div class="body">
+        <p class="task-title">Mow the lawn</p>
+        <div class="meta">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 8 1.34 8 4v2H4v-2c0-2.66 5.3-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+          <span>Sam</span>
+          <span>Fri</span>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="checkbox"></div>
+      <div class="dot" style="background:#388E3C;"></div>
+      <div class="body">
+        <p class="task-title">Buy potting soil</p>
+      </div>
+    </div>
+    <p class="section">Completed (1)</p>
+    <div class="row">
+      <div class="checkbox checked"></div>
+      <div class="dot" style="background:#F9A825;"></div>
+      <div class="body">
+        <p class="task-title done">Prune the roses</p>
+        <div class="meta">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 8 1.34 8 4v2H4v-2c0-2.66 5.3-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+          <span>Luke</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fab">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
+  </div>
+</div>
+</body></html>
