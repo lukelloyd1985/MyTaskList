@@ -216,8 +216,14 @@ everything after that, which CI automates.
 4. **Fill in the Store listing**: short/full description, app icon
    (512×512 PNG), feature graphic (1024×500 PNG), and at least 2 phone
    screenshots. Ready-to-upload versions of all three live in
-   [`docs/store-assets/`](docs/store-assets/) - see that folder's README
-   for what's there and how to regenerate them.
+   [`docs/store-assets/`](docs/store-assets/) - upload them by hand this
+   first time, or, once you've done the one-time API access setup in
+   step 2 below, run `./gradlew publishListing` locally instead: it
+   publishes the same content straight from
+   `app/src/main/play/listings/en-US/` (title, descriptions, and the
+   `docs/store-assets/` graphics, already copied in there). From then on,
+   CI keeps this in sync automatically on every release - see step 4 in
+   part 2 below.
 5. **Do the first release by hand.** Build an AAB
    (`./gradlew bundleRelease`, or download one from a GitHub Release once
    you've tagged one - see below), go to Testing → Internal testing →
@@ -242,7 +248,11 @@ everything after that, which CI automates.
    testing** track with `releaseStatus = COMPLETED` (see the `play { }`
    block in `app/build.gradle.kts`). CI never touches the production
    track - promote a release from internal testing to production
-   yourself in Play Console once you're happy with it.
+   yourself in Play Console once you're happy with it. It also runs
+   `publishListing`, which pushes the store listing text and graphics
+   committed under `app/src/main/play/` - edit those files (and
+   `docs/store-assets/` for the graphics themselves) and the next release
+   picks up the changes automatically, no manual re-upload needed.
 5. **Version each release with a git tag** (e.g. `v1.0.1`) when you
    create the GitHub Release - it becomes the app's `versionName`.
    `versionCode` auto-increments from `GITHUB_RUN_NUMBER`, so Play's

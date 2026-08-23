@@ -32,3 +32,14 @@ node src/render.js          # writes the PNGs into this directory
 `src/render.js` opens each HTML file at its exact target resolution in
 headless Chromium and screenshots it - see the file for the
 file → output → dimensions mapping.
+
+## CI publishing
+
+These PNGs are also copied into
+[`app/src/main/play/listings/en-US/graphics/`](../../app/src/main/play/listings/en-US/graphics/),
+which is what CI's `publishListing` Gradle task actually uploads to Play
+Console on every release (see the main README's
+[Publishing to Google Play](../../README.md#publishing-to-google-play)
+section). They're plain copies, not symlinked, so after regenerating
+anything here, copy the updated file(s) into the matching
+`graphics/{icon,feature-graphic,phone-screenshots}/` subfolder too.
