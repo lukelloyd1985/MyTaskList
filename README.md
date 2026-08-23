@@ -215,9 +215,9 @@ everything after that, which CI automates.
    what that page and the in-app "Delete my account" action actually do).
 4. **Fill in the Store listing**: short/full description, app icon
    (512×512 PNG), feature graphic (1024×500 PNG), and at least 2 phone
-   screenshots. There's nothing in this repo for these yet - the launcher
-   icon vectors in `app/src/main/res/drawable` aren't a substitute for a
-   proper Play Store icon/graphics set.
+   screenshots. Ready-to-upload versions of all three live in
+   [`docs/store-assets/`](docs/store-assets/) - see that folder's README
+   for what's there and how to regenerate them.
 5. **Do the first release by hand.** Build an AAB
    (`./gradlew bundleRelease`, or download one from a GitHub Release once
    you've tagged one - see below), go to Testing → Internal testing →
