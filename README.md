@@ -7,7 +7,8 @@ you organize your life into.
 - **Multiple lists**, each with its own **visibility**: `Private` (only
   you) or `Shared` (invite people by email).
 - **Tasks** can be **assigned** to a list member, given a **due date**, and
-  optionally trigger a **reminder notification**.
+  optionally trigger a **reminder notification**. Open tasks can be
+  **reordered** by long-pressing and dragging the handle on a task row.
 - **Sign in** with Google.
 - **CI/CD**: a GitHub Actions workflow builds an APK on every manual run
   (for testing) and attaches a release APK to every published GitHub

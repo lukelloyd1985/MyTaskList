@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Checkbox
@@ -34,6 +35,10 @@ fun TaskRow(
     onToggleComplete: (Boolean) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // Only supplied by the caller for reorderable (open) rows - carries
+    // the actual drag-gesture detection, so this composable stays
+    // presentation-only and doesn't need to know how reordering works.
+    dragHandleModifier: Modifier? = null,
 ) {
     Surface(
         onClick = onClick,
@@ -96,6 +101,17 @@ fun TaskRow(
                         }
                     }
                 }
+            }
+
+            if (dragHandleModifier != null) {
+                Icon(
+                    Icons.Filled.DragHandle,
+                    contentDescription = "Drag to reorder",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .then(dragHandleModifier),
+                )
             }
         }
     }

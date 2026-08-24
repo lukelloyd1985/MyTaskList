@@ -1,9 +1,11 @@
 package com.mytasks.app.ui.listdetail
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,16 +23,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mytasks.app.data.model.TaskItem
 import com.mytasks.app.ui.components.TaskRow
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +80,20 @@ fun ListDetailScreen(
     ) { padding ->
         val (open, completed) = tasks.partition { !it.completed }
 
+        // Local, optimistic copy of the open tasks' order for smooth
+        // drag feedback - resynced from the ViewModel's authoritative
+        // `open` list whenever it changes, except mid-drag (so a
+        // Firestore snapshot landing while dragging doesn't yank the
+        // list out from under the user's finger).
+        var localOpen by remember { mutableStateOf(open) }
+        var draggingTaskId by remember { mutableStateOf<String?>(null) }
+        var dragOffsetY by remember { mutableStateOf(0f) }
+        val itemHeights = remember { mutableStateMapOf<String, Int>() }
+
+        LaunchedEffect(open) {
+            if (draggingTaskId == null) localOpen = open
+        }
+
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             modifier = Modifier
@@ -88,11 +111,61 @@ fun ListDetailScreen(
                 }
             }
 
-            items(open, key = { it.id }) { task ->
+            items(localOpen, key = { it.id }) { task ->
+                val isDragging = task.id == draggingTaskId
                 TaskRow(
                     task = task,
                     onToggleComplete = { viewModel.setCompleted(task.id, it) },
                     onClick = { editingTask = task; showEditor = true },
+                    dragHandleModifier = Modifier.pointerInput(task.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggingTaskId = task.id
+                                dragOffsetY = 0f
+                            },
+                            onDragEnd = {
+                                draggingTaskId = null
+                                dragOffsetY = 0f
+                                if (localOpen.map { it.id } != open.map { it.id }) {
+                                    viewModel.reorderTasks(localOpen.map { it.id })
+                                }
+                            },
+                            onDragCancel = {
+                                draggingTaskId = null
+                                dragOffsetY = 0f
+                                localOpen = open
+                            },
+                        ) { change, dragAmount ->
+                            change.consume()
+                            dragOffsetY += dragAmount.y
+                            val draggedId = draggingTaskId ?: return@detectDragGesturesAfterLongPress
+                            val currentIndex = localOpen.indexOfFirst { it.id == draggedId }
+                            if (currentIndex == -1) return@detectDragGesturesAfterLongPress
+
+                            if (dragOffsetY > 0 && currentIndex < localOpen.lastIndex) {
+                                val nextHeight = itemHeights[localOpen[currentIndex + 1].id] ?: return@detectDragGesturesAfterLongPress
+                                if (dragOffsetY > nextHeight / 2f) {
+                                    localOpen = localOpen.toMutableList().apply {
+                                        add(currentIndex + 1, removeAt(currentIndex))
+                                    }
+                                    dragOffsetY -= nextHeight
+                                }
+                            } else if (dragOffsetY < 0 && currentIndex > 0) {
+                                val prevHeight = itemHeights[localOpen[currentIndex - 1].id] ?: return@detectDragGesturesAfterLongPress
+                                if (-dragOffsetY > prevHeight / 2f) {
+                                    localOpen = localOpen.toMutableList().apply {
+                                        add(currentIndex - 1, removeAt(currentIndex))
+                                    }
+                                    dragOffsetY += prevHeight
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .onGloballyPositioned { itemHeights[task.id] = it.size.height }
+                        .zIndex(if (isDragging) 1f else 0f)
+                        .offset { IntOffset(0, if (isDragging) dragOffsetY.roundToInt() else 0) }
+                        .animateItem(),
                 )
                 HorizontalDivider()
             }
