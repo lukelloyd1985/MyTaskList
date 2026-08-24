@@ -50,13 +50,30 @@ its owner and everyone in `memberIds`.
 ## Backend setup
 
 1. **Create a Firebase project** at <https://console.firebase.google.com>,
-   add an Android app with package name `com.mytasks.app` (and, for local
-   debug builds, `com.mytasks.app.debug`), and download the real
+   add an Android app with package name `com.github.lukelloyd1985.mytasks`
+   (and, for local debug builds,
+   `com.github.lukelloyd1985.mytasks.debug`), and download the real
    `google-services.json` over `app/google-services.json`. It's committed
    directly to the repo - Google designed this file to be safe for public
    repos (the API key in it only identifies the project; it isn't a
    credential on its own) - and CI builds from it as-is, so this is the
    only place it needs to live.
+
+   The package name (`applicationId` in `app/build.gradle.kts`) isn't
+   `com.mytasks.app` - that was already taken on Play Store, so the app's
+   Play/Firebase identity moved under this repo's GitHub namespace
+   instead. `namespace` in the same file (the Kotlin source package, R
+   class, etc.) is unaffected and stays `com.mytasks.app` - the two are
+   independent in Android, and only `applicationId` needed to change.
+   The `google-services.json` committed right now has its `package_name`
+   fields relabeled to match the new `applicationId` purely so the
+   google-services Gradle plugin doesn't hard-fail the build (it throws
+   if none of the file's client entries match `applicationId`) - those
+   entries still point at the *old* Firebase Android app registrations,
+   so Google Sign-In won't actually work until you complete this step for
+   real: add the two Android apps above to the project, then redo step 6
+   below (the SHA-1/SHA-256 fingerprints are registered per Android-app
+   entry, so the old registrations don't carry over either).
 2. **Enable Firestore** (production mode) and deploy the rules/indexes:
    ```
    npm install -g firebase-tools
@@ -90,7 +107,8 @@ its owner and everyone in `memberIds`.
    `app/google-services.json`.
 6. **Register your signing certificates' SHA-1/SHA-256 fingerprints** in
    Firebase Console → Project settings → Your apps, on both the
-   `com.mytasks.app` and `com.mytasks.app.debug` entries. Google Sign-In
+   `com.github.lukelloyd1985.mytasks` and
+   `com.github.lukelloyd1985.mytasks.debug` entries. Google Sign-In
    verifies the calling app's certificate as part of its silent
    account-reauth check, so a build signed with an unregistered
    certificate fails sign-in with a `GetCredentialException` of type
@@ -176,8 +194,9 @@ base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_DEBUG_KEY_PASSWORD` | debug key password |
 
 Then register this keystore's SHA-1 (and SHA-256) fingerprint against the
-`com.mytasks.app.debug` app in Firebase Console per step 6 above - that's
-the step that actually fixes Google Sign-In on CI-built debug APKs.
+`com.github.lukelloyd1985.mytasks.debug` app in Firebase Console per step
+6 above - that's the step that actually fixes Google Sign-In on
+CI-built debug APKs.
 
 ## Publishing to Google Play
 
@@ -193,14 +212,14 @@ everything after that, which CI automates.
    [`docs/delete-account.html`](docs/delete-account.html) are starting
    drafts - replace every `[bracketed placeholder]` in both (especially
    the support email), then enable Pages at Settings → Pages → *Build and
-   deployment* → *Deploy from a branch* → branch `feature/mvp`, folder
+   deployment* → *Deploy from a branch* → branch `main`, folder
    `/docs`. Both are served from the same deployment, at
    `https://<your-github-username>.github.io/MyTasks/privacy.html` and
    `.../delete-account.html`.
 2. **Create the app** in [Play Console](https://play.google.com/console):
    *Create app* → name it, set default language, "App" (not game), and
    Free. The package name is fixed at creation to whatever you tell it -
-   use `com.mytasks.app` to match `applicationId` in
+   use `com.github.lukelloyd1985.mytasks` to match `applicationId` in
    `app/build.gradle.kts`.
 3. **Complete "App content"** (Play Console won't allow any release
    without these): Privacy policy URL (from step 1), Ads (No ads, unless

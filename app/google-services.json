@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:91013088892:android:2abc3491641df0e71b6bf9",
         "android_client_info": {
-          "package_name": "com.mytasks.app"
+          "package_name": "com.github.lukelloyd1985.mytasks"
         }
       },
       "oauth_client": [
@@ -38,7 +38,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:91013088892:android:bc520395f14b347a1b6bf9",
         "android_client_info": {
-          "package_name": "com.mytasks.app.debug"
+          "package_name": "com.github.lukelloyd1985.mytasks.debug"
         }
       },
       "oauth_client": [
