@@ -252,18 +252,29 @@ everything after that, which CI automates.
 
 ### 2. Let CI handle every release after that
 
-1. In Play Console, go to **Setup → API access** and follow its prompt to
-   create a Google Cloud service account (or link an existing project).
-   In the Cloud Console, create a JSON key for that service account.
-2. Back in Play Console's API access page, find the service account under
-   "Service accounts" and grant it access to this app with **both**
-   **Release management** permissions (needed for `publishReleaseBundle`)
-   **and** **Store listing / "Manage store presence"** permissions
-   (needed for `publishListing`, which pushes the title, description, and
-   graphics from `app/src/main/play/` - see step 4 above). These are
-   separate permission groups in Play Console; granting only "Release
-   manager" covers releases but not the store listing, and `publishListing`
-   will fail with a permissions error without the second one.
+1. Play Console's old **Setup → API access** page is gone - Google
+   removed it, and the replacement flow is no longer inside Play Console
+   at the start. In [Google Cloud Console](https://console.cloud.google.com)
+   (any project - it doesn't need to be one already linked to this app),
+   go to **APIs & Services → Library**, search for "Google Play Android
+   Developer API", and enable it. Then **IAM & Admin → Service Accounts →
+   Create Service Account** (any name, e.g. `mytasks-ci-publisher`) - it
+   doesn't need any Google Cloud IAM roles for this. Open it → **Keys →
+   Add Key → Create new key → JSON** to download the key file whose
+   contents become the `PLAY_SERVICE_ACCOUNT_JSON` secret below.
+2. Back in Play Console, go to **Users and permissions → Invite new
+   user**, and invite the service account by pasting its email address
+   (the `client_email` field in the JSON key you just downloaded, looks
+   like `mytasks-ci-publisher@<project>.iam.gserviceaccount.com`) exactly
+   as if inviting a person. Under **App permissions**, add this app and
+   grant it **both** **Release management** permissions (needed for
+   `publishReleaseBundle`) **and** **Store listing / "Manage store
+   presence"** permissions (needed for `publishListing`, which pushes the
+   title, description, and graphics from `app/src/main/play/` - see step
+   4 above). These are separate permission groups in Play Console;
+   granting only "Release manager" covers releases but not the store
+   listing, and `publishListing` will fail with a permissions error
+   without the second one.
 3. Add the JSON key's full contents as the `PLAY_SERVICE_ACCOUNT_JSON`
    repository secret (Settings → Secrets and variables → Actions) -
    paste the raw JSON, not base64.
