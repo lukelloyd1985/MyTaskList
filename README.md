@@ -252,9 +252,14 @@ everything after that, which CI automates.
 
 ### 2. Let CI handle every release after that
 
-1. In Play Console, go to **Setup → API access** and follow its prompt to
-   create a Google Cloud service account (or link an existing project).
-   In the Cloud Console, create a JSON key for that service account.
+1. In Play Console, go to **Settings → Developer account → API access**
+   (an account-level page, not nested under any individual app's own
+   Setup menu - it's also only visible to the account **Owner**; if
+   you're signed in as a User added to someone else's developer account
+   rather than the Owner, this page won't appear in the menu at all) and
+   follow its prompt to create a Google Cloud service account (or link an
+   existing project). In the Cloud Console, create a JSON key for that
+   service account.
 2. Back in Play Console's API access page, find the service account under
    "Service accounts" and grant it access to this app with **both**
    **Release management** permissions (needed for `publishReleaseBundle`)
