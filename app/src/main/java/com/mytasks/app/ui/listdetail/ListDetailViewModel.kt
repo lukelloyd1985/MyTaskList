@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -51,6 +52,11 @@ class ListDetailViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val tasks: StateFlow<List<TaskItem>> = taskRepository.observeTasks(listId)
+        // Stable sort: ties (including every task's default order=0
+        // before it's ever been manually reordered) keep the Firestore
+        // query's own order (completed, then dueAt) instead of jumping
+        // around, so this only changes anything once someone drags.
+        .map { taskItems -> taskItems.sortedBy { it.order } }
         .onEach { taskItems ->
             val uid = currentUid ?: return@onEach
             taskItems.forEach { task ->
@@ -118,6 +124,10 @@ class ListDetailViewModel @Inject constructor(
             reminderScheduler.cancel(taskId)
             taskRepository.deleteTask(listId, taskId)
         }
+    }
+
+    fun reorderTasks(orderedTaskIds: List<String>) {
+        viewModelScope.launch { taskRepository.reorderTasks(listId, orderedTaskIds) }
     }
 
     fun setVisibility(visibility: ListVisibility) {

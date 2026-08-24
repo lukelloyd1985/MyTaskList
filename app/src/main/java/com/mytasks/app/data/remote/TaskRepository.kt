@@ -41,6 +41,9 @@ interface TaskRepository {
     )
     suspend fun setCompleted(listId: String, taskId: String, completed: Boolean)
     suspend fun deleteTask(listId: String, taskId: String)
+    /** Persists a new manual order for (typically) the open tasks in a
+     *  list, in the given sequence - see TaskItem.order. */
+    suspend fun reorderTasks(listId: String, orderedTaskIds: List<String>)
 }
 
 @Singleton
@@ -131,5 +134,14 @@ class FirestoreTaskRepository @Inject constructor(
 
     override suspend fun deleteTask(listId: String, taskId: String) {
         tasksOf(listId).document(taskId).delete().await()
+    }
+
+    override suspend fun reorderTasks(listId: String, orderedTaskIds: List<String>) {
+        val tasks = tasksOf(listId)
+        val batch = firestore.batch()
+        orderedTaskIds.forEachIndexed { index, taskId ->
+            batch.update(tasks.document(taskId), "order", index.toLong())
+        }
+        batch.commit().await()
     }
 }
