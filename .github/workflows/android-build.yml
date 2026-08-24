@@ -146,10 +146,23 @@ jobs:
       # Requires the app to already exist in Play Console and its very
       # first release to have been done manually there; see the README for
       # why and for the one-time service account setup this secret needs.
+      #
+      # Every `run:` step is a fresh ./gradlew process, so
+      # signingConfigs.release in app/build.gradle.kts re-reads its env
+      # vars from scratch here - without these three (even though the AAB
+      # was already built in the previous step), storePassword/keyAlias/
+      # keyPassword all resolve to null while storeFile still resolves
+      # (MYTASKS_KEYSTORE_PATH persists job-wide via $GITHUB_ENV, unlike
+      # these, which are step-scoped). That input change makes Gradle
+      # re-run signReleaseBundle right here with a null password, which
+      # fails with a message-less NullPointerException from bundletool.
       - name: Publish to Google Play (internal track)
         if: ${{ github.event_name == 'release' && env.HAS_PLAY_SERVICE_ACCOUNT_SECRET == 'true' }}
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          MYTASKS_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_KEYSTORE_PASSWORD }}
+          MYTASKS_KEY_ALIAS: ${{ secrets.MYTASKS_KEY_ALIAS }}
+          MYTASKS_KEY_PASSWORD: ${{ secrets.MYTASKS_KEY_PASSWORD }}
         run: ./gradlew publishReleaseBundle --stacktrace
 
       # Publishes the store listing text and graphics committed under
