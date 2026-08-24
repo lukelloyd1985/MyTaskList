@@ -36,7 +36,7 @@ file → output → dimensions mapping.
 ## CI publishing
 
 These PNGs are also copied into
-[`app/src/main/play/listings/en-US/graphics/`](../../app/src/main/play/listings/en-US/graphics/),
+[`app/src/main/play/listings/en-GB/graphics/`](../../app/src/main/play/listings/en-GB/graphics/),
 which is what CI's `publishListing` Gradle task actually uploads to Play
 Console on every release (see the main README's
 [Publishing to Google Play](../../README.md#publishing-to-google-play)

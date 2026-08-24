@@ -221,7 +221,13 @@ everything after that, which CI automates.
    *Create app* → name it, set default language, "App" (not game), and
    Free. The package name is fixed at creation to whatever you tell it -
    use `com.github.lukelloyd1985.mytasks` to match `applicationId` in
-   `app/build.gradle.kts`.
+   `app/build.gradle.kts`. Whatever default language you pick here must
+   match the locale directory under `app/src/main/play/listings/` (and
+   `default-language.txt`) - the Play Developer API rejects listing/image
+   uploads for a language the app doesn't have a store listing for yet,
+   with a 404 "Listing for language '...' not found", so a mismatch (e.g.
+   picking English (UK) here but leaving the repo on `en-US`) breaks the
+   `publishListing` CI step. This repo currently uses `en-GB`.
 3. **Complete "App content"** (Play Console won't allow any release
    without these): Privacy policy URL (from step 1), Ads (No ads, unless
    you've added some), App access (all functionality is available without
@@ -240,7 +246,7 @@ everything after that, which CI automates.
    first time, or, once you've done the one-time API access setup in
    step 2 below, run `./gradlew publishListing` locally instead: it
    publishes the same content straight from
-   `app/src/main/play/listings/en-US/` (title, descriptions, and the
+   `app/src/main/play/listings/en-GB/` (title, descriptions, and the
    `docs/store-assets/` graphics, already copied in there). From then on,
    CI keeps this in sync automatically on every release - see step 4 in
    part 2 below.
