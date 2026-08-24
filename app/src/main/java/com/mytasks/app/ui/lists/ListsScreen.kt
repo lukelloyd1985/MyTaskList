@@ -33,10 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mytasks.app.R
 import com.mytasks.app.data.model.TaskList
 import com.mytasks.app.ui.components.VisibilityChip
 
@@ -62,10 +65,10 @@ fun ListsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My lists") },
+                title = { Text(stringResource(R.string.lists_title)) },
                 actions = {
                     IconButton(onClick = onOpenProfile) {
-                        Icon(Icons.Filled.AccountCircle, contentDescription = "Profile")
+                        Icon(Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.cd_profile))
                     }
                 },
             )
@@ -73,7 +76,7 @@ fun ListsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = { showCreateDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = null)
-                Text("New list", modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.new_list), modifier = Modifier.padding(start = 8.dp))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -123,12 +126,12 @@ private fun EmptyListsState(padding: PaddingValues) {
             modifier = Modifier.padding(bottom = 12.dp),
         )
         Text(
-            "No lists yet",
+            stringResource(R.string.lists_empty_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Create your first list - Short term, Garden, House - and choose whether to keep it private or share it.",
+            stringResource(R.string.lists_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
@@ -149,8 +152,9 @@ private fun ListCard(list: TaskList, onClick: () -> Unit) {
                 Column {
                     VisibilityChip(list.visibility)
                     if (list.visibility.name == "SHARED" && list.members.isNotEmpty()) {
+                        val memberCount = list.members.size + 1
                         Text(
-                            "${list.members.size + 1} members",
+                            pluralStringResource(R.plurals.list_members_count, memberCount, memberCount),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 6.dp),

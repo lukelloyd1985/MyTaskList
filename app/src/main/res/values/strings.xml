@@ -11,4 +11,99 @@
          time from google-services.json's client_type == 3 oauth_client
          entry, and is what Credential Manager / Google Identity uses for
          Google sign-in (see LoginScreen.kt). -->
+
+    <!-- Common actions/labels reused across multiple screens -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_ok">OK</string>
+    <string name="action_next">Next</string>
+    <string name="cd_back">Back</string>
+    <string name="label_list_name">List name</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Shared task lists for your home, garden, and everything in between</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="error_google_signin_not_configured">Google sign-in isn\'t configured yet - see README Backend setup</string>
+    <string name="error_google_signin_failed">Google sign-in failed [%1$s]: %2$s</string>
+    <string name="error_unexpected_credential_type">Unexpected credential type from Google: %1$s</string>
+    <string name="error_sign_in_failed">Sign-in failed</string>
+
+    <!-- Lists screen -->
+    <string name="lists_title">My lists</string>
+    <string name="cd_profile">Profile</string>
+    <string name="new_list">New list</string>
+    <string name="lists_empty_title">No lists yet</string>
+    <string name="lists_empty_body">Create your first list - Short term, Garden, House - and choose whether to keep it private or share it.</string>
+    <string name="error_create_list_failed">Couldn\'t create list</string>
+    <plurals name="list_members_count">
+        <item quantity="one">%1$d member</item>
+        <item quantity="few">%1$d members</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+
+    <!-- Create list dialog -->
+    <string name="label_list_name_hint">List name, e.g. Garden</string>
+    <string name="label_visibility">Visibility</string>
+    <string name="visibility_option_private">Private - only you can see it</string>
+    <string name="visibility_option_shared">Shared - invite others to view and edit</string>
+    <string name="action_create">Create</string>
+
+    <!-- Visibility chip -->
+    <string name="visibility_private">Private</string>
+    <string name="visibility_shared">Shared</string>
+
+    <!-- Task row -->
+    <string name="cd_reminder_set">Reminder set</string>
+    <string name="cd_drag_to_reorder">Drag to reorder</string>
+
+    <!-- List detail -->
+    <string name="cd_add_task">Add task</string>
+    <string name="tasks_empty_state">No tasks yet - tap + to add one.</string>
+    <string name="completed_count">Completed (%1$d)</string>
+
+    <!-- Task editor -->
+    <string name="task_editor_title_new">New task</string>
+    <string name="task_editor_title_edit">Edit task</string>
+    <string name="label_title">Title</string>
+    <string name="label_notes_optional">Notes (optional)</string>
+    <string name="label_unassigned">Unassigned</string>
+    <string name="label_assign_to">Assign to</string>
+    <string name="label_priority">Priority</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+    <string name="action_set_due_date">Set due date</string>
+    <string name="action_clear">Clear</string>
+    <string name="label_remind_me">Remind me</string>
+    <string name="action_save_task">Save task</string>
+    <string name="action_delete_task">Delete task</string>
+    <string name="dialog_select_time_title">Select time</string>
+
+    <!-- List settings -->
+    <string name="list_settings_title">List settings</string>
+    <string name="label_shared_list">Shared list</string>
+    <string name="shared_list_description">Anyone you invite can view and edit this list</string>
+    <string name="label_members">Members</string>
+    <string name="label_invite_by_email">Invite by email</string>
+    <string name="action_invite">Invite</string>
+    <string name="member_owner_suffix">%1$s (owner)</string>
+    <string name="cd_remove_member">Remove member</string>
+    <string name="action_delete_list">Delete list</string>
+    <string name="dialog_delete_list_title">Delete this list?</string>
+    <string name="dialog_delete_list_body">All tasks in \"%1$s\" will be permanently deleted for everyone.</string>
+    <string name="error_delete_list_failed">Couldn\'t delete list</string>
+    <string name="error_invite_no_user_found">No MyTasks user found for %1$s. They need to sign in at least once first.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_signed_in_fallback">Signed in</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="action_delete_account">Delete my account</string>
+    <string name="dialog_delete_account_title">Delete your account?</string>
+    <string name="dialog_delete_account_body">This permanently deletes your profile, any lists you own privately, and your membership in shared lists. Lists you own that are shared with others are handed off to another member instead of being deleted. This can\'t be undone.</string>
+    <string name="error_delete_account_failed">Couldn\'t delete your account</string>
+
+    <!-- Notifications -->
+    <string name="notification_task_due_soon">Task due soon</string>
 </resources>

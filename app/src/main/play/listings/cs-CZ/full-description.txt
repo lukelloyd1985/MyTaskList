@@ -1,0 +1,9 @@
+MyTasks mění roztroušené seznamy úkolů na sdílené seznamy, které vidí a upravuje celá vaše domácnost.
+
+Vytvořte si samostatné seznamy na cokoli, co potřebujete zorganizovat - víkendový projekt, týdenní pochůzky, zahradu, údržbu domu, stěhování - a každý z nich mějte soukromý, nebo ho sdílejte s lidmi, kteří na něm pracují spolu s vámi. Pozvěte někoho e-mailem a uvidí každou změnu hned, jak ji provedete.
+
+Úkolu přidejte název, popis, termín, prioritu a osobu, které ho přiřadíte, a jakmile se termín blíží, dostanete připomenutí, aby vám nic neuniklo. Úkoly si přetažením seřaďte podle potřeby. Odškrtávejte je, upravujte nebo mažte - všichni ve sdíleném seznamu zůstávají automaticky synchronizovaní, i když jste změnu provedli offline.
+
+K používání MyTasks je nutné přihlášení přes Google: takto vás aplikace identifikuje ve vašich sdílených seznamech a váže vaše úkoly k vašemu účtu, bez samostatného hesla, které byste si museli vytvářet nebo pamatovat. K přihlášení budete potřebovat účet Google.
+
+MyTasks neobsahuje reklamy ani sledování třetími stranami a neprodává vaše údaje. Svůj účet a všechna jeho data můžete kdykoli odstranit, přímo v aplikaci nebo přes web - podrobnosti najdete v zásadách ochrany osobních údajů.

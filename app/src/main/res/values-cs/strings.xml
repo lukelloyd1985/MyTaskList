@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name intentionally left untranslated - it's the brand name. -->
+
+    <string name="notification_channel_tasks_name">Připomenutí úkolů</string>
+    <string name="notification_channel_tasks_desc">Připomenutí termínů a upozornění na přiřazení úkolů</string>
+
+    <!-- Common actions/labels reused across multiple screens -->
+    <string name="action_cancel">Zrušit</string>
+    <string name="action_delete">Odstranit</string>
+    <string name="action_save">Uložit</string>
+    <string name="action_ok">OK</string>
+    <string name="action_next">Další</string>
+    <string name="cd_back">Zpět</string>
+    <string name="label_list_name">Název seznamu</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Sdílené seznamy úkolů pro domácnost, zahradu a všechno ostatní</string>
+    <string name="continue_with_google">Pokračovat přes Google</string>
+    <string name="error_google_signin_not_configured">Přihlášení přes Google zatím není nastaveno - viz README, část Backend setup</string>
+    <string name="error_google_signin_failed">Přihlášení přes Google se nezdařilo [%1$s]: %2$s</string>
+    <string name="error_unexpected_credential_type">Neočekávaný typ přihlašovacích údajů od Google: %1$s</string>
+    <string name="error_sign_in_failed">Přihlášení se nezdařilo</string>
+
+    <!-- Lists screen -->
+    <string name="lists_title">Moje seznamy</string>
+    <string name="cd_profile">Profil</string>
+    <string name="new_list">Nový seznam</string>
+    <string name="lists_empty_title">Zatím žádné seznamy</string>
+    <string name="lists_empty_body">Vytvořte si první seznam - Krátkodobé, Zahrada, Dům - a zvolte, jestli ho chcete mít soukromý, nebo ho sdílet.</string>
+    <string name="error_create_list_failed">Seznam se nepodařilo vytvořit</string>
+    <plurals name="list_members_count">
+        <item quantity="one">%1$d člen</item>
+        <item quantity="few">%1$d členové</item>
+        <item quantity="other">%1$d členů</item>
+    </plurals>
+
+    <!-- Create list dialog -->
+    <string name="label_list_name_hint">Název seznamu, např. Zahrada</string>
+    <string name="label_visibility">Viditelnost</string>
+    <string name="visibility_option_private">Soukromý - vidíte ho jen vy</string>
+    <string name="visibility_option_shared">Sdílený - pozvěte ostatní, aby ho mohli zobrazovat a upravovat</string>
+    <string name="action_create">Vytvořit</string>
+
+    <!-- Visibility chip -->
+    <string name="visibility_private">Soukromý</string>
+    <string name="visibility_shared">Sdílený</string>
+
+    <!-- Task row -->
+    <string name="cd_reminder_set">Připomenutí nastaveno</string>
+    <string name="cd_drag_to_reorder">Přetažením změníte pořadí</string>
+
+    <!-- List detail -->
+    <string name="cd_add_task">Přidat úkol</string>
+    <string name="tasks_empty_state">Zatím žádné úkoly - přidejte nový klepnutím na +.</string>
+    <string name="completed_count">Dokončeno (%1$d)</string>
+
+    <!-- Task editor -->
+    <string name="task_editor_title_new">Nový úkol</string>
+    <string name="task_editor_title_edit">Upravit úkol</string>
+    <string name="label_title">Název</string>
+    <string name="label_notes_optional">Poznámky (nepovinné)</string>
+    <string name="label_unassigned">Nepřiřazeno</string>
+    <string name="label_assign_to">Přiřadit komu</string>
+    <string name="label_priority">Priorita</string>
+    <string name="priority_low">Nízká</string>
+    <string name="priority_medium">Střední</string>
+    <string name="priority_high">Vysoká</string>
+    <string name="action_set_due_date">Nastavit termín</string>
+    <string name="action_clear">Vymazat</string>
+    <string name="label_remind_me">Připomenout mi</string>
+    <string name="action_save_task">Uložit úkol</string>
+    <string name="action_delete_task">Odstranit úkol</string>
+    <string name="dialog_select_time_title">Vybrat čas</string>
+
+    <!-- List settings -->
+    <string name="list_settings_title">Nastavení seznamu</string>
+    <string name="label_shared_list">Sdílený seznam</string>
+    <string name="shared_list_description">Kdokoli, koho pozvete, může tento seznam zobrazovat a upravovat</string>
+    <string name="label_members">Členové</string>
+    <string name="label_invite_by_email">Pozvat e-mailem</string>
+    <string name="action_invite">Pozvat</string>
+    <string name="member_owner_suffix">%1$s (vlastník)</string>
+    <string name="cd_remove_member">Odebrat člena</string>
+    <string name="action_delete_list">Odstranit seznam</string>
+    <string name="dialog_delete_list_title">Odstranit tento seznam?</string>
+    <string name="dialog_delete_list_body">Všechny úkoly v seznamu „%1$s“ budou trvale odstraněny pro všechny.</string>
+    <string name="error_delete_list_failed">Seznam se nepodařilo odstranit</string>
+    <string name="error_invite_no_user_found">Uživatel MyTasks s adresou %1$s nebyl nalezen. Nejdřív se musí alespoň jednou přihlásit.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="profile_signed_in_fallback">Přihlášen</string>
+    <string name="action_sign_out">Odhlásit se</string>
+    <string name="action_delete_account">Odstranit můj účet</string>
+    <string name="dialog_delete_account_title">Odstranit váš účet?</string>
+    <string name="dialog_delete_account_body">Tímto se trvale odstraní váš profil, všechny seznamy, které vlastníte soukromě, a vaše členství ve sdílených seznamech. Seznamy, které vlastníte a jsou sdílené s ostatními, budou místo odstranění předány jinému členovi. Tuto akci nelze vrátit zpět.</string>
+    <string name="error_delete_account_failed">Váš účet se nepodařilo odstranit</string>
+
+    <!-- Notifications -->
+    <string name="notification_task_due_soon">Termín úkolu se blíží</string>
+</resources>

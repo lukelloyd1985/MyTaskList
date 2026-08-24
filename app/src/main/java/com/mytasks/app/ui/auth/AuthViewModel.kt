@@ -1,10 +1,12 @@
 package com.mytasks.app.ui.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import com.mytasks.app.R
 import com.mytasks.app.data.remote.AuthRepository
 import com.mytasks.app.data.remote.UserRepository
 
@@ -24,6 +27,7 @@ data class AuthUiState(
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     val currentUser: StateFlow<FirebaseUser?> = authRepository.authState.stateIn(
@@ -54,7 +58,10 @@ class AuthViewModel @Inject constructor(
                 registerFcmToken(user.uid)
                 _uiState.value = AuthUiState(isLoading = false)
             } catch (t: Throwable) {
-                _uiState.value = AuthUiState(isLoading = false, errorMessage = t.message ?: "Sign-in failed")
+                _uiState.value = AuthUiState(
+                    isLoading = false,
+                    errorMessage = t.message ?: appContext.getString(R.string.error_sign_in_failed),
+                )
             }
         }
     }

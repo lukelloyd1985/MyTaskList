@@ -39,9 +39,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mytasks.app.R
 import com.mytasks.app.data.model.ListVisibility
 import com.mytasks.app.ui.components.VisibilityChip
 
@@ -73,9 +75,11 @@ fun ListSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("List settings") },
+                title = { Text(stringResource(R.string.list_settings_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                    }
                 },
             )
         },
@@ -90,12 +94,14 @@ fun ListSettingsScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("List name") },
+                label = { Text(stringResource(R.string.label_list_name)) },
                 singleLine = true,
                 enabled = isOwner,
                 trailingIcon = {
                     if (isOwner && name.isNotBlank() && name != list?.name) {
-                        TextButton(onClick = { viewModel.renameList(name.trim()) }) { Text("Save") }
+                        TextButton(onClick = { viewModel.renameList(name.trim()) }) {
+                            Text(stringResource(R.string.action_save))
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -109,9 +115,9 @@ fun ListSettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
-                    Text("Shared list", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.label_shared_list), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Anyone you invite can view and edit this list",
+                        stringResource(R.string.shared_list_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -129,7 +135,7 @@ fun ListSettingsScreen(
 
             if (list?.visibility == ListVisibility.SHARED) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
-                Text("Members", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.label_members), style = MaterialTheme.typography.titleMedium)
 
                 Row(
                     modifier = Modifier
@@ -140,7 +146,7 @@ fun ListSettingsScreen(
                     OutlinedTextField(
                         value = inviteEmail,
                         onValueChange = { inviteEmail = it },
-                        label = { Text("Invite by email") },
+                        label = { Text(stringResource(R.string.label_invite_by_email)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
@@ -151,14 +157,18 @@ fun ListSettingsScreen(
                             onClick = { viewModel.inviteMember(inviteEmail); inviteEmail = "" },
                             enabled = inviteEmail.isNotBlank(),
                             modifier = Modifier.padding(start = 12.dp),
-                        ) { Text("Invite") }
+                        ) { Text(stringResource(R.string.action_invite)) }
                     }
                 }
 
                 LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
                     list?.let { current ->
                         item {
-                            MemberRow(name = "${current.ownerName} (owner)", email = "", onRemove = null)
+                            MemberRow(
+                                name = stringResource(R.string.member_owner_suffix, current.ownerName),
+                                email = "",
+                                onRemove = null,
+                            )
                         }
                         items(current.members, key = { it.uid }) { member ->
                             MemberRow(
@@ -182,7 +192,7 @@ fun ListSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text("Delete list")
+                    Text(stringResource(R.string.action_delete_list))
                 }
             }
         }
@@ -191,16 +201,16 @@ fun ListSettingsScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this list?") },
-            text = { Text("All tasks in \"${list?.name}\" will be permanently deleted for everyone.") },
+            title = { Text(stringResource(R.string.dialog_delete_list_title)) },
+            text = { Text(stringResource(R.string.dialog_delete_list_body, list?.name.orEmpty())) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     viewModel.deleteList(onListDeleted)
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -223,7 +233,7 @@ private fun MemberRow(name: String, email: String, onRemove: (() -> Unit)?) {
         }
         if (onRemove != null) {
             IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Close, contentDescription = "Remove member")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_remove_member))
             }
         }
     }

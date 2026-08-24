@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.google.firebase.auth.FirebaseAuth
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import com.mytasks.app.R
 
 /**
  * Local, on-device fallback reminder for the currently signed-in user's own
@@ -35,7 +36,7 @@ class DueDateReminderWorker @AssistedInject constructor(
         NotificationHelper.show(
             context = applicationContext,
             notificationId = taskId.hashCode(),
-            title = "Task due soon",
+            title = applicationContext.getString(R.string.notification_task_due_soon),
             body = title,
         )
         return Result.success()

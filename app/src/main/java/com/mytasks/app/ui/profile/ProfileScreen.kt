@@ -34,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import androidx.compose.ui.unit.dp
+import com.mytasks.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,9 +63,11 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(stringResource(R.string.profile_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                    }
                 },
             )
         },
@@ -95,7 +99,7 @@ fun ProfileScreen(
             }
 
             Text(
-                text = user?.displayName ?: "Signed in",
+                text = user?.displayName ?: stringResource(R.string.profile_signed_in_fallback),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 16.dp),
@@ -114,7 +118,7 @@ fun ProfileScreen(
                     .padding(top = 32.dp),
             ) {
                 Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Sign out")
+                Text(stringResource(R.string.action_sign_out))
             }
 
             OutlinedButton(
@@ -132,7 +136,7 @@ fun ProfileScreen(
                 } else {
                     Icon(Icons.Filled.DeleteForever, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 }
-                Text("Delete my account")
+                Text(stringResource(R.string.action_delete_account))
             }
         }
     }
@@ -140,22 +144,16 @@ fun ProfileScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete your account?") },
-            text = {
-                Text(
-                    "This permanently deletes your profile, any lists you own privately, and your " +
-                        "membership in shared lists. Lists you own that are shared with others are " +
-                        "handed off to another member instead of being deleted. This can't be undone.",
-                )
-            },
+            title = { Text(stringResource(R.string.dialog_delete_account_title)) },
+            text = { Text(stringResource(R.string.dialog_delete_account_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
                     viewModel.deleteAccount()
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }

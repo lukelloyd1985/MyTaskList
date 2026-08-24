@@ -1,8 +1,10 @@
 package com.mytasks.app.ui.lists
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.mytasks.app.R
 import com.mytasks.app.data.model.ListMember
 import com.mytasks.app.data.model.ListVisibility
 import com.mytasks.app.data.model.TaskList
@@ -24,6 +27,7 @@ data class ListsUiState(val errorMessage: String? = null)
 class ListsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val listRepository: ListRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     val lists: StateFlow<List<TaskList>> = authRepository.authState
@@ -59,7 +63,9 @@ class ListsViewModel @Inject constructor(
                     owner = owner,
                 )
             } catch (t: Throwable) {
-                _uiState.value = ListsUiState(errorMessage = t.message ?: "Couldn't create list")
+                _uiState.value = ListsUiState(
+                    errorMessage = t.message ?: appContext.getString(R.string.error_create_list_failed),
+                )
             }
         }
     }

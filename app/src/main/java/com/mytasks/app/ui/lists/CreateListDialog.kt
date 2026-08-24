@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.mytasks.app.R
 import com.mytasks.app.data.model.ListVisibility
 
 @Composable
@@ -33,13 +35,13 @@ fun CreateListDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New list") },
+        title = { Text(stringResource(R.string.new_list)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("List name, e.g. Garden") },
+                    label = { Text(stringResource(R.string.label_list_name_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -48,14 +50,14 @@ fun CreateListDialog(
                         .padding(top = 16.dp)
                         .selectableGroup(),
                 ) {
-                    Text("Visibility", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.label_visibility), style = MaterialTheme.typography.labelLarge)
                     VisibilityOption(
-                        label = "Private - only you can see it",
+                        label = stringResource(R.string.visibility_option_private),
                         selected = visibility == ListVisibility.PRIVATE,
                         onSelect = { visibility = ListVisibility.PRIVATE },
                     )
                     VisibilityOption(
-                        label = "Shared - invite others to view and edit",
+                        label = stringResource(R.string.visibility_option_shared),
                         selected = visibility == ListVisibility.SHARED,
                         onSelect = { visibility = ListVisibility.SHARED },
                     )
@@ -66,10 +68,10 @@ fun CreateListDialog(
             TextButton(
                 enabled = name.isNotBlank(),
                 onClick = { onCreate(name.trim(), visibility) },
-            ) { Text("Create") }
+            ) { Text(stringResource(R.string.action_create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
     )
 }
