@@ -7,12 +7,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:91013088892:android:2abc3491641df0e71b6bf9",
+        "mobilesdk_app_id": "1:91013088892:android:a66bc934ef9c67651b6bf9",
         "android_client_info": {
-          "package_name": "com.mytasks.app"
+          "package_name": "com.github.lukelloyd1985.mytasks"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "91013088892-ujnrm4cclvfak5sror65oqki4tf93msr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.github.lukelloyd1985.mytasks",
+            "certificate_hash": "a667c7d54e64d407b5737ab5b8abf313ee316e32"
+          }
+        },
         {
           "client_id": "91013088892-5mp9q8v12bd23knnroj9k9du785nkvsf.apps.googleusercontent.com",
           "client_type": 3
@@ -36,12 +44,20 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:91013088892:android:bc520395f14b347a1b6bf9",
+        "mobilesdk_app_id": "1:91013088892:android:35e659edf66710fc1b6bf9",
         "android_client_info": {
-          "package_name": "com.mytasks.app.debug"
+          "package_name": "com.github.lukelloyd1985.mytasks.debug"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "91013088892-kav644dmu81khq0v60d8qmd35rfto4f4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.github.lukelloyd1985.mytasks.debug",
+            "certificate_hash": "19a0d9d0059f66772b6d15622caaf1a77a78c74e"
+          }
+        },
         {
           "client_id": "91013088892-5mp9q8v12bd23knnroj9k9du785nkvsf.apps.googleusercontent.com",
           "client_type": 3

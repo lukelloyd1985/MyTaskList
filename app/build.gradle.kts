@@ -14,7 +14,13 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.mytasks.app"
+        // Play-facing identity only - not the same as `namespace` above,
+        // which stays com.mytasks.app for the Kotlin source package/R
+        // class. com.mytasks.app was already taken on Play Store, so the
+        // app's actual Play/OS identity lives under this repository's
+        // GitHub namespace instead. See README "Publishing to Google
+        // Play" for the Firebase re-registration this requires.
+        applicationId = "com.github.lukelloyd1985.mytasks"
         minSdk = 26
         targetSdk = 35
 
