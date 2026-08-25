@@ -280,6 +280,15 @@ for the project (`onTaskWrite` is a Firestore-triggered function, which
 2nd-gen functions implement via Eventarc), not a real error or a
 missing role. Just wait a few minutes and re-run the workflow.
 
+The Artifact Registry cleanup-policy step runs *after* the Firestore/
+Functions deploy, not before: `functions:artifacts:setpolicy` targets a
+per-region Artifact Registry repository that Cloud Functions itself
+only creates as part of a successful deploy to that region, and
+silently no-ops (no error, nothing set up) if that repository doesn't
+exist yet. Running it after the deploy step, in the same run, means
+the repository the deploy just created (or already existed from an
+earlier run) is there by the time it runs.
+
 ## Building the APK
 
 ### Locally
