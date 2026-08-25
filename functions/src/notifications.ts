@@ -1,8 +1,9 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
-import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getMessaging, SendResponse } from "firebase-admin/messaging";
+import { db, FIRESTORE_DATABASE_ID } from "./firestoreDb";
 
 type SupportedLocale = "en" | "sk" | "cs" | "fr" | "de" | "es" | "it" | "ru";
 
@@ -65,7 +66,7 @@ function resolveLocale(locale: unknown): SupportedLocale {
  *  never translated - only the notification's own title, and the body's
  *  fallback for an untitled task, are. */
 async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?: string) {
-  const userSnap = await getFirestore().collection("users").doc(uid).get();
+  const userSnap = await db().collection("users").doc(uid).get();
   const tokens: string[] = userSnap.get("fcmTokens") ?? [];
   if (tokens.length === 0) return;
 
@@ -83,7 +84,7 @@ async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?:
     .map((r: SendResponse, i: number) => (r.success ? null : tokens[i]))
     .filter((t): t is string => t !== null);
   if (staleTokens.length > 0) {
-    await getFirestore()
+    await db()
       .collection("users")
       .doc(uid)
       .update({ fcmTokens: FieldValue.arrayRemove(...staleTokens) });
@@ -92,21 +93,24 @@ async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?:
 
 /** Notifies a task's assignee whenever they're newly assigned (or
  *  reassigned) to a task, so they find out even if the app isn't open. */
-export const onTaskWrite = onDocumentWritten("lists/{listId}/tasks/{taskId}", async (event) => {
-  const before = event.data?.before?.data();
-  const after = event.data?.after?.data();
-  if (!after) return; // task deleted
+export const onTaskWrite = onDocumentWritten(
+  { document: "lists/{listId}/tasks/{taskId}", database: FIRESTORE_DATABASE_ID },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after) return; // task deleted
 
-  const assigneeId: string | undefined = after.assigneeId;
-  const previousAssigneeId: string | undefined = before?.assigneeId;
-  if (!assigneeId || assigneeId === previousAssigneeId) return;
+    const assigneeId: string | undefined = after.assigneeId;
+    const previousAssigneeId: string | undefined = before?.assigneeId;
+    if (!assigneeId || assigneeId === previousAssigneeId) return;
 
-  try {
-    await sendToUser(assigneeId, "assigned", after.title);
-  } catch (error) {
-    logger.error(`Failed to notify assignee ${assigneeId}`, error);
-  }
-});
+    try {
+      await sendToUser(assigneeId, "assigned", after.title);
+    } catch (error) {
+      logger.error(`Failed to notify assignee ${assigneeId}`, error);
+    }
+  },
+);
 
 /** Sweeps every list's tasks for ones due within the next 15 minutes that
  *  haven't been reminded about yet. A per-list on-device WorkManager
@@ -116,7 +120,7 @@ export const onTaskWrite = onDocumentWritten("lists/{listId}/tasks/{taskId}", as
 export const dueDateReminders = onSchedule("every 15 minutes", async () => {
   const windowEnd = Timestamp.fromMillis(Date.now() + 15 * 60 * 1000);
 
-  const dueTasks = await getFirestore()
+  const dueTasks = await db()
     .collectionGroup("tasks")
     .where("notify", "==", true)
     .where("reminderSent", "==", false)
@@ -125,7 +129,7 @@ export const dueDateReminders = onSchedule("every 15 minutes", async () => {
 
   if (dueTasks.empty) return;
 
-  const batch = getFirestore().batch();
+  const batch = db().batch();
   for (const doc of dueTasks.docs) {
     const task = doc.data();
     if (task.completed) {

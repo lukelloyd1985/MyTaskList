@@ -141,7 +141,32 @@ that table to match the new `values-<language code>/strings.xml`.
    real: add the two Android apps above to the project, then redo step 6
    below (the SHA-1/SHA-256 fingerprints are registered per Android-app
    entry, so the old registrations don't carry over either).
-2. **Enable Firestore** (production mode) and deploy the rules/indexes:
+2. **Deploy Firestore** - this app deliberately doesn't use the
+   `(default)` database Firebase Console offers to create for you.
+   `firebase.json`'s `firestore` block instead names an explicit
+   database (`"database": "mytasks"`, `"location": "europe-west2"`),
+   and every client names it too: `FIRESTORE_DATABASE_ID` in the
+   Android app's `FirebaseModule.kt`, and `firestoreDb.ts` in
+   `functions/src` (both must keep matching each other and
+   `firebase.json` - Firestore has no per-project "current" database a
+   client falls back to, so a mismatch there means the app and the
+   Cloud Functions would silently read/write two different, empty-
+   looking databases instead of erroring). The reasons to prefer a
+   named database over `(default)`: the location is permanent from the
+   moment the database is created (the only way to move one afterwards
+   is deleting it and recreating it from scratch, exporting/reimporting
+   every document by hand if there's real data in it by then) - so
+   `europe-west2` (London, for UK data residency, matching the Cloud
+   Functions region - see `setGlobalOptions` in
+   `functions/src/index.ts`) needs to be nailed down explicitly rather
+   than left to whatever Console defaults to; and naming it explicitly
+   everywhere means a typo or a forgotten client is a loud "no such
+   database" error instead of a silent split-brain across two real
+   databases that happen to both be named `(default)`.
+
+   Simply running the deploy creates the database for you, in exactly
+   the location `firebase.json` specifies, if it doesn't already exist
+   - no manual Console step needed:
    ```
    npm install -g firebase-tools
    firebase login

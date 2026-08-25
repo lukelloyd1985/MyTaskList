@@ -1,7 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
-import { getFirestore, FieldValue, DocumentReference } from "firebase-admin/firestore";
+import { FieldValue, DocumentReference } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { db } from "./firestoreDb";
 
 interface ListMemberData {
   uid: string;
@@ -13,7 +14,7 @@ interface ListMemberData {
 async function unassignTasks(listRef: DocumentReference, uid: string) {
   const tasks = await listRef.collection("tasks").where("assigneeId", "==", uid).get();
   if (tasks.empty) return;
-  const batch = getFirestore().batch();
+  const batch = db().batch();
   for (const taskDoc of tasks.docs) {
     batch.update(taskDoc.ref, { assigneeId: "", assigneeName: "" });
   }
@@ -36,7 +37,7 @@ export const deleteAccount = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "You must be signed in to delete your account.");
   }
 
-  const firestore = getFirestore();
+  const firestore = db();
 
   const [ownedLists, memberLists] = await Promise.all([
     firestore.collection("lists").where("ownerId", "==", uid).get(),
