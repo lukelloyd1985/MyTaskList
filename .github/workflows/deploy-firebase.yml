@@ -58,6 +58,22 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      # Without this, every deploy leaves its container image behind in
+      # Artifact Registry indefinitely - small individually, but they
+      # accumulate storage cost over time. --force here only means "set
+      # this policy without an interactive prompt" (functions themselves
+      # still deploy without --force below, so a removed function is
+      # never auto-deleted). --location must match the functions' own
+      # region (europe-west2, see functions/src/index.ts) - it defaults
+      # to us-central1 otherwise, which wouldn't match anything here.
+      - name: Set up Artifact Registry cleanup policy
+        run: |
+          firebase functions:artifacts:setpolicy \
+            --location europe-west2 \
+            --days 1 \
+            --project "$FIREBASE_PROJECT_ID" \
+            --force
+
       # Deliberately no --force: a function removed from source is left
       # alone rather than auto-deleted from the live project. If that's
       # ever needed, run `firebase deploy --only functions` locally (or

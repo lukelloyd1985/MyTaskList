@@ -141,7 +141,23 @@ that table to match the new `values-<language code>/strings.xml`.
    real: add the two Android apps above to the project, then redo step 6
    below (the SHA-1/SHA-256 fingerprints are registered per Android-app
    entry, so the old registrations don't carry over either).
-2. **Enable Firestore** (production mode) and deploy the rules/indexes:
+2. **Enable Firestore** (production mode) and deploy the rules/indexes.
+   **Pick the location carefully first** - Firebase Console prompts for
+   a Firestore location the first time you create the database (Build →
+   Firestore Database → Create database), and **it can never be changed
+   afterwards**: the only way to move an existing database is deleting
+   it and creating a new one from scratch, which means exporting and
+   reimporting every document by hand if there's real data in it by
+   then. This project's Cloud Functions are pinned to `europe-west2`
+   (London) - see `setGlobalOptions` in `functions/src/index.ts` - for
+   UK data residency, so create the Firestore database in `europe-west2`
+   too (a single region, not a multi-region option) to keep data and
+   compute co-located. If the project's default database already exists
+   in the wrong location with no real data in it yet, delete it (Cloud
+   Console → Firestore → Databases → the database → delete, typing the
+   project ID to confirm) and create a fresh one in `europe-west2`
+   before going further - trivial now, a real migration once there's
+   data worth keeping.
    ```
    npm install -g firebase-tools
    firebase login
@@ -215,19 +231,23 @@ One-time setup:
    - its ID is the `project_id` under `project_info` in that file), then
    **IAM & Admin → Service Accounts → Create Service Account** (any name,
    e.g. `mytasks-ci-deployer`).
-2. Grant it these four roles (search each by name when adding them):
+2. Grant it these five roles (search each by name when adding them):
    **Firebase Admin** (covers Firestore rules/indexes and most of what
    `functions` deploy needs), **Cloud Build Editor** and **Service
    Account User** (2nd-gen Cloud Functions - what this project uses -
    deploy through Cloud Build onto Cloud Run under the hood, which is why
-   plain "Cloud Functions Developer" alone isn't enough), and **Cloud
+   plain "Cloud Functions Developer" alone isn't enough), **Cloud
    Scheduler Admin** (`dueDateReminders` is a scheduled function -
    `onSchedule` - which deploys by creating a Cloud Scheduler job behind
    the scenes; without this role that specific step 403s on
    `cloudscheduler.jobs.update` even though everything else deploys
-   fine). If a deploy still 403s on some other specific permission, the
-   error names it - add that one role and re-run rather than guessing
-   further roles up front.
+   fine), and **Artifact Registry Admin** (each deploy builds a container
+   image for the functions; without this role the workflow's cleanup
+   policy step - see below - can't set up automatic deletion of old
+   ones, and they'd otherwise accumulate storage cost indefinitely). If
+   a deploy still 403s on some other specific permission, the error
+   names it - add that one role and re-run rather than guessing further
+   roles up front.
 3. Open the service account → **Keys → Add Key → Create new key → JSON**
    to download the key file, then add its full contents as the
    `FIREBASE_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets
@@ -239,7 +259,10 @@ One-time setup:
    on demand instead) and it never deletes a function that's been
    removed from source (no `--force`) - if that's ever actually wanted,
    do it as its own reviewed step rather than a side effect of an
-   unrelated change.
+   unrelated change. It does set an Artifact Registry cleanup policy
+   (container images older than a day get deleted automatically) on
+   every run - harmless to repeat, and otherwise every deploy leaves an
+   image behind forever, at a small but ever-growing storage cost.
 
 **The very first deploy** may fail with "Permission denied while using
 the Eventarc Service Agent" and a note that it's your first time using
