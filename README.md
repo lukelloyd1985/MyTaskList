@@ -230,8 +230,18 @@ everything after that, which CI automates.
    `publishListing` CI step. This repo currently uses `en-GB`.
 3. **Complete "App content"** (Play Console won't allow any release
    without these): Privacy policy URL (from step 1), Ads (No ads, unless
-   you've added some), App access (all functionality is available without
-   special access), Content ratings questionnaire, Target audience,
+   you've added some), Content ratings questionnaire, Target audience,
+   **App access** - the whole app sits behind Google Sign-In (there's no
+   guest/anonymous mode: `MainActivity` shows `LoginScreen` until
+   `AuthViewModel.currentUser` is non-null), so this must be set to "All
+   or some functionality is restricted," not "available without special
+   access." Add one login instruction: leave *Username* and *Password*
+   blank (there aren't any - it's Sign in with Google, not a password
+   form) and put something like the following in *Instructions*: "This
+   app only supports Sign in with Google - there's no username/password.
+   Tap 'Continue with Google' and sign in with any Google Account to
+   access all functionality." Reviewers use their own Google account for
+   this, the same way a real user would.
    **Data safety** section - this should mirror `docs/privacy.html`:
    personal info collected (name, email, photo - via Google Sign-In),
    task/list content, shared with third parties = **No**, encrypted in
