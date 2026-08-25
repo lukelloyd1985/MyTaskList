@@ -36,14 +36,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 import java.util.Date
+import com.mytasks.app.R
 import com.mytasks.app.data.model.ListMember
 import com.mytasks.app.data.model.TaskItem
 import com.mytasks.app.data.model.TaskPriority
 import com.mytasks.app.util.DateTimeUtils
+
+private fun TaskPriority.labelRes(): Int = when (this) {
+    TaskPriority.LOW -> R.string.priority_low
+    TaskPriority.MEDIUM -> R.string.priority_medium
+    TaskPriority.HIGH -> R.string.priority_high
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,14 +95,14 @@ fun TaskEditorSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
         ) {
             Text(
-                if (initialTask == null) "New task" else "Edit task",
+                stringResource(if (initialTask == null) R.string.task_editor_title_new else R.string.task_editor_title_edit),
                 style = MaterialTheme.typography.titleLarge,
             )
 
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.label_title)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier
@@ -105,7 +113,7 @@ fun TaskEditorSheet(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.label_notes_optional)) },
                 minLines = 2,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -118,10 +126,10 @@ fun TaskEditorSheet(
                 modifier = Modifier.padding(top = 12.dp),
             ) {
                 OutlinedTextField(
-                    value = selectedMember?.displayName ?: "Unassigned",
+                    value = selectedMember?.displayName ?: stringResource(R.string.label_unassigned),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Assign to") },
+                    label = { Text(stringResource(R.string.label_assign_to)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = assigneeMenuExpanded) },
                     modifier = Modifier
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable)
@@ -144,7 +152,7 @@ fun TaskEditorSheet(
             }
 
             Text(
-                "Priority",
+                stringResource(R.string.label_priority),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
             )
@@ -153,7 +161,7 @@ fun TaskEditorSheet(
                     FilterChip(
                         selected = priority == p,
                         onClick = { priority = p },
-                        label = { Text(p.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        label = { Text(stringResource(p.labelRes())) },
                     )
                 }
             }
@@ -165,10 +173,10 @@ fun TaskEditorSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.weight(1f)) {
-                    Text(dueAt?.let { DateTimeUtils.formatDueDate(it) } ?: "Set due date")
+                    Text(dueAt?.let { DateTimeUtils.formatDueDate(it) } ?: stringResource(R.string.action_set_due_date))
                 }
                 if (dueAt != null) {
-                    TextButton(onClick = { dueAt = null; notify = false }) { Text("Clear") }
+                    TextButton(onClick = { dueAt = null; notify = false }) { Text(stringResource(R.string.action_clear)) }
                 }
             }
 
@@ -179,7 +187,7 @@ fun TaskEditorSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Remind me", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.label_remind_me), style = MaterialTheme.typography.bodyLarge)
                 Switch(checked = notify, onCheckedChange = { notify = it }, enabled = dueAt != null)
             }
 
@@ -201,7 +209,7 @@ fun TaskEditorSheet(
                     .fillMaxWidth()
                     .padding(top = 20.dp),
             ) {
-                Text("Save task")
+                Text(stringResource(R.string.action_save_task))
             }
 
             if (initialTask != null && onDelete != null) {
@@ -214,7 +222,7 @@ fun TaskEditorSheet(
                         .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 16.dp),
                 ) {
-                    Text("Delete task")
+                    Text(stringResource(R.string.action_delete_task))
                 }
             }
         }
@@ -231,9 +239,9 @@ fun TaskEditorSheet(
                     pendingDateMillis = datePickerState.selectedDateMillis
                     showDatePicker = false
                     showTimePicker = true
-                }) { Text("Next") }
+                }) { Text(stringResource(R.string.action_next)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) } },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -248,16 +256,16 @@ fun TaskEditorSheet(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Select time") },
+            title = { Text(stringResource(R.string.dialog_select_time_title)) },
             text = { TimePicker(state = timePickerState) },
             confirmButton = {
                 TextButton(onClick = {
                     val millis = pendingDateMillis ?: dueAt?.time ?: System.currentTimeMillis()
                     dueAt = DateTimeUtils.combine(millis, timePickerState.hour, timePickerState.minute)
                     showTimePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }

@@ -80,14 +80,14 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Shared task lists for your home, garden, and everything in between",
+                text = stringResource(R.string.login_tagline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
             )
 
             SocialLoginButton(
-                text = "Continue with Google",
+                text = stringResource(R.string.continue_with_google),
                 iconRes = R.drawable.ic_provider_google,
                 modifier = Modifier.padding(bottom = 12.dp),
                 enabled = !uiState.isLoading,
@@ -127,7 +127,7 @@ private suspend fun signInWithGoogle(
 ) {
     val webClientId = webClientIdOrNull(context)
     if (webClientId == null) {
-        snackbarHostState.showSnackbar("Google sign-in isn't configured yet - see README Backend setup")
+        snackbarHostState.showSnackbar(context.getString(R.string.error_google_signin_not_configured))
         return
     }
 
@@ -149,7 +149,7 @@ private suspend fun signInWithGoogle(
     try {
         val response = credentialManager.getCredential(context, primaryRequest)
         Log.i(TAG, "Primary GetGoogleIdOption flow returned a credential")
-        handleGoogleCredential(response.credential, viewModel, snackbarHostState)
+        handleGoogleCredential(context, response.credential, viewModel, snackbarHostState)
     } catch (e: NoCredentialException) {
         Log.w(TAG, "Primary flow found no credential (type=${e.type}), falling back to GetSignInWithGoogleOption", e)
         val fallbackOption = GetSignInWithGoogleOption.Builder(serverClientId = webClientId).build()
@@ -157,18 +157,23 @@ private suspend fun signInWithGoogle(
         try {
             val response = credentialManager.getCredential(context, fallbackRequest)
             Log.i(TAG, "Fallback GetSignInWithGoogleOption flow returned a credential")
-            handleGoogleCredential(response.credential, viewModel, snackbarHostState)
+            handleGoogleCredential(context, response.credential, viewModel, snackbarHostState)
         } catch (e2: GetCredentialException) {
             Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message}", e2)
-            snackbarHostState.showSnackbar("Google sign-in failed [${e2.type}]: ${e2.message ?: "cancelled"}")
+            snackbarHostState.showSnackbar(
+                context.getString(R.string.error_google_signin_failed, e2.type, e2.message ?: "cancelled"),
+            )
         }
     } catch (e: GetCredentialException) {
         Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message}", e)
-        snackbarHostState.showSnackbar("Google sign-in failed [${e.type}]: ${e.message ?: "cancelled"}")
+        snackbarHostState.showSnackbar(
+            context.getString(R.string.error_google_signin_failed, e.type, e.message ?: "cancelled"),
+        )
     }
 }
 
 private suspend fun handleGoogleCredential(
+    context: android.content.Context,
     credential: Credential,
     viewModel: AuthViewModel,
     snackbarHostState: SnackbarHostState,
@@ -178,6 +183,6 @@ private suspend fun handleGoogleCredential(
         viewModel.onGoogleIdToken(googleIdTokenCredential.idToken)
     } else {
         Log.e(TAG, "Unexpected credential type from Google: ${credential.type}")
-        snackbarHostState.showSnackbar("Unexpected credential type from Google: ${credential.type}")
+        snackbarHostState.showSnackbar(context.getString(R.string.error_unexpected_credential_type, credential.type))
     }
 }

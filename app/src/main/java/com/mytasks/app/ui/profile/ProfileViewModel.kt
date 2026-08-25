@@ -1,15 +1,18 @@
 package com.mytasks.app.ui.profile
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.mytasks.app.R
 import com.mytasks.app.data.remote.AuthRepository
 
 data class ProfileUiState(
@@ -20,6 +23,7 @@ data class ProfileUiState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     val currentUser: StateFlow<FirebaseUser?> = authRepository.authState.stateIn(
@@ -42,7 +46,9 @@ class ProfileViewModel @Inject constructor(
                 // observes to switch back to LoginScreen - no navigation
                 // call needed here.
             } catch (t: Throwable) {
-                _uiState.value = ProfileUiState(errorMessage = t.message ?: "Couldn't delete your account")
+                _uiState.value = ProfileUiState(
+                    errorMessage = t.message ?: appContext.getString(R.string.error_delete_account_failed),
+                )
             }
         }
     }

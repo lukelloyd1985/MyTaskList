@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import java.util.Date
+import com.mytasks.app.R
 import com.mytasks.app.data.model.TaskItem
 import com.mytasks.app.data.model.TaskPriority
 import com.mytasks.app.ui.theme.PriorityHigh
@@ -92,7 +94,7 @@ fun TaskRow(
                         if (task.notify) {
                             Icon(
                                 Icons.Filled.NotificationsActive,
-                                contentDescription = "Reminder set",
+                                contentDescription = stringResource(R.string.cd_reminder_set),
                                 modifier = Modifier
                                     .padding(start = 4.dp)
                                     .size(14.dp),
@@ -106,7 +108,7 @@ fun TaskRow(
             if (dragHandleModifier != null) {
                 Icon(
                     Icons.Filled.DragHandle,
-                    contentDescription = "Drag to reorder",
+                    contentDescription = stringResource(R.string.cd_drag_to_reorder),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .padding(start = 4.dp)

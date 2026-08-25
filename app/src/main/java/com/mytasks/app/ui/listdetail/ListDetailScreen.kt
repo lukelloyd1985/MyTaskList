@@ -32,11 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mytasks.app.R
 import com.mytasks.app.data.model.TaskItem
 import com.mytasks.app.ui.components.TaskRow
 import kotlin.math.roundToInt
@@ -59,12 +61,12 @@ fun ListDetailScreen(
                 title = { Text(list?.name ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { onOpenSettings(viewModel.listId) }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "List settings")
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.list_settings_title))
                     }
                 },
             )
@@ -74,7 +76,7 @@ fun ListDetailScreen(
                 editingTask = null
                 showEditor = true
             }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add task")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.cd_add_task))
             }
         },
     ) { padding ->
@@ -103,7 +105,7 @@ fun ListDetailScreen(
             if (open.isEmpty() && completed.isEmpty()) {
                 item {
                     Text(
-                        "No tasks yet - tap + to add one.",
+                        stringResource(R.string.tasks_empty_state),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 24.dp),
@@ -173,7 +175,7 @@ fun ListDetailScreen(
             if (completed.isNotEmpty()) {
                 item {
                     Text(
-                        "Completed (${completed.size})",
+                        stringResource(R.string.completed_count, completed.size),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),

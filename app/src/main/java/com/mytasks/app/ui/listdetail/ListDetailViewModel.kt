@@ -28,6 +28,7 @@ import com.mytasks.app.data.remote.AuthRepository
 import com.mytasks.app.data.remote.ListRepository
 import com.mytasks.app.data.remote.TaskRepository
 import com.mytasks.app.data.remote.UserRepository
+import com.mytasks.app.R
 import com.mytasks.app.di.ApplicationScope
 import com.mytasks.app.notifications.ReminderScheduler
 
@@ -152,7 +153,8 @@ class ListDetailViewModel @Inject constructor(
                 listRepository.deleteList(listId)
             } catch (t: Throwable) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(appContext, t.message ?: "Couldn't delete list", Toast.LENGTH_LONG).show()
+                    val message = t.message ?: appContext.getString(R.string.error_delete_list_failed)
+                    Toast.makeText(appContext, message, Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -170,7 +172,7 @@ class ListDetailViewModel @Inject constructor(
             val profile = userRepository.findByEmail(normalized)
             if (profile == null) {
                 _inviteState.value = InviteUiState(
-                    errorMessage = "No MyTasks user found for $normalized. They need to sign in at least once first.",
+                    errorMessage = appContext.getString(R.string.error_invite_no_user_found, normalized),
                 )
                 return@launch
             }
