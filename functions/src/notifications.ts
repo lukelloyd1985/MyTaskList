@@ -3,10 +3,49 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import * as admin from "firebase-admin";
 
-async function sendToUser(uid: string, title: string, body: string) {
+type SupportedLocale = "en" | "sk" | "cs";
+
+/** Mirrors the values(-sk/-cs)/strings.xml translations on the Android
+ *  side (see README "Localization") for the two notification kinds this
+ *  backend sends - kept here rather than templated from the client since
+ *  these are sent from a Cloud Function with no UI context. `untitled`
+ *  is what a task's body falls back to when it has no title. */
+const NOTIFICATION_STRINGS: Record<SupportedLocale, {
+  assigned: { title: string; untitled: string };
+  dueSoon: { title: string; untitled: string };
+}> = {
+  en: {
+    assigned: { title: "You were assigned a task", untitled: "New task" },
+    dueSoon: { title: "Task due soon", untitled: "Task" },
+  },
+  sk: {
+    assigned: { title: "Bola vám priradená úloha", untitled: "Nová úloha" },
+    dueSoon: { title: "Termín úlohy sa blíži", untitled: "Úloha" },
+  },
+  cs: {
+    assigned: { title: "Byl vám přiřazen úkol", untitled: "Nový úkol" },
+    dueSoon: { title: "Termín úkolu se blíží", untitled: "Úkol" },
+  },
+};
+
+function resolveLocale(locale: unknown): SupportedLocale {
+  return locale === "sk" || locale === "cs" ? locale : "en";
+}
+
+/** Sends a push to every one of a user's registered devices, localized to
+ *  their `users/{uid}`.locale (see UserRepository.upsertProfile) with a
+ *  fallback to English for profiles that predate that field or use an
+ *  unsupported language. `taskTitle` is user-authored content and is
+ *  never translated - only the notification's own title, and the body's
+ *  fallback for an untitled task, are. */
+async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?: string) {
   const userSnap = await admin.firestore().collection("users").doc(uid).get();
   const tokens: string[] = userSnap.get("fcmTokens") ?? [];
   if (tokens.length === 0) return;
+
+  const strings = NOTIFICATION_STRINGS[resolveLocale(userSnap.get("locale"))][kind];
+  const title = strings.title;
+  const body = taskTitle ?? strings.untitled;
 
   const response = await admin.messaging().sendEachForMulticast({
     tokens,
@@ -37,9 +76,8 @@ export const onTaskWrite = onDocumentWritten("lists/{listId}/tasks/{taskId}", as
   const previousAssigneeId: string | undefined = before?.assigneeId;
   if (!assigneeId || assigneeId === previousAssigneeId) return;
 
-  const title = after.title ?? "New task";
   try {
-    await sendToUser(assigneeId, "You were assigned a task", title);
+    await sendToUser(assigneeId, "assigned", after.title);
   } catch (error) {
     logger.error(`Failed to notify assignee ${assigneeId}`, error);
   }
@@ -72,7 +110,7 @@ export const dueDateReminders = onSchedule("every 15 minutes", async () => {
     }
     if (task.assigneeId) {
       try {
-        await sendToUser(task.assigneeId, "Task due soon", task.title ?? "Task");
+        await sendToUser(task.assigneeId, "dueSoon", task.title);
       } catch (error) {
         logger.error(`Failed to send due-date reminder for ${doc.ref.path}`, error);
       }

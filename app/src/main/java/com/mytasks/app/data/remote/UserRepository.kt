@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.mytasks.app.data.model.UserProfile
@@ -27,6 +28,7 @@ class FirestoreUserRepository @Inject constructor(
             "displayName" to (user.displayName ?: user.email.orEmpty()),
             "email" to (user.email?.trim()?.lowercase() ?: ""),
             "photoUrl" to (user.photoUrl?.toString() ?: ""),
+            "locale" to Locale.getDefault().language,
             "lastSignedInAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
         )
         users.document(user.uid).set(profile, SetOptions.merge()).await()

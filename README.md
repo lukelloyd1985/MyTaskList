@@ -91,13 +91,21 @@ To add another language:
    adding a translation there; it's not always identical to the Android
    resource qualifier - e.g. Android's `values-cs` pairs with Play's
    `cs-CZ`, not `cs`).
+4. Add an entry for the language to `NOTIFICATION_STRINGS` in
+   `functions/src/notifications.ts` and redeploy functions, so push
+   notifications are localized too (see below).
 
-**Known limitation**: push notifications (task-assignment and due-date
-alerts sent by the Cloud Functions in `/functions`) are composed
-server-side in English only (see `functions/src/notifications.ts`).
-Localizing those would mean storing each user's preferred language in
-Firestore and templating the Cloud Functions' notification text per
-language - a reasonable follow-up, not done here.
+Push notifications (task-assignment and due-date alerts sent by the
+Cloud Functions in `/functions`) are localized too: `UserRepository`
+writes `Locale.getDefault().language` to `users/{uid}.locale` on every
+sign-in (this reflects any per-app language override automatically),
+and `functions/src/notifications.ts` picks the matching translation
+from its own small `NOTIFICATION_STRINGS` table when sending, falling
+back to English for an unset or unsupported locale. A task's own
+title/description are user-authored content and are never translated -
+only the notification's title and its fallback body text for an
+untitled task are. Adding a language there means adding an entry to
+that table to match the new `values-<language code>/strings.xml`.
 
 ## Backend setup
 
