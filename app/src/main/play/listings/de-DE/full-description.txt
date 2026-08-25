@@ -1,0 +1,9 @@
+MyTasks verwandelt verstreute Aufgabenlisten in geteilte Listen, die Ihr ganzer Haushalt gemeinsam sehen und aktualisieren kann.
+
+Erstellen Sie separate Listen für alles, was Sie organisieren möchten - ein Wochenendprojekt, wöchentliche Besorgungen, den Garten, die Hausinstandhaltung, einen Umzug - und behalten Sie jede privat oder teilen Sie sie mit den Personen, die mit Ihnen daran arbeiten. Laden Sie jemanden per E-Mail ein, und diese Person sieht jede Änderung in dem Moment, in dem Sie sie vornehmen.
+
+Geben Sie einer Aufgabe einen Titel, eine Beschreibung, ein Fälligkeitsdatum, eine Priorität und eine zugewiesene Person, und erhalten Sie eine Erinnerungsbenachrichtigung, wenn der Termin näher rückt, damit nichts übersehen wird. Ziehen Sie Aufgaben in die für Sie sinnvolle Reihenfolge. Haken Sie sie ab, bearbeiten oder löschen Sie sie - alle in einer geteilten Liste bleiben automatisch synchron, selbst wenn die Änderung offline vorgenommen wurde.
+
+Für die Nutzung von MyTasks ist eine Google-Anmeldung erforderlich: So identifiziert die App Sie in Ihren geteilten Listen und verknüpft Ihre Aufgaben mit Ihrem Konto - ohne separates Passwort, das Sie erstellen oder sich merken müssten. Sie benötigen ein Google-Konto, um sich anzumelden.
+
+MyTasks enthält keine Werbung und keine Tracker von Drittanbietern und verkauft Ihre Daten nicht. Sie können Ihr Konto und alle zugehörigen Daten jederzeit löschen, direkt in der App oder über das Web - Einzelheiten finden Sie in der Datenschutzerklärung.

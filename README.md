@@ -10,9 +10,10 @@ you organize your life into.
   optionally trigger a **reminder notification**. Open tasks can be
   **reordered** by long-pressing and dragging the handle on a task row.
 - **Sign in** with Google.
-- **Localized**: the UI is available in English, Slovak, and Czech,
-  following the device's language automatically - see
-  [Localization](#localization) below for how to add more.
+- **Localized**: the UI is available in English, Slovak, Czech, French,
+  German, Spanish, Italian, and Russian, following the device's language
+  automatically - see [Localization](#localization) below for how to add
+  more.
 - **CI/CD**: a GitHub Actions workflow builds an APK on every manual run
   (for testing) and attaches a release APK to every published GitHub
   Release.
@@ -56,30 +57,36 @@ its owner and everyone in `memberIds`.
 Every user-visible string in the app is a resource in
 [`app/src/main/res/values/strings.xml`](app/src/main/res/values/strings.xml)
 (English, the default) - there are no hardcoded strings left in the Kotlin
-source. Translations live alongside it as
-[`values-sk/strings.xml`](app/src/main/res/values-sk/strings.xml) (Slovak)
-and [`values-cs/strings.xml`](app/src/main/res/values-cs/strings.xml)
-(Czech); Android picks whichever one matches the device's language
-automatically, falling back to English. The app name itself
-(`app_name` = "MyTasks") is intentionally left untranslated in every
-locale, as a brand name.
+source. Translations live alongside it, one `values-<language code>/`
+directory per language: [`sk`](app/src/main/res/values-sk/strings.xml)
+(Slovak), [`cs`](app/src/main/res/values-cs/strings.xml) (Czech),
+[`fr`](app/src/main/res/values-fr/strings.xml) (French),
+[`de`](app/src/main/res/values-de/strings.xml) (German),
+[`es`](app/src/main/res/values-es/strings.xml) (Spanish),
+[`it`](app/src/main/res/values-it/strings.xml) (Italian), and
+[`ru`](app/src/main/res/values-ru/strings.xml) (Russian). Android picks
+whichever matches the device's language automatically, falling back to
+English. The app name itself (`app_name` = "MyTasks") is intentionally
+left untranslated in every locale, as a brand name.
 
 `AndroidManifest.xml` also declares
 [`res/xml/locales_config.xml`](app/src/main/res/xml/locales_config.xml)
-(the three languages above), so on Android 13+ people can also override
-the app's language independently of the device's, from Settings → Apps →
+(the languages above), so on Android 13+ people can also override the
+app's language independently of the device's, from Settings → Apps →
 MyTasks → Language.
 
 To add another language:
 
 1. Copy `values/strings.xml` to a new `values-<language code>/strings.xml`
-   (e.g. `values-de` for German) and translate every string, keeping the
+   (e.g. `values-pl` for Polish) and translate every string, keeping the
    same `name` attributes and any `%1$s`/`%1$d` format placeholders in
    the same order. Leave `app_name` and `notification_channel_tasks_id`
-   out - they're intentionally not overridden (see the sk/cs files for the
-   pattern). `list_members_count` is a `<plurals>` resource (grammatical
-   number - "1 member" vs "2 members" - varies by language); provide
-   whichever `quantity` categories the language's CLDR plural rules need
+   out - they're intentionally not overridden (see any existing
+   `values-*` file for the pattern). `list_members_count` is a
+   `<plurals>` resource (grammatical number - "1 member" vs "2 members" -
+   varies by language, and Russian's `values-ru` needs four categories
+   where most languages need two); provide whichever `quantity`
+   categories the language's CLDR plural rules need
    ([cldr.unicode.org/index/cldr-spec/plural-rules](https://cldr.unicode.org/index/cldr-spec/plural-rules)),
    `other` at minimum.
 2. Add a `<locale android:name="..."/>` entry for it to
@@ -318,14 +325,16 @@ everything after that, which CI automates.
    `app/src/main/play/listings/en-GB/` (title, descriptions, and the
    `docs/store-assets/` graphics, already copied in there). From then on,
    CI keeps this in sync automatically on every release - see step 4 in
-   part 2 below. The repo also ships Slovak (`sk`) and Czech (`cs-CZ`)
-   store listings under the same `listings/` directory - same rule as
-   above applies to them: Play Console rejects `publishListing` uploads
-   for any language the app doesn't already have a listing for (see the
-   note on step 2 above), so add Slovak and Czech under Store presence →
-   Main store listing → Manage translations → Add language *before* the
-   first CI release, or `publishListing` will 404 on them the same way it
-   did on a mismatched default language.
+   part 2 below. The repo also ships Slovak (`sk`), Czech (`cs-CZ`),
+   French (`fr-FR`), German (`de-DE`), Spanish (`es-ES`), Italian
+   (`it-IT`), and Russian (`ru-RU`) store listings under the same
+   `listings/` directory - same rule as above applies to all of them:
+   Play Console rejects `publishListing` uploads for any language the
+   app doesn't already have a listing for (see the note on step 2
+   above), so add every one of these under Store presence → Main store
+   listing → Manage translations → Add language *before* the first CI
+   release, or `publishListing` will 404 on them the same way it did on
+   a mismatched default language.
 5. **Do the first release by hand.** Build an AAB
    (`./gradlew bundleRelease`, or download one from a GitHub Release once
    you've tagged one - see below), go to Testing → Internal testing →

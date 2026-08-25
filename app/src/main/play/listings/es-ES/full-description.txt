@@ -1,0 +1,9 @@
+MyTasks convierte listas de tareas dispersas en listas compartidas que toda tu familia puede ver y actualizar juntos.
+
+Crea listas independientes para todo lo que necesites organizar - un proyecto de fin de semana, los recados de la semana, el jardín, el mantenimiento del hogar, una mudanza - y mantén cada una privada o compártela con las personas que trabajan en ella contigo. Invita a alguien por correo electrónico y verá cada cambio en el momento en que lo hagas.
+
+Añade a una tarea un título, una descripción, una fecha límite, una prioridad y una persona asignada, y recibe una notificación de recordatorio a medida que se acerca la fecha límite para que no se te escape nada. Arrastra las tareas al orden que prefieras. Márcalas, edítalas o elimínalas - todos en una lista compartida permanecen sincronizados automáticamente, incluso si el cambio se hizo sin conexión.
+
+Para usar MyTasks es necesario iniciar sesión con Google: así es como la aplicación te identifica en tus listas compartidas y vincula tus tareas a tu cuenta, sin necesidad de crear o recordar una contraseña aparte. Necesitarás una cuenta de Google para iniciar sesión.
+
+MyTasks no tiene anuncios ni rastreadores de terceros, y no vende tus datos. Puedes eliminar tu cuenta y todos sus datos en cualquier momento, desde la aplicación o desde la web - consulta la política de privacidad para más información.
