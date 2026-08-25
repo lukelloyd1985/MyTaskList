@@ -1,0 +1,71 @@
+name: Deploy Firebase (Firestore rules + Cloud Functions)
+
+# Manual only (tap "Run workflow" in the Actions tab, from a phone browser
+# or the GitHub app included - no local Firebase CLI or `firebase login`
+# needed) rather than on every push, since this pushes real Firestore
+# security rules and Cloud Functions straight to production. See README
+# "Deploying Firestore rules and Cloud Functions" for the one-time
+# service account setup this needs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    env:
+      HAS_FIREBASE_SERVICE_ACCOUNT_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Fail early with a clear message if the secret isn't set
+        if: ${{ env.HAS_FIREBASE_SERVICE_ACCOUNT_SECRET != 'true' }}
+        run: |
+          echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON repo secret is not set - see README 'Deploying Firestore rules and Cloud Functions' for the one-time setup."
+          exit 1
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Install Cloud Functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      # Firebase CLI picks this up automatically as Application Default
+      # Credentials - no `firebase login` needed. This is a plain service
+      # account key file, not Workload Identity Federation, so it isn't
+      # affected by the WIF token-exchange timeout bug some firebase-tools
+      # v15 releases have (https://github.com/firebase/firebase-tools/issues/10726).
+      - name: Decode service account key
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+
+      # Reads the project ID straight out of the google-services.json
+      # already committed to the repo, instead of needing yet another
+      # secret/variable kept in sync with it.
+      - name: Resolve Firebase project ID
+        run: echo "FIREBASE_PROJECT_ID=$(jq -r '.project_info.project_id' app/google-services.json)" >> "$GITHUB_ENV"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # Deliberately no --force: a function removed from source is left
+      # alone rather than auto-deleted from the live project. If that's
+      # ever needed, run `firebase deploy --only functions` locally (or
+      # add --force here) so it's a reviewed decision, not a side effect
+      # of an unrelated rules/functions change.
+      - name: Deploy Firestore rules, indexes, and Cloud Functions
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes,functions \
+            --project "$FIREBASE_PROJECT_ID" \
+            --non-interactive

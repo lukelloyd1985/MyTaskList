@@ -148,6 +148,10 @@ that table to match the new `values-<language code>/strings.xml`.
    firebase use --add          # pick your project
    firebase deploy --only firestore:rules,firestore:indexes
    ```
+   (No local Firebase CLI, or no laptop at all? See
+   [Deploying Firestore rules and Cloud Functions](#deploying-firestore-rules-and-cloud-functions)
+   below for a one-time GitHub Actions setup you can redeploy from
+   afterwards with a single tap, from a phone browser or the GitHub app.)
 3. **Enable Cloud Messaging** (enabled by default with the project).
 4. **Deploy Cloud Functions**:
    ```
@@ -191,6 +195,46 @@ that table to match the new `values-<language code>/strings.xml`.
    `android`). For a **CI-built debug APK**, see the debug keystore secrets
    below - CI runners are a fresh VM every run, so without a keystore
    secret configured there's no stable certificate to register at all.
+
+## Deploying Firestore rules and Cloud Functions
+
+`firebase deploy` (steps 2 and 4 above) needs the Firebase CLI and an
+interactive `firebase login` in a real browser tied to your Google
+account - fine from a laptop, not possible from a phone alone.
+[`.github/workflows/deploy-firebase.yml`](.github/workflows/deploy-firebase.yml)
+is a one-time-to-set-up alternative: a manually-triggered ("Run
+workflow" in the **Actions** tab - works from the GitHub mobile site or
+app, no CLI needed) job that deploys `firestore.rules`,
+`firestore.indexes.json`, and everything in `functions/` using a
+service account instead of your own login.
+
+One-time setup:
+
+1. In [Google Cloud Console](https://console.cloud.google.com), switch
+   to this app's Firebase project (same project as `google-services.json`
+   - its ID is the `project_id` under `project_info` in that file), then
+   **IAM & Admin → Service Accounts → Create Service Account** (any name,
+   e.g. `mytasks-ci-deployer`).
+2. Grant it these three roles (search each by name when adding them):
+   **Firebase Admin** (covers Firestore rules/indexes and most of what
+   `functions` deploy needs), **Cloud Build Editor**, and **Service
+   Account User** (2nd-gen Cloud Functions - what this project uses -
+   deploy through Cloud Build onto Cloud Run under the hood, which is why
+   plain "Cloud Functions Developer" alone isn't enough). If a deploy
+   still 403s on some specific permission, the error names it - add that
+   one role and re-run rather than guessing further roles up front.
+3. Open the service account → **Keys → Add Key → Create new key → JSON**
+   to download the key file, then add its full contents as the
+   `FIREBASE_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets
+   and variables → Actions) - paste the raw JSON, not base64.
+4. From then on: **Actions tab → Deploy Firebase (Firestore rules +
+   Cloud Functions) → Run workflow**. It never runs on its own (a
+   security-rules/Cloud-Functions deploy going out on every push felt
+   like too much blast radius for something this easy to trigger
+   on demand instead) and it never deletes a function that's been
+   removed from source (no `--force`) - if that's ever actually wanted,
+   do it as its own reviewed step rather than a side effect of an
+   unrelated change.
 
 ## Building the APK
 
