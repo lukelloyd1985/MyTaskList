@@ -279,8 +279,12 @@ everything after that, which CI automates.
    [`docs/delete-account.html`](docs/delete-account.html) are starting
    drafts - replace every `[bracketed placeholder]` in both (especially
    the support email), then enable Pages at Settings → Pages → *Build and
-   deployment* → *Deploy from a branch* → branch `main`, folder
-   `/docs`. Both are served from the same deployment, at
+   deployment* → *Source* → **GitHub Actions** (not "Deploy from a
+   branch" - that built-in source rebuilds on every push to `main`
+   regardless of what changed, with no way to scope it to `/docs`;
+   [`.github/workflows/pages.yml`](.github/workflows/pages.yml) is a
+   custom deployment that only runs when `docs/` actually changes). Both
+   pages are served from the same deployment, at
    `https://<your-github-username>.github.io/MyTasks/privacy.html` and
    `.../delete-account.html`.
 2. **Create the app** in [Play Console](https://play.google.com/console):
