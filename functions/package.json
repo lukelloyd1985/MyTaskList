@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cloud Functions backing the MyTasks Android app: push notifications for task assignment and due dates.",
   "engines": {
-    "node": "22"
+    "node": "24"
   },
   "main": "lib/index.js",
   "scripts": {
