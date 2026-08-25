@@ -1,0 +1,52 @@
+name: Deploy Pages
+
+# Only redeploys the privacy policy / account deletion pages when they (or
+# this workflow itself) actually change - unlike GitHub's built-in "Deploy
+# from a branch" Pages source, which reruns pages-build-deployment on
+# every push to main regardless of what changed and offers no path
+# filtering. Requires Settings -> Pages -> Build and deployment -> Source
+# to be set to "GitHub Actions" (not "Deploy from a branch") - see README
+# "Host the privacy policy and account deletion page".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; let an in-progress one finish rather than
+# cancelling it, but skip stale queued runs once a newer one is queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # Only docs/ is published - privacy.html and delete-account.html end
+      # up at the site root (.../privacy.html, .../delete-account.html),
+      # matching the URLs already registered in Play Console.
+      - name: Upload docs/ as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
