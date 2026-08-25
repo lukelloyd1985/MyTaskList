@@ -58,34 +58,30 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      # Deliberately no --force: a function removed from source is left
-      # alone rather than auto-deleted from the live project. If that's
-      # ever needed, run `firebase deploy --only functions` locally (or
-      # add --force here) so it's a reviewed decision, not a side effect
-      # of an unrelated rules/functions change.
-      - name: Deploy Firestore rules, indexes, and Cloud Functions
-        run: |
-          firebase deploy \
-            --only firestore:rules,firestore:indexes,functions \
-            --project "$FIREBASE_PROJECT_ID" \
-            --non-interactive
-
-      # Without this, every deploy leaves its container image behind in
-      # Artifact Registry indefinitely - small individually, but they
-      # accumulate storage cost over time. --force here only means "set
-      # this policy without an interactive prompt" (the deploy step
-      # above already ran without --force, so a removed function still
-      # isn't auto-deleted). --location must match the functions' own
-      # region (europe-west2, see functions/src/index.ts).
+      # Must run *before* the deploy below, not after. `firebase deploy
+      # --only functions` does its own internal Artifact Registry
+      # cleanup-policy check on every run (setupArtifactCleanupPolicies()
+      # in firebase-tools' src/deploy/functions/release/index.ts) and,
+      # in --non-interactive mode, *hard-fails the whole deploy* if no
+      # policy exists yet for the region - it doesn't just warn. That
+      # internal check only skips itself when a policy is already set
+      # (artifacts.checkCleanupPolicy() finds nothing left to do), so
+      # this standalone command has to set one first. --force here only
+      # means "set this policy without an interactive prompt" - it does
+      # NOT affect the deploy step below, which still runs without
+      # --force so a removed function still isn't auto-deleted (see its
+      # comment). --location must match the functions' own region
+      # (europe-west2, see functions/src/index.ts).
       #
-      # Must run *after* the deploy above, not before: this command
-      # targets an Artifact Registry repository that Cloud Functions
-      # itself creates on first deploy to a given region, and silently
-      # no-ops (exit 0, no error) if that repository doesn't exist yet -
-      # confirmed straight from its source
-      # (src/commands/functions-artifacts-setpolicy.ts in firebase-tools).
-      # Running it first, before europe-west2 had ever seen a deploy,
-      # is exactly what caused it to silently do nothing the first time.
+      # This does still no-op (exit 0, no error) if the europe-west2
+      # Artifact Registry repository doesn't exist yet, which is only
+      # true before that region's very first successful function
+      # deploy - Cloud Functions creates the repository as part of that
+      # first deploy, not before. If a *brand new* region is ever used
+      # for the first time, this step will silently do nothing and the
+      # deploy step below will then hard-fail with the cleanup-policy
+      # error once - rerunning the workflow afterwards fixes it, since
+      # by then the repository (and this step) both exist.
       - name: Set up Artifact Registry cleanup policy
         run: |
           firebase functions:artifacts:setpolicy \
@@ -93,3 +89,20 @@ jobs:
             --days 1 \
             --project "$FIREBASE_PROJECT_ID" \
             --force
+
+      # Deliberately no --force: a function removed from source is left
+      # alone rather than auto-deleted from the live project. In
+      # --non-interactive mode (this workflow), firebase-tools makes
+      # that safe rather than silent - without --force it *aborts the
+      # deploy* the moment it finds a function to delete, printing the
+      # exact `firebase functions:delete` command to run manually,
+      # instead of deleting anything on its own. If that's ever needed,
+      # run the printed command (or `firebase deploy --only functions
+      # --force`) locally so it's a reviewed decision, not a side effect
+      # of an unrelated rules/functions change.
+      - name: Deploy Firestore rules, indexes, and Cloud Functions
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes,functions \
+            --project "$FIREBASE_PROJECT_ID" \
+            --non-interactive

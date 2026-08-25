@@ -266,12 +266,16 @@ One-time setup:
    security-rules/Cloud-Functions deploy going out on every push felt
    like too much blast radius for something this easy to trigger
    on demand instead) and it never deletes a function that's been
-   removed from source (no `--force`) - if that's ever actually wanted,
-   do it as its own reviewed step rather than a side effect of an
-   unrelated change. It does set an Artifact Registry cleanup policy
-   (container images older than a day get deleted automatically) on
-   every run - harmless to repeat, and otherwise every deploy leaves an
-   image behind forever, at a small but ever-growing storage cost.
+   removed from source (no `--force`) - in non-interactive mode this
+   makes the deploy *abort* the moment it finds one to delete (printing
+   the exact `firebase functions:delete` command to run manually)
+   rather than delete anything on its own; if that's ever actually
+   wanted, run that printed command (or redeploy with `--force`) as its
+   own reviewed step rather than a side effect of an unrelated change.
+   The workflow also sets an Artifact Registry cleanup policy (container
+   images older than a day get deleted automatically) on every run -
+   harmless to repeat, and otherwise every deploy leaves an image behind
+   forever, at a small but ever-growing storage cost.
 
 **The very first deploy** may fail with "Permission denied while using
 the Eventarc Service Agent" and a note that it's your first time using
@@ -280,14 +284,21 @@ for the project (`onTaskWrite` is a Firestore-triggered function, which
 2nd-gen functions implement via Eventarc), not a real error or a
 missing role. Just wait a few minutes and re-run the workflow.
 
-The Artifact Registry cleanup-policy step runs *after* the Firestore/
-Functions deploy, not before: `functions:artifacts:setpolicy` targets a
-per-region Artifact Registry repository that Cloud Functions itself
-only creates as part of a successful deploy to that region, and
-silently no-ops (no error, nothing set up) if that repository doesn't
-exist yet. Running it after the deploy step, in the same run, means
-the repository the deploy just created (or already existed from an
-earlier run) is there by the time it runs.
+The Artifact Registry cleanup-policy step runs *before* the Firestore/
+Functions deploy, not after. That's because `firebase deploy --only
+functions` does its own internal cleanup-policy check on every run and,
+in non-interactive mode, hard-fails the *entire deploy* if no policy
+exists yet for the region - it only skips that check when a policy is
+already set. So the standalone `functions:artifacts:setpolicy` step has
+to set one first. That command does still target a per-region Artifact
+Registry repository that Cloud Functions itself only creates as part of
+a successful deploy to that region, and silently no-ops (no error,
+nothing set up) if that repository doesn't exist yet - true only before
+that region's very first successful function deploy. In that one case
+the standalone step no-ops and the deploy step right after it will fail
+with the cleanup-policy error once; simply re-running the workflow
+fixes it, since by then the region has a repository for the standalone
+step to set a policy on.
 
 ## Building the APK
 
