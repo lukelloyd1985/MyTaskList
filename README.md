@@ -240,14 +240,23 @@ One-time setup:
    - its ID is the `project_id` under `project_info` in that file), then
    **IAM & Admin → Service Accounts → Create Service Account** (any name,
    e.g. `mytasks-ci-deployer`).
-2. Grant it these three roles (search each by name when adding them):
+2. Grant it these five roles (search each by name when adding them):
    **Firebase Admin** (covers Firestore rules/indexes and most of what
-   `functions` deploy needs), **Cloud Build Editor**, and **Service
+   `functions` deploy needs), **Cloud Build Editor** and **Service
    Account User** (2nd-gen Cloud Functions - what this project uses -
    deploy through Cloud Build onto Cloud Run under the hood, which is why
-   plain "Cloud Functions Developer" alone isn't enough). If a deploy
-   still 403s on some specific permission, the error names it - add that
-   one role and re-run rather than guessing further roles up front.
+   plain "Cloud Functions Developer" alone isn't enough), **Cloud
+   Scheduler Admin** (`dueDateReminders` is a scheduled function -
+   `onSchedule` - which deploys by creating a Cloud Scheduler job behind
+   the scenes; without this role that specific step 403s on
+   `cloudscheduler.jobs.update` even though everything else deploys
+   fine), and **Artifact Registry Admin** (each deploy builds a container
+   image for the functions; without this role the workflow's cleanup
+   policy step - see below - can't set up automatic deletion of old
+   ones, and they'd otherwise accumulate storage cost indefinitely). If
+   a deploy still 403s on some other specific permission, the error
+   names it - add that one role and re-run rather than guessing further
+   roles up front.
 3. Open the service account → **Keys → Add Key → Create new key → JSON**
    to download the key file, then add its full contents as the
    `FIREBASE_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets
@@ -259,7 +268,17 @@ One-time setup:
    on demand instead) and it never deletes a function that's been
    removed from source (no `--force`) - if that's ever actually wanted,
    do it as its own reviewed step rather than a side effect of an
-   unrelated change.
+   unrelated change. It does set an Artifact Registry cleanup policy
+   (container images older than a day get deleted automatically) on
+   every run - harmless to repeat, and otherwise every deploy leaves an
+   image behind forever, at a small but ever-growing storage cost.
+
+**The very first deploy** may fail with "Permission denied while using
+the Eventarc Service Agent" and a note that it's your first time using
+2nd-gen functions - that's Google finishing first-time Eventarc setup
+for the project (`onTaskWrite` is a Firestore-triggered function, which
+2nd-gen functions implement via Eventarc), not a real error or a
+missing role. Just wait a few minutes and re-run the workflow.
 
 ## Building the APK
 
