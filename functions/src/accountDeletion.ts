@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
-import * as admin from "firebase-admin";
+import { getFirestore, FieldValue, DocumentReference } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 interface ListMemberData {
   uid: string;
@@ -9,10 +10,10 @@ interface ListMemberData {
   photoUrl?: string;
 }
 
-async function unassignTasks(listRef: admin.firestore.DocumentReference, uid: string) {
+async function unassignTasks(listRef: DocumentReference, uid: string) {
   const tasks = await listRef.collection("tasks").where("assigneeId", "==", uid).get();
   if (tasks.empty) return;
-  const batch = admin.firestore().batch();
+  const batch = getFirestore().batch();
   for (const taskDoc of tasks.docs) {
     batch.update(taskDoc.ref, { assigneeId: "", assigneeName: "" });
   }
@@ -35,7 +36,7 @@ export const deleteAccount = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "You must be signed in to delete your account.");
   }
 
-  const firestore = admin.firestore();
+  const firestore = getFirestore();
 
   const [ownedLists, memberLists] = await Promise.all([
     firestore.collection("lists").where("ownerId", "==", uid).get(),
@@ -72,7 +73,7 @@ export const deleteAccount = onCall(async (request) => {
     if (listDoc.data().ownerId === uid) continue; // handled above
     const members: ListMemberData[] = listDoc.data().members ?? [];
     await listDoc.ref.update({
-      memberIds: admin.firestore.FieldValue.arrayRemove(uid),
+      memberIds: FieldValue.arrayRemove(uid),
       members: members.filter((m) => m.uid !== uid),
     });
     await unassignTasks(listDoc.ref, uid);
@@ -81,7 +82,7 @@ export const deleteAccount = onCall(async (request) => {
   await firestore.collection("users").doc(uid).delete();
 
   try {
-    await admin.auth().deleteUser(uid);
+    await getAuth().deleteUser(uid);
   } catch (error) {
     logger.error(`Deleted data for ${uid} but failed to delete their Auth account`, error);
     throw new HttpsError(

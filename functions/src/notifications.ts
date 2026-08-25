@@ -1,7 +1,8 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
-import * as admin from "firebase-admin";
+import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
+import { getMessaging, SendResponse } from "firebase-admin/messaging";
 
 type SupportedLocale = "en" | "sk" | "cs" | "fr" | "de" | "es" | "it" | "ru";
 
@@ -64,7 +65,7 @@ function resolveLocale(locale: unknown): SupportedLocale {
  *  never translated - only the notification's own title, and the body's
  *  fallback for an untitled task, are. */
 async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?: string) {
-  const userSnap = await admin.firestore().collection("users").doc(uid).get();
+  const userSnap = await getFirestore().collection("users").doc(uid).get();
   const tokens: string[] = userSnap.get("fcmTokens") ?? [];
   if (tokens.length === 0) return;
 
@@ -72,21 +73,20 @@ async function sendToUser(uid: string, kind: "assigned" | "dueSoon", taskTitle?:
   const title = strings.title;
   const body = taskTitle ?? strings.untitled;
 
-  const response = await admin.messaging().sendEachForMulticast({
+  const response = await getMessaging().sendEachForMulticast({
     tokens,
     notification: { title, body },
     android: { priority: "high" },
   });
 
   const staleTokens = response.responses
-    .map((r, i) => (r.success ? null : tokens[i]))
+    .map((r: SendResponse, i: number) => (r.success ? null : tokens[i]))
     .filter((t): t is string => t !== null);
   if (staleTokens.length > 0) {
-    await admin
-      .firestore()
+    await getFirestore()
       .collection("users")
       .doc(uid)
-      .update({ fcmTokens: admin.firestore.FieldValue.arrayRemove(...staleTokens) });
+      .update({ fcmTokens: FieldValue.arrayRemove(...staleTokens) });
   }
 }
 
@@ -114,10 +114,9 @@ export const onTaskWrite = onDocumentWritten("lists/{listId}/tasks/{taskId}", as
  *  for the currently signed-in device; this is what reaches every other
  *  device / the assignee when they aren't the one who set the reminder. */
 export const dueDateReminders = onSchedule("every 15 minutes", async () => {
-  const windowEnd = admin.firestore.Timestamp.fromMillis(Date.now() + 15 * 60 * 1000);
+  const windowEnd = Timestamp.fromMillis(Date.now() + 15 * 60 * 1000);
 
-  const dueTasks = await admin
-    .firestore()
+  const dueTasks = await getFirestore()
     .collectionGroup("tasks")
     .where("notify", "==", true)
     .where("reminderSent", "==", false)
@@ -126,7 +125,7 @@ export const dueDateReminders = onSchedule("every 15 minutes", async () => {
 
   if (dueTasks.empty) return;
 
-  const batch = admin.firestore().batch();
+  const batch = getFirestore().batch();
   for (const doc of dueTasks.docs) {
     const task = doc.data();
     if (task.completed) {
