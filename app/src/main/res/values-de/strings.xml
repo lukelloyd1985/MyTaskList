@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name intentionally left untranslated - it's the brand name. -->
+
+    <string name="notification_channel_tasks_name">Aufgabenerinnerungen</string>
+    <string name="notification_channel_tasks_desc">Erinnerungen an Fälligkeitstermine und Benachrichtigungen zur Aufgabenzuweisung</string>
+
+    <!-- Common actions/labels reused across multiple screens -->
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_ok">OK</string>
+    <string name="action_next">Weiter</string>
+    <string name="cd_back">Zurück</string>
+    <string name="label_list_name">Listenname</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Geteilte Aufgabenlisten für Zuhause, Garten und alles dazwischen</string>
+    <string name="continue_with_google">Weiter mit Google</string>
+    <string name="error_google_signin_not_configured">Google-Anmeldung ist noch nicht eingerichtet - siehe README, Abschnitt Backend setup</string>
+    <string name="error_google_signin_failed">Google-Anmeldung fehlgeschlagen [%1$s]: %2$s</string>
+    <string name="error_unexpected_credential_type">Unerwarteter Anmeldedatentyp von Google: %1$s</string>
+    <string name="error_sign_in_failed">Anmeldung fehlgeschlagen</string>
+
+    <!-- Lists screen -->
+    <string name="lists_title">Meine Listen</string>
+    <string name="cd_profile">Profil</string>
+    <string name="new_list">Neue Liste</string>
+    <string name="lists_empty_title">Noch keine Listen</string>
+    <string name="lists_empty_body">Erstellen Sie Ihre erste Liste - Kurzfristig, Garten, Haus - und legen Sie fest, ob sie privat bleibt oder geteilt wird.</string>
+    <string name="error_create_list_failed">Liste konnte nicht erstellt werden</string>
+    <plurals name="list_members_count">
+        <item quantity="one">%1$d Mitglied</item>
+        <item quantity="other">%1$d Mitglieder</item>
+    </plurals>
+
+    <!-- Create list dialog -->
+    <string name="label_list_name_hint">Listenname, z. B. Garten</string>
+    <string name="label_visibility">Sichtbarkeit</string>
+    <string name="visibility_option_private">Privat - nur Sie können sie sehen</string>
+    <string name="visibility_option_shared">Geteilt - laden Sie andere zum Anzeigen und Bearbeiten ein</string>
+    <string name="action_create">Erstellen</string>
+
+    <!-- Visibility chip -->
+    <string name="visibility_private">Privat</string>
+    <string name="visibility_shared">Geteilt</string>
+
+    <!-- Task row -->
+    <string name="cd_reminder_set">Erinnerung festgelegt</string>
+    <string name="cd_drag_to_reorder">Ziehen, um die Reihenfolge zu ändern</string>
+
+    <!-- List detail -->
+    <string name="cd_add_task">Aufgabe hinzufügen</string>
+    <string name="tasks_empty_state">Noch keine Aufgaben - tippen Sie auf +, um eine hinzuzufügen.</string>
+    <string name="completed_count">Erledigt (%1$d)</string>
+
+    <!-- Task editor -->
+    <string name="task_editor_title_new">Neue Aufgabe</string>
+    <string name="task_editor_title_edit">Aufgabe bearbeiten</string>
+    <string name="label_title">Titel</string>
+    <string name="label_notes_optional">Notizen (optional)</string>
+    <string name="label_unassigned">Nicht zugewiesen</string>
+    <string name="label_assign_to">Zuweisen an</string>
+    <string name="label_priority">Priorität</string>
+    <string name="priority_low">Niedrig</string>
+    <string name="priority_medium">Mittel</string>
+    <string name="priority_high">Hoch</string>
+    <string name="action_set_due_date">Fälligkeitsdatum festlegen</string>
+    <string name="action_clear">Entfernen</string>
+    <string name="label_remind_me">Erinnere mich</string>
+    <string name="action_save_task">Aufgabe speichern</string>
+    <string name="action_delete_task">Aufgabe löschen</string>
+    <string name="dialog_select_time_title">Uhrzeit auswählen</string>
+
+    <!-- List settings -->
+    <string name="list_settings_title">Listeneinstellungen</string>
+    <string name="label_shared_list">Geteilte Liste</string>
+    <string name="shared_list_description">Jeder, den Sie einladen, kann diese Liste ansehen und bearbeiten</string>
+    <string name="label_members">Mitglieder</string>
+    <string name="label_invite_by_email">Per E-Mail einladen</string>
+    <string name="action_invite">Einladen</string>
+    <string name="member_owner_suffix">%1$s (Inhaber)</string>
+    <string name="cd_remove_member">Mitglied entfernen</string>
+    <string name="action_delete_list">Liste löschen</string>
+    <string name="dialog_delete_list_title">Diese Liste löschen?</string>
+    <string name="dialog_delete_list_body">Alle Aufgaben in „%1$s“ werden für alle dauerhaft gelöscht.</string>
+    <string name="error_delete_list_failed">Liste konnte nicht gelöscht werden</string>
+    <string name="error_invite_no_user_found">Kein MyTasks-Nutzer für %1$s gefunden. Diese Person muss sich zuerst mindestens einmal anmelden.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="profile_signed_in_fallback">Angemeldet</string>
+    <string name="action_sign_out">Abmelden</string>
+    <string name="action_delete_account">Mein Konto löschen</string>
+    <string name="dialog_delete_account_title">Konto löschen?</string>
+    <string name="dialog_delete_account_body">Dadurch werden Ihr Profil, alle privat besessenen Listen und Ihre Mitgliedschaft in geteilten Listen dauerhaft gelöscht. Listen, die Sie besitzen und die mit anderen geteilt werden, werden statt gelöscht an ein anderes Mitglied übergeben. Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="error_delete_account_failed">Konto konnte nicht gelöscht werden</string>
+
+    <!-- Notifications -->
+    <string name="notification_task_due_soon">Aufgabe bald fällig</string>
+</resources>

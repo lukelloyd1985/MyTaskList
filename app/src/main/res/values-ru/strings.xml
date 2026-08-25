@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name intentionally left untranslated - it's the brand name. -->
+
+    <string name="notification_channel_tasks_name">Напоминания о задачах</string>
+    <string name="notification_channel_tasks_desc">Напоминания о сроках и уведомления о назначении задач</string>
+
+    <!-- Common actions/labels reused across multiple screens -->
+    <string name="action_cancel">Отмена</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_ok">ОК</string>
+    <string name="action_next">Далее</string>
+    <string name="cd_back">Назад</string>
+    <string name="label_list_name">Название списка</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Общие списки задач для дома, сада и всего остального</string>
+    <string name="continue_with_google">Продолжить через Google</string>
+    <string name="error_google_signin_not_configured">Вход через Google ещё не настроен - см. README, раздел Backend setup</string>
+    <string name="error_google_signin_failed">Не удалось войти через Google [%1$s]: %2$s</string>
+    <string name="error_unexpected_credential_type">Неожиданный тип учётных данных от Google: %1$s</string>
+    <string name="error_sign_in_failed">Не удалось войти</string>
+
+    <!-- Lists screen -->
+    <string name="lists_title">Мои списки</string>
+    <string name="cd_profile">Профиль</string>
+    <string name="new_list">Новый список</string>
+    <string name="lists_empty_title">Пока нет списков</string>
+    <string name="lists_empty_body">Создайте свой первый список - Краткосрочные задачи, Сад, Дом - и выберите, оставить ли его личным или сделать общим.</string>
+    <string name="error_create_list_failed">Не удалось создать список</string>
+    <plurals name="list_members_count">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участников</item>
+    </plurals>
+
+    <!-- Create list dialog -->
+    <string name="label_list_name_hint">Название списка, например «Сад»</string>
+    <string name="label_visibility">Видимость</string>
+    <string name="visibility_option_private">Личный - видите только вы</string>
+    <string name="visibility_option_shared">Общий - пригласите других для просмотра и редактирования</string>
+    <string name="action_create">Создать</string>
+
+    <!-- Visibility chip -->
+    <string name="visibility_private">Личный</string>
+    <string name="visibility_shared">Общий</string>
+
+    <!-- Task row -->
+    <string name="cd_reminder_set">Напоминание установлено</string>
+    <string name="cd_drag_to_reorder">Перетащите, чтобы изменить порядок</string>
+
+    <!-- List detail -->
+    <string name="cd_add_task">Добавить задачу</string>
+    <string name="tasks_empty_state">Пока нет задач - нажмите +, чтобы добавить.</string>
+    <string name="completed_count">Выполнено (%1$d)</string>
+
+    <!-- Task editor -->
+    <string name="task_editor_title_new">Новая задача</string>
+    <string name="task_editor_title_edit">Изменить задачу</string>
+    <string name="label_title">Название</string>
+    <string name="label_notes_optional">Заметки (необязательно)</string>
+    <string name="label_unassigned">Не назначено</string>
+    <string name="label_assign_to">Назначить</string>
+    <string name="label_priority">Приоритет</string>
+    <string name="priority_low">Низкий</string>
+    <string name="priority_medium">Средний</string>
+    <string name="priority_high">Высокий</string>
+    <string name="action_set_due_date">Установить срок</string>
+    <string name="action_clear">Очистить</string>
+    <string name="label_remind_me">Напомнить мне</string>
+    <string name="action_save_task">Сохранить задачу</string>
+    <string name="action_delete_task">Удалить задачу</string>
+    <string name="dialog_select_time_title">Выбрать время</string>
+
+    <!-- List settings -->
+    <string name="list_settings_title">Настройки списка</string>
+    <string name="label_shared_list">Общий список</string>
+    <string name="shared_list_description">Любой, кого вы пригласите, сможет просматривать и редактировать этот список</string>
+    <string name="label_members">Участники</string>
+    <string name="label_invite_by_email">Пригласить по e-mail</string>
+    <string name="action_invite">Пригласить</string>
+    <string name="member_owner_suffix">%1$s (владелец)</string>
+    <string name="cd_remove_member">Удалить участника</string>
+    <string name="action_delete_list">Удалить список</string>
+    <string name="dialog_delete_list_title">Удалить этот список?</string>
+    <string name="dialog_delete_list_body">Все задачи в списке «%1$s» будут безвозвратно удалены для всех.</string>
+    <string name="error_delete_list_failed">Не удалось удалить список</string>
+    <string name="error_invite_no_user_found">Пользователь MyTasks с адресом %1$s не найден. Сначала этому человеку нужно хотя бы раз войти в приложение.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Профиль</string>
+    <string name="profile_signed_in_fallback">Вход выполнен</string>
+    <string name="action_sign_out">Выйти</string>
+    <string name="action_delete_account">Удалить мой аккаунт</string>
+    <string name="dialog_delete_account_title">Удалить ваш аккаунт?</string>
+    <string name="dialog_delete_account_body">Это безвозвратно удалит ваш профиль, все личные списки, которыми вы владеете, и ваше участие в общих списках. Списки, которыми вы владеете и которые открыты для других, будут переданы другому участнику, а не удалены. Это действие нельзя отменить.</string>
+    <string name="error_delete_account_failed">Не удалось удалить ваш аккаунт</string>
+
+    <!-- Notifications -->
+    <string name="notification_task_due_soon">Срок задачи скоро истекает</string>
+</resources>
