@@ -201,6 +201,18 @@ that table to match the new `values-<language code>/strings.xml`.
    sign-in isn't configured yet" until you complete this step. After
    enabling it, re-download `google-services.json` and replace
    `app/google-services.json`.
+
+   Seeing that same message on a **release** build even though
+   `google-services.json` already has the Web client and Firebase
+   Console already has Google sign-in enabled and both SHA-1/SHA-256
+   fingerprints registered? Release builds turn on `shrinkResources`
+   (`app/build.gradle.kts`), and its static analysis can't see the
+   reflection-based `getIdentifier("default_web_client_id", ...)` lookup
+   `LoginScreen.kt` uses - so without `app/src/main/res/raw/keep.xml`
+   explicitly keeping it, the resource gets silently stripped from
+   release APKs only (debug builds aren't shrunk, so they're unaffected,
+   which is what makes this easy to miss). That file's presence in the
+   repo is what prevents it; if you see this, check it wasn't removed.
 6. **Register your signing certificates' SHA-1/SHA-256 fingerprints** in
    Firebase Console → Project settings → Your apps, on both the
    `com.github.lukelloyd1985.mytasks` and
