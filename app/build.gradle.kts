@@ -10,11 +10,15 @@ plugins {
 
 android {
     namespace = "com.mytasks.app"
-    // 37 (not 36) because the Appwrite SDK's own AAR was compiled against
-    // API 37 - AGP 9.1.1+ is required to compile against it, see the `agp`
-    // version pin in gradle/libs.versions.toml. Google Play's actual
-    // requirement is only API 36 (Android 16); see `targetSdk` below.
-    compileSdk = 37
+    // Matches Google Play's actual target-API requirement (see targetSdk
+    // below). The Appwrite SDK's own AAR declares compileSdk = 37, but
+    // that's only what the library itself was compiled against - it
+    // doesn't force consumers to match it, and "platforms;android-37"
+    // isn't published to the public SDK repository yet (sdkmanager fails
+    // to find it - confirmed via a real CI run), so 37 isn't installable
+    // here regardless. Revisit once that platform is actually available,
+    // if AAPT/manifest-merging against the Appwrite AAR ever needs it.
+    compileSdk = 36
 
     defaultConfig {
         // Play-facing identity only - not the same as `namespace` above,
@@ -28,7 +32,7 @@ android {
         // Google Play requires new apps/updates to target API 36 (Android
         // 16) or higher from August 31, 2026 - see README "Publishing to
         // Google Play". Matches compileSdk above.
-        targetSdk = 37
+        targetSdk = 36
 
         // Play Store rejects any upload whose versionCode isn't strictly
         // greater than every previous upload's. GITHUB_RUN_NUMBER
