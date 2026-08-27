@@ -24,7 +24,7 @@ android {
         // GitHub namespace instead. See README "Publishing to Google
         // Play" for the Firebase re-registration this requires.
         applicationId = "com.github.lukelloyd1985.mytasks"
-        minSdk = 26
+        minSdk = 31 // Android 12
         // Google Play requires new apps/updates to target API 36 (Android
         // 16) or higher from August 31, 2026 - see README "Publishing to
         // Google Play". Matches compileSdk above.
