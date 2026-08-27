@@ -8,7 +8,7 @@
       "enabled": true
     }
   ],
-  "collections": [
+  "tables": [
     {
       "$id": "users",
       "$permissions": [
@@ -19,7 +19,7 @@
       "name": "users",
       "enabled": true,
       "documentSecurity": true,
-      "attributes": [
+      "columns": [
         {
           "key": "displayName",
           "type": "string",
@@ -80,7 +80,7 @@
       "name": "lists",
       "enabled": true,
       "documentSecurity": true,
-      "attributes": [
+      "columns": [
         {
           "key": "name",
           "type": "string",
@@ -167,7 +167,7 @@
       "name": "tasks",
       "enabled": true,
       "documentSecurity": true,
-      "attributes": [
+      "columns": [
         {
           "key": "listId",
           "type": "string",

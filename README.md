@@ -161,17 +161,19 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    [Appwrite Console](https://cloud.appwrite.io). Note its API endpoint
    (e.g. `https://fra.cloud.appwrite.io/v1`) and its project ID - both
    are needed in step 6.
-2. **Create the database and three collections.** One database, ID
-   `mytasks`, with `users`, `lists`, and `tasks` collections - their
-   attributes, indexes, and permissions are described in
-   [Appwrite schema](#appwrite-schema) above. The repo's
+2. **Create the database and three tables.** One database, ID
+   `mytasks`, with `users`, `lists`, and `tasks` tables (Appwrite's
+   Console/CLI terminology for what the Databases API still calls
+   collections of documents under the hood - see
+   [Appwrite schema](#appwrite-schema) above) - their columns, indexes,
+   and permissions are described there too. The repo's
    [`appwrite/appwrite.json`](appwrite/appwrite.json) is the Appwrite
    CLI's config for all of this and is what
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) pushes
-   from (`appwrite push collections functions --all`); for a first,
-   manual walkthrough you can instead create the database and collections
-   by hand in the Console, matching that file's field names, types, and
-   permission arrays exactly.
+   from (`appwrite push tables all` / `appwrite push function all`); for
+   a first, manual walkthrough you can instead create the database and
+   tables by hand in the Console, matching that file's field names,
+   types, and permission arrays exactly.
 3. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -200,11 +202,15 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    that send pushes (`on-task-write`, `due-date-reminders`) need the FCM
    service-account JSON and the FCM project ID.
 5. **Create a server API key** for CI: Console → Overview →
-   Integrations → **API Keys** → Create API key, scoped to write access
-   on **Databases** and **Functions**, and write access on **Users**
-   (needed by `delete-account`'s cascading Auth-account deletion). This
-   becomes the `APPWRITE_API_KEY` secret used by CI - see
-   [Deploying Appwrite collections and Functions](#deploying-appwrite-collections-and-functions)
+   Integrations → **API Keys** → Create API key, scoped to
+   **`databases.read`** and **`databases.write`**, **`functions.read`**
+   and **`functions.write`**, and **`users.write`** (needed by
+   `delete-account`'s cascading Auth-account deletion) - the read scopes
+   are required alongside the write ones because `appwrite push` diffs
+   local config against the deployed state before applying changes, not
+   just write access; a key with write-only scopes fails that diff step.
+   This becomes the `APPWRITE_API_KEY` secret used by CI - see
+   [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
    below.
 6. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts` - being wired up in a parallel workstream; this
@@ -221,16 +227,16 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    | `MYTASKS_APPWRITE_COLLECTION_TASKS_ID` | `tasks` collection ID |
    | `MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID` | `delete-account` function ID |
 
-## Deploying Appwrite collections and Functions
+## Deploying Appwrite tables and Functions
 
 [`.github/workflows/deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
 is a manually-triggered ("Run workflow" in the **Actions** tab - works
 from the GitHub mobile site or app, no local Appwrite CLI or login
-needed) job that pushes the database/collections and all four Appwrite
+needed) job that pushes the database/tables and all four Appwrite
 Functions from [`appwrite/appwrite.json`](appwrite/appwrite.json) using a
 server API key instead of an interactive login. It never runs on its own
-- a collections/Functions deploy going out on every push felt like too
-much blast radius for something this easy to trigger on demand instead.
+- a tables/Functions deploy going out on every push felt like too much
+blast radius for something this easy to trigger on demand instead.
 
 One-time setup - three repository secrets (Settings → Secrets and
 variables → Actions), all from the Appwrite Console:
@@ -248,11 +254,8 @@ User, Cloud Scheduler Admin, Artifact Registry Admin) plus its
 Eventarc/Artifact-Registry first-deploy gotchas - none of that GCP-
 specific machinery has an Appwrite equivalent to configure.
 
-From then on: **Actions tab → Deploy Appwrite (Collections + Functions) →
-Run workflow**. See the workflow file's own top comment for one open
-item: the exact `appwrite push` subcommand it uses should be
-double-checked against whatever `appwrite-cli` version is actually
-installed at deploy time.
+From then on: **Actions tab → Deploy Appwrite (Tables + Functions) →
+Run workflow**.
 
 ## Building the APK
 
