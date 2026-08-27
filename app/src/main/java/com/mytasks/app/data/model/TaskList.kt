@@ -1,9 +1,5 @@
 package com.mytasks.app.data.model
 
-import com.google.firebase.firestore.DocumentId
-import com.google.firebase.firestore.ServerTimestamp
-import java.util.Date
-
 enum class ListVisibility {
     PRIVATE,
     SHARED,
@@ -18,10 +14,14 @@ data class ListMember(
     val photoUrl: String = "",
 )
 
-/** Mirrors a document at `lists/{listId}`. Examples: "Short term", "Long
- *  term", "Garden", "House". */
+/** Mirrors a document in the `lists` collection. Examples: "Short term",
+ *  "Long term", "Garden", "House".
+ *
+ *  Appwrite document mapping (id, `members` JSON-decoding, etc.) is done by
+ *  hand in AppwriteListRepository - see AppwriteDocumentMapping.kt. There's
+ *  no `createdAt` field: Appwrite's `$createdAt` system field on the
+ *  document supersedes it. */
 data class TaskList(
-    @DocumentId
     val id: String = "",
     val name: String = "",
     val icon: String = "checklist",
@@ -31,8 +31,6 @@ data class TaskList(
     val ownerName: String = "",
     val memberIds: List<String> = emptyList(),
     val members: List<ListMember> = emptyList(),
-    @ServerTimestamp
-    val createdAt: Date? = null,
 ) {
     fun isMember(uid: String) = uid == ownerId || memberIds.contains(uid)
 }

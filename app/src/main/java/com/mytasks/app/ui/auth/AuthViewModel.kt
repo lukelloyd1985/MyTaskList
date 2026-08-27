@@ -1,9 +1,9 @@
 package com.mytasks.app.ui.auth
 
+import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import com.mytasks.app.R
+import com.mytasks.app.data.remote.AppUser
 import com.mytasks.app.data.remote.AuthRepository
 import com.mytasks.app.data.remote.UserRepository
 
@@ -30,7 +31,7 @@ class AuthViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
-    val currentUser: StateFlow<FirebaseUser?> = authRepository.authState.stateIn(
+    val currentUser: StateFlow<AppUser?> = authRepository.authState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = authRepository.currentUser,
@@ -39,21 +40,11 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 
-    fun onGoogleIdToken(idToken: String) = signInWith { authRepository.signInWithGoogleIdToken(idToken) }
-
-    fun signOut() {
-        authRepository.signOut()
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
-    }
-
-    private fun signInWith(block: suspend () -> FirebaseUser) {
+    fun signInWithGoogle(activity: Activity) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             try {
-                val user = block()
+                val user = authRepository.signInWithGoogle(activity)
                 userRepository.upsertProfile(user)
                 registerFcmToken(user.uid)
                 _uiState.value = AuthUiState(isLoading = false)
@@ -64,6 +55,14 @@ class AuthViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun signOut() {
+        viewModelScope.launch { authRepository.signOut() }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
     private suspend fun registerFcmToken(uid: String) {

@@ -1,0 +1,410 @@
+{
+  "projectId": "REPLACE_WITH_APPWRITE_PROJECT_ID",
+  "projectName": "MyTasks",
+  "databases": [
+    {
+      "$id": "mytasks",
+      "name": "MyTasks",
+      "enabled": true
+    }
+  ],
+  "collections": [
+    {
+      "$id": "users",
+      "$permissions": [
+        "create(\"users\")",
+        "read(\"users\")"
+      ],
+      "databaseId": "mytasks",
+      "name": "users",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "key": "displayName",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "email",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "photoUrl",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null
+        },
+        {
+          "key": "fcmTokens",
+          "type": "string",
+          "required": false,
+          "array": true,
+          "size": 512,
+          "default": null
+        },
+        {
+          "key": "locale",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 10,
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "key": "email_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["email"],
+          "orders": ["ASC"]
+        }
+      ]
+    },
+    {
+      "$id": "lists",
+      "$permissions": [
+        "create(\"users\")"
+      ],
+      "databaseId": "mytasks",
+      "name": "lists",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "key": "name",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "icon",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 64,
+          "default": null
+        },
+        {
+          "key": "colorHex",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 16,
+          "default": null
+        },
+        {
+          "key": "visibility",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 20,
+          "format": "enum",
+          "elements": ["PRIVATE", "SHARED"],
+          "default": "PRIVATE"
+        },
+        {
+          "key": "ownerId",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "ownerName",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "memberIds",
+          "type": "string",
+          "required": false,
+          "array": true,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "members",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 16384,
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "key": "ownerId_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["ownerId"],
+          "orders": ["ASC"]
+        }
+      ]
+    },
+    {
+      "$id": "tasks",
+      "$permissions": [
+        "create(\"users\")"
+      ],
+      "databaseId": "mytasks",
+      "name": "tasks",
+      "enabled": true,
+      "documentSecurity": true,
+      "attributes": [
+        {
+          "key": "listId",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 512,
+          "default": null
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 4096,
+          "default": null
+        },
+        {
+          "key": "assigneeId",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "assigneeName",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "priority",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 10,
+          "format": "enum",
+          "elements": ["LOW", "MEDIUM", "HIGH"],
+          "default": "MEDIUM"
+        },
+        {
+          "key": "dueAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "notify",
+          "type": "boolean",
+          "required": true,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "completed",
+          "type": "boolean",
+          "required": true,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "order",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "min": -9223372036854775808,
+          "max": 9223372036854775807,
+          "default": 0
+        },
+        {
+          "key": "createdBy",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "createdByName",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "reminderSent",
+          "type": "boolean",
+          "required": true,
+          "array": false,
+          "default": false
+        }
+      ],
+      "indexes": [
+        {
+          "key": "listId_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["listId"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "assigneeId_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["assigneeId"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "notify_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["notify"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "completed_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["completed"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "reminderSent_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["reminderSent"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "list_completed_due_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["listId", "completed", "dueAt"],
+          "orders": ["ASC", "ASC", "ASC"]
+        },
+        {
+          "key": "notify_reminder_due_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["notify", "reminderSent", "dueAt"],
+          "orders": ["ASC", "ASC", "ASC"]
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "$id": "on-task-write",
+      "name": "on-task-write",
+      "runtime": "node-22.0",
+      "execute": [],
+      "events": [
+        "databases.mytasks.collections.tasks.documents.*.update"
+      ],
+      "scopes": [
+        "databases.read",
+        "databases.write",
+        "users.read",
+        "users.write"
+      ],
+      "schedule": "",
+      "timeout": 30,
+      "entrypoint": "src/main.ts",
+      "commands": "npm install && npm run build",
+      "specification": "s-0.5vcpu-512mb",
+      "path": "functions/on-task-write"
+    },
+    {
+      "$id": "due-date-reminders",
+      "name": "due-date-reminders",
+      "runtime": "node-22.0",
+      "execute": [],
+      "events": [],
+      "scopes": [
+        "databases.read",
+        "databases.write",
+        "users.read",
+        "users.write"
+      ],
+      "schedule": "*/15 * * * *",
+      "timeout": 60,
+      "entrypoint": "src/main.ts",
+      "commands": "npm install && npm run build",
+      "specification": "s-0.5vcpu-512mb",
+      "path": "functions/due-date-reminders"
+    },
+    {
+      "$id": "delete-account",
+      "name": "delete-account",
+      "runtime": "node-22.0",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "scopes": [
+        "databases.read",
+        "databases.write",
+        "users.read",
+        "users.write"
+      ],
+      "schedule": "",
+      "timeout": 60,
+      "entrypoint": "src/main.ts",
+      "commands": "npm install && npm run build",
+      "specification": "s-0.5vcpu-512mb",
+      "path": "functions/delete-account"
+    },
+    {
+      "$id": "sync-list-permissions",
+      "name": "sync-list-permissions",
+      "runtime": "node-22.0",
+      "execute": [],
+      "events": [
+        "databases.mytasks.collections.lists.documents.*.update"
+      ],
+      "scopes": [
+        "databases.read",
+        "databases.write"
+      ],
+      "schedule": "",
+      "timeout": 30,
+      "entrypoint": "src/main.ts",
+      "commands": "npm install && npm run build",
+      "specification": "s-0.5vcpu-512mb",
+      "path": "functions/sync-list-permissions"
+    }
+  ]
+}

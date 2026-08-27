@@ -54,7 +54,7 @@ class ListDetailViewModel @Inject constructor(
 
     val tasks: StateFlow<List<TaskItem>> = taskRepository.observeTasks(listId)
         // Stable sort: ties (including every task's default order=0
-        // before it's ever been manually reordered) keep the Firestore
+        // before it's ever been manually reordered) keep the underlying
         // query's own order (completed, then dueAt) instead of jumping
         // around, so this only changes anything once someone drags.
         .map { taskItems -> taskItems.sortedBy { it.order } }
@@ -88,6 +88,7 @@ class ListDetailViewModel @Inject constructor(
         val user = authRepository.currentUser ?: return
         viewModelScope.launch {
             if (taskId == null) {
+                val currentList = list.value
                 taskRepository.createTask(
                     listId = listId,
                     title = title,
@@ -98,7 +99,9 @@ class ListDetailViewModel @Inject constructor(
                     dueAt = dueAt,
                     notify = notify,
                     createdBy = user.uid,
-                    createdByName = user.displayName ?: user.email.orEmpty(),
+                    createdByName = user.displayName.ifBlank { user.email },
+                    listOwnerId = currentList?.ownerId ?: user.uid,
+                    listMemberIds = currentList?.memberIds ?: emptyList(),
                 )
             } else {
                 taskRepository.updateTask(
@@ -140,11 +143,11 @@ class ListDetailViewModel @Inject constructor(
     }
 
     // Navigates back immediately rather than waiting for the delete to
-    // finish - same offline-first reasoning as ListsViewModel.createList.
+    // finish, same as ListsViewModel.createList not waiting on its write.
     // The delete itself runs on applicationScope, not viewModelScope:
     // navigating away clears this screen's ViewModel, which would
-    // otherwise cancel the in-flight write before it ever reaches
-    // Firestore. A failure can't be shown on this screen anymore by the
+    // otherwise cancel the in-flight delete before it ever reaches
+    // Appwrite. A failure can't be shown on this screen anymore by the
     // time it's known, so it's reported via a Toast instead.
     fun deleteList(onDeleted: () -> Unit) {
         onDeleted()

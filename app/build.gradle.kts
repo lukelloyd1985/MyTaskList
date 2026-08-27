@@ -5,13 +5,21 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.google.services)
     alias(libs.plugins.play.publisher)
 }
 
 android {
     namespace = "com.mytasks.app"
-    compileSdk = 35
+    // 37, not 36: this is a hard requirement, not a preference - AGP's
+    // checkDebugAarMetadata enforces it. io.appwrite:sdk-for-android,
+    // androidx.core/core-ktx 1.19.0, androidx.lifecycle *-compose 2.11.0,
+    // and okhttp-android 5.5.0 all declare minCompileSdk = 37 in their AAR
+    // metadata (confirmed via a real build failure, not speculation), so
+    // compiling below 37 fails outright regardless of Play's own minimum.
+    // The earlier CI failure ("Failed to find package 'platforms;android-37'")
+    // was a stale-cmdline-tools problem, not 37 being unreleased - see the
+    // cmdline-tools-version override in android-build.yml.
+    compileSdk = 37
 
     defaultConfig {
         // Play-facing identity only - not the same as `namespace` above,
@@ -21,8 +29,11 @@ android {
         // GitHub namespace instead. See README "Publishing to Google
         // Play" for the Firebase re-registration this requires.
         applicationId = "com.github.lukelloyd1985.mytasks"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 31 // Android 12
+        // Matches compileSdk above (also satisfies Google Play's minimum
+        // requirement to target API 36+ from August 31, 2026 - see README
+        // "Publishing to Google Play").
+        targetSdk = 37
 
         // Play Store rejects any upload whose versionCode isn't strictly
         // greater than every previous upload's. GITHUB_RUN_NUMBER
@@ -34,6 +45,24 @@ android {
         versionName = System.getenv("RELEASE_VERSION_NAME") ?: "1.0.0-dev"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Appwrite Cloud connection details - never hardcoded in Kotlin
+        // source, always read from BuildConfig (same env-var-driven
+        // pattern as the signing config below). Empty-string defaults for
+        // the project/function IDs mean a build with no env vars set still
+        // compiles; it just fails at runtime when it tries to talk to
+        // Appwrite, same tradeoff as the old default_web_client_id gap.
+        buildConfigField("String", "APPWRITE_ENDPOINT", "\"${System.getenv("MYTASKS_APPWRITE_ENDPOINT") ?: "https://cloud.appwrite.io/v1"}\"")
+        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${System.getenv("MYTASKS_APPWRITE_DATABASE_ID") ?: "mytasks"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
+        buildConfigField("String", "APPWRITE_FUNCTION_DELETE_ACCOUNT_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID") ?: ""}\"")
+
+        // Deep link scheme Appwrite's OAuth2 flow redirects back into the
+        // app through - see AndroidManifest.xml and AuthRepository.
+        manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: "unset"}"
     }
 
     signingConfigs {
@@ -99,6 +128,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -123,6 +153,10 @@ play {
 
 dependencies {
     implementation(platform(libs.compose.bom))
+    // Kept solely so firebase-messaging-ktx (the one Firebase surface this
+    // migration keeps, as the FCM push transport) resolves its version -
+    // every other Firebase dependency that used to come off this BOM
+    // (auth/firestore/functions) is gone.
     implementation(platform(libs.firebase.bom))
 
     implementation(libs.core.ktx)
@@ -145,14 +179,15 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
-    implementation(libs.firebase.functions)
 
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services.auth)
-    implementation(libs.googleid)
+    // io.appwrite:sdk-for-android is still the correct, actively-maintained
+    // client SDK for Android/Kotlin (it was not merged into
+    // io.appwrite:sdk-for-kotlin, which is a separate server-side SDK - see
+    // its README's "If you're looking for the Android SDK..." note). Version
+    // pin verified in gradle/libs.versions.toml against the SDK's own
+    // README/CHANGELOG.
+    implementation(libs.appwrite)
 
     implementation(libs.work.runtime.ktx)
     implementation(libs.coil.compose)

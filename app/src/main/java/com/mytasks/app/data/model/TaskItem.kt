@@ -1,7 +1,5 @@
 package com.mytasks.app.data.model
 
-import com.google.firebase.firestore.DocumentId
-import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 enum class TaskPriority {
@@ -10,9 +8,15 @@ enum class TaskPriority {
     HIGH,
 }
 
-/** Mirrors a document at `lists/{listId}/tasks/{taskId}`. */
+/** Mirrors a document in the flat `tasks` collection. Appwrite has no
+ *  subcollections, so `listId` is the sole way a task scopes to a list
+ *  (previously a denormalized convenience field, now load-bearing).
+ *
+ *  Appwrite document mapping is done by hand in AppwriteTaskRepository -
+ *  see AppwriteDocumentMapping.kt. There's no `createdAt`/`updatedAt`
+ *  field: Appwrite's `$createdAt`/`$updatedAt` system fields on the
+ *  document supersede them. */
 data class TaskItem(
-    @DocumentId
     val id: String = "",
     val listId: String = "",
     val title: String = "",
@@ -28,16 +32,12 @@ data class TaskItem(
      *  either, so new tasks keep sorting by due date like every other
      *  untouched task, rather than always landing at the very bottom.
      *  Kotlin's sortedBy is stable, so ties at 0 simply fall back to the
-     *  list's existing Firestore query order (see
-     *  TaskRepository.observeTasks) until someone actually drags. */
+     *  list's existing query order (see TaskRepository.observeTasks) until
+     *  someone actually drags. */
     val order: Long = 0L,
     val createdBy: String = "",
     val createdByName: String = "",
-    @ServerTimestamp
-    val createdAt: Date? = null,
-    @ServerTimestamp
-    val updatedAt: Date? = null,
-    /** Set by the scheduled Cloud Function once a due-date push has been
-     *  sent, so it isn't re-sent on the next sweep. */
+    /** Set once a due-date push has been sent, so it isn't re-sent on the
+     *  next sweep (see the server-side workstream owning that sweep). */
     val reminderSent: Boolean = false,
 )

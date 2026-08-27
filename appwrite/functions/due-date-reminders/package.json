@@ -1,0 +1,21 @@
+{
+  "name": "due-date-reminders",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Appwrite Function: sweeps tasks due within 15 minutes and sends FCM reminders (ported from functions/src/notifications.ts's dueDateReminders).",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "node-appwrite": "^28.0.0",
+    "google-auth-library": "^11.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.9.3"
+  }
+}
