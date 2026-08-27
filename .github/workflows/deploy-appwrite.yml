@@ -6,14 +6,15 @@ name: Deploy Appwrite (Collections + Functions)
 # collections and Functions straight to production. See README "CI deploy"
 # for the one-time API key setup this needs.
 #
-# NOTE: the exact push subcommand below (`appwrite push collections
-# functions --all --force`, current as of appwrite-cli's `push` command
-# family) should be double-checked against whatever appwrite-cli version
-# actually gets installed at deploy time - older CLI releases used
-# `appwrite deploy collection` / `appwrite deploy function` instead. This
-# couldn't be verified against a live Appwrite CLI install in the
-# environment this workflow was authored in, so treat this as a documented
-# open item to confirm on the first real run, not a verified command.
+# NOTE: `appwrite push` takes exactly one resource-type subcommand per
+# invocation (singular: `collection`, `function`, ...), each accepting a
+# single optional positional argument that must literally be `all` - it
+# does not accept multiple resource types in one call. Confirmed from a
+# real CI run's own CLI error: "`appwrite push collection` takes no
+# arguments except `all`, and was given `functions`. Run `appwrite push
+# collection all` to push every one". `database` isn't pushed separately
+# below since appwrite.json's databases are implied by their collections -
+# revisit if a real run shows otherwise.
 on:
   workflow_dispatch:
 
@@ -58,4 +59,6 @@ jobs:
       # - see README "Backend setup" for how that file is produced.
       - name: Push collections and functions
         working-directory: appwrite
-        run: appwrite push collections functions --all --force
+        run: |
+          appwrite push collection all --force
+          appwrite push function all --force
