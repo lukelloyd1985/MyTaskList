@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.1.1"
 kotlin = "2.4.10"
 coreKtx = "1.15.0"
 lifecycle = "2.8.7"
@@ -9,11 +9,13 @@ navigationCompose = "2.8.5"
 hilt = "2.60.1"
 androidxHilt = "1.2.0"
 firebaseBom = "33.7.0"
-googleServices = "4.4.2"
 playPublisher = "4.1.1"
 ksp = "2.3.10"
-credentials = "1.3.0"
-googleid = "1.1.1"
+# Verified against github.com/appwrite/sdk-for-android's README (Gradle
+# install snippet) and CHANGELOG.md: 27.0.0 is the current latest release,
+# compatible with Appwrite server 1.9.x. The previous pin (6.1.0) was far
+# out of date.
+appwrite = "27.0.0"
 workManager = "2.10.0"
 coil = "2.7.0"
 coroutines = "1.9.0"
@@ -45,14 +47,9 @@ hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "androi
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidxHilt" }
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
-firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
-firebase-functions = { group = "com.google.firebase", name = "firebase-functions-ktx" }
 
-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
-googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+appwrite = { group = "io.appwrite", name = "sdk-for-android", version.ref = "appwrite" }
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
@@ -70,5 +67,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }

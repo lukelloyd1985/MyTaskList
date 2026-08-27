@@ -18,39 +18,78 @@ you organize your life into.
   (for testing) and attaches a release APK to every published GitHub
   Release.
 
-`app/google-services.json` is already configured against a real Firebase
-project, so the app builds and runs against real sign-in and data sync out
-of the box. If you're standing up your own backend instead - see
+`app/google-services.json` is still committed and configures Firebase
+Cloud Messaging only (push notification *delivery* - see
+[Architecture](#architecture) below; sign-in and data no longer touch
+Firebase at all). To build and run against real sign-in and data, you'll
+also need your own Appwrite Cloud project - see
 [Backend setup](#backend-setup) below for that.
 
 ## Architecture
 
 - **UI**: Jetpack Compose, Material 3, single-Activity + Navigation Compose.
 - **DI**: Hilt.
-- **Data**: Cloud Firestore (offline-persistence enabled), with the schema
-  below. `lists/{listId}/tasks/{taskId}` is a subcollection so Firestore
-  security rules can authorize per-list.
-- **Auth**: Firebase Authentication, Google sign-in only (via Credential
-  Manager / Google Identity - see `AuthRepository.kt` and `LoginScreen.kt`).
-- **Notifications**: Cloud Functions send FCM pushes when a task is
-  assigned and on a 15-minute due-date sweep; `ReminderScheduler.kt` also
-  schedules a local WorkManager reminder on-device as a fallback.
-- **Backend**: Cloud Functions (TypeScript) in `/functions` handle push
-  notifications.
+- **Data**: Appwrite Databases - one database (`mytasks`) with three
+  collections, schema below. Appwrite has no subcollections, so
+  `lists/{listId}/tasks/{taskId}` becomes a flat `tasks` collection scoped
+  by a `listId` field instead of a Firestore-style nested path. There is
+  no offline persistence: Appwrite's SDK has no equivalent to Firestore's
+  local cache/sync, so the app now requires connectivity for every read
+  and write - see [Notes & tradeoffs](#notes--tradeoffs), this is the
+  single most user-visible change from the old backend.
+- **Auth**: Appwrite Account, Google sign-in only - via Appwrite's OAuth2
+  browser-redirect session flow (`account.createOAuth2Session` opens a
+  Custom Tab against Appwrite's own hosted Google OAuth endpoint and
+  redirects back through an `appwrite-callback-<PROJECT_ID>://` deep
+  link), replacing the old Credential-Manager/Google-Identity native ID
+  token flow - see `AuthRepository.kt` and `LoginScreen.kt`.
+- **Notifications**: still delivered over Firebase Cloud Messaging, but
+  now *sent* by Appwrite Functions rather than Firebase Cloud Functions -
+  they call FCM's HTTP v1 API directly using a service-account credential
+  stored as a Function secret, on task assignment and on a 15-minute
+  due-date sweep; `ReminderScheduler.kt` also schedules a local
+  WorkManager reminder on-device as a fallback.
+- **Backend**: Appwrite Functions (TypeScript, `node-appwrite`) in
+  `/appwrite/functions` handle push notifications, list/task permission
+  sync, and account deletion.
 
-### Firestore schema
+### Appwrite schema
+
+One Appwrite database, `mytasks`, with three collections:
 
 ```
-users/{uid}                  displayName, email, photoUrl, fcmTokens[]
-lists/{listId}                name, visibility (PRIVATE|SHARED), ownerId,
-                               ownerName, memberIds[], members[]
-lists/{listId}/tasks/{taskId} title, description, assigneeId, assigneeName,
-                               priority, dueAt, notify, completed, ...
+users/{uid}    displayName, email, photoUrl, fcmTokens[], locale
+               (document ID = the Appwrite Auth user ID)
+lists/{listId} name, icon, colorHex, visibility (PRIVATE|SHARED), ownerId,
+               ownerName, memberIds[], members (JSON-encoded string -
+               Appwrite has no array-of-objects attribute type)
+tasks/{taskId} listId, title, description, assigneeId, assigneeName,
+               priority (LOW|MEDIUM|HIGH), dueAt, notify, completed,
+               order, createdBy, createdByName, reminderSent
+               (flat collection - listId is the sole scoping field, there
+               is no lists/{listId}/tasks subcollection)
 ```
 
-Security rules are in [`firestore.rules`](firestore.rules): a private
-list is only readable by its owner; a shared list is readable/writable by
-its owner and everyone in `memberIds`.
+None of the three carry a `createdAt`/`updatedAt`/`lastSignedInAt` field -
+Appwrite's built-in `$createdAt`/`$updatedAt` system fields on every
+document supersede them.
+
+Unlike Firestore's declarative security rules, Appwrite authorizes access
+with a **permission array stored on every document** - a static ACL, not
+a rule engine that can evaluate against a *different* (e.g. parent)
+document at read/write time. `users/{uid}` is readable by any signed-in
+user and writable only by the user themself (delete is in practice only
+ever done server-side by the `delete-account` Function), mirroring the
+old rules. `lists/{listId}` carries read for the owner plus every
+`memberIds` entry, and update/delete for the owner only, recomputed on
+every membership-changing write. `tasks/{taskId}` is meant to carry the
+*same* owner+members permissions as its parent list (so any list member
+can fully CRUD its tasks) - but Appwrite has no way to express "authorize
+like some other document." That gap is why a dedicated Appwrite Function,
+`sync-list-permissions`, exists: it fires on every list-membership change
+and rewrites permissions on every task under that list to match. Without
+it, a list's membership and its tasks' actual accessibility would
+silently drift apart over time.
 
 ## Localization
 
@@ -99,218 +138,121 @@ To add another language:
    resource qualifier - e.g. Android's `values-cs` pairs with Play's
    `cs-CZ`, not `cs`).
 4. Add an entry for the language to `NOTIFICATION_STRINGS` in
-   `functions/src/notifications.ts` and redeploy functions, so push
-   notifications are localized too (see below).
+   `appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+   and redeploy the Appwrite Functions, so push notifications are
+   localized too (see below).
 
 Push notifications (task-assignment and due-date alerts sent by the
-Cloud Functions in `/functions`) are localized too: `UserRepository`
-writes `Locale.getDefault().language` to `users/{uid}.locale` on every
-sign-in (this reflects any per-app language override automatically),
-and `functions/src/notifications.ts` picks the matching translation
-from its own small `NOTIFICATION_STRINGS` table when sending, falling
-back to English for an unset or unsupported locale. A task's own
-title/description are user-authored content and are never translated -
-only the notification's title and its fallback body text for an
-untitled task are. Adding a language there means adding an entry to
-that table to match the new `values-<language code>/strings.xml`.
+Appwrite Functions in `/appwrite/functions`) are localized too:
+`UserRepository` writes `Locale.getDefault().language` to
+`users/{uid}.locale` on every sign-in (this reflects any per-app
+language override automatically), and
+`appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+picks the matching translation from its own small `NOTIFICATION_STRINGS`
+table when sending, falling back to English for an unset or unsupported
+locale. A task's own title/description are user-authored content and are
+never translated - only the notification's title and its fallback body
+text for an untitled task are. Adding a language there means adding an
+entry to that table to match the new `values-<language code>/strings.xml`.
 
 ## Backend setup
 
-1. **Create a Firebase project** at <https://console.firebase.google.com>,
-   add an Android app with package name `com.github.lukelloyd1985.mytasks`
-   (and, for local debug builds,
-   `com.github.lukelloyd1985.mytasks.debug`), and download the real
-   `google-services.json` over `app/google-services.json`. It's committed
-   directly to the repo - Google designed this file to be safe for public
-   repos (the API key in it only identifies the project; it isn't a
-   credential on its own) - and CI builds from it as-is, so this is the
-   only place it needs to live.
+1. **Create an Appwrite Cloud project** in the
+   [Appwrite Console](https://cloud.appwrite.io). Note its API endpoint
+   (e.g. `https://fra.cloud.appwrite.io/v1`) and its project ID - both
+   are needed in step 6.
+2. **Create the database and three collections.** One database, ID
+   `mytasks`, with `users`, `lists`, and `tasks` collections - their
+   attributes, indexes, and permissions are described in
+   [Appwrite schema](#appwrite-schema) above. The repo's
+   [`appwrite/appwrite.json`](appwrite/appwrite.json) is the Appwrite
+   CLI's config for all of this and is what
+   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) pushes
+   from (`appwrite push collections functions --all`); for a first,
+   manual walkthrough you can instead create the database and collections
+   by hand in the Console, matching that file's field names, types, and
+   permission arrays exactly.
+3. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
+   **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
+   for this and shows you the redirect URI to register in
+   [Google Cloud Console](https://console.cloud.google.com) (APIs &
+   Services → Credentials → your OAuth 2.0 Client ID → Authorized
+   redirect URIs) - typically
+   `https://<APPWRITE_ENDPOINT>/v1/account/sessions/oauth2/callback/google/<PROJECT_ID>`.
+   This is simpler than the old Firebase setup: because sign-in now goes
+   through Appwrite's own hosted OAuth endpoint rather than a native
+   Credential-Manager flow on the device, Google never needs the app's
+   own signing-certificate SHA-1/SHA-256 fingerprints registered at all
+   (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
+   keystores themselves are still required - just for Play/APK signing,
+   not for this.
+4. **Deploy the four Appwrite Functions** under
+   [`appwrite/functions/`](appwrite/functions/): `on-task-write`
+   (database event trigger, sends a push when a task's assignee changes),
+   `due-date-reminders` (CRON every 15 minutes, sweeps tasks due soon),
+   `delete-account` (HTTP-invoked from the app, cascades account
+   deletion), and `sync-list-permissions` (database event trigger, keeps
+   task permissions in sync with their parent list's membership - see
+   [Appwrite schema](#appwrite-schema)). Push them with the same
+   `appwrite push` command as step 2, or create/deploy each one by hand
+   in the Console. Each needs its environment variables set (Console →
+   Functions → the function → Settings → Variables) - at minimum, the two
+   that send pushes (`on-task-write`, `due-date-reminders`) need the FCM
+   service-account JSON and the FCM project ID.
+5. **Create a server API key** for CI: Console → Overview →
+   Integrations → **API Keys** → Create API key, scoped to write access
+   on **Databases** and **Functions**, and write access on **Users**
+   (needed by `delete-account`'s cascading Auth-account deletion). This
+   becomes the `APPWRITE_API_KEY` secret used by CI - see
+   [Deploying Appwrite collections and Functions](#deploying-appwrite-collections-and-functions)
+   below.
+6. **Set the build-time env vars** the Android app reads (see
+   `app/build.gradle.kts` - being wired up in a parallel workstream; this
+   is the set of env vars a contributor standing up their own backend
+   needs to populate, locally and/or as CI secrets):
 
-   The package name (`applicationId` in `app/build.gradle.kts`) isn't
-   `com.mytasks.app` - that was already taken on Play Store, so the app's
-   Play/Firebase identity moved under this repo's GitHub namespace
-   instead. `namespace` in the same file (the Kotlin source package, R
-   class, etc.) is unaffected and stays `com.mytasks.app` - the two are
-   independent in Android, and only `applicationId` needed to change.
-   The `google-services.json` committed right now has its `package_name`
-   fields relabeled to match the new `applicationId` purely so the
-   google-services Gradle plugin doesn't hard-fail the build (it throws
-   if none of the file's client entries match `applicationId`) - those
-   entries still point at the *old* Firebase Android app registrations,
-   so Google Sign-In won't actually work until you complete this step for
-   real: add the two Android apps above to the project, then redo step 6
-   below (the SHA-1/SHA-256 fingerprints are registered per Android-app
-   entry, so the old registrations don't carry over either).
-2. **Deploy Firestore** - this app deliberately doesn't use the
-   `(default)` database Firebase Console offers to create for you.
-   `firebase.json`'s `firestore` block instead names an explicit
-   database (`"database": "mytasks"`, `"location": "europe-west2"`),
-   and every client names it too: `FIRESTORE_DATABASE_ID` in the
-   Android app's `FirebaseModule.kt`, and `firestoreDb.ts` in
-   `functions/src` (both must keep matching each other and
-   `firebase.json` - Firestore has no per-project "current" database a
-   client falls back to, so a mismatch there means the app and the
-   Cloud Functions would silently read/write two different, empty-
-   looking databases instead of erroring). The reasons to prefer a
-   named database over `(default)`: the location is permanent from the
-   moment the database is created (the only way to move one afterwards
-   is deleting it and recreating it from scratch, exporting/reimporting
-   every document by hand if there's real data in it by then) - so
-   `europe-west2` (London, for UK data residency, matching the Cloud
-   Functions region - see `setGlobalOptions` in
-   `functions/src/index.ts`) needs to be nailed down explicitly rather
-   than left to whatever Console defaults to; and naming it explicitly
-   everywhere means a typo or a forgotten client is a loud "no such
-   database" error instead of a silent split-brain across two real
-   databases that happen to both be named `(default)`.
+   | Env var | Value |
+   | --- | --- |
+   | `MYTASKS_APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
+   | `MYTASKS_APPWRITE_PROJECT_ID` | Appwrite project ID from step 1 |
+   | `MYTASKS_APPWRITE_DATABASE_ID` | `mytasks` |
+   | `MYTASKS_APPWRITE_COLLECTION_USERS_ID` | `users` collection ID |
+   | `MYTASKS_APPWRITE_COLLECTION_LISTS_ID` | `lists` collection ID |
+   | `MYTASKS_APPWRITE_COLLECTION_TASKS_ID` | `tasks` collection ID |
+   | `MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID` | `delete-account` function ID |
 
-   Simply running the deploy creates the database for you, in exactly
-   the location `firebase.json` specifies, if it doesn't already exist
-   - no manual Console step needed:
-   ```
-   npm install -g firebase-tools
-   firebase login
-   firebase use --add          # pick your project
-   firebase deploy --only firestore:rules,firestore:indexes
-   ```
-   (No local Firebase CLI, or no laptop at all? See
-   [Deploying Firestore rules and Cloud Functions](#deploying-firestore-rules-and-cloud-functions)
-   below for a one-time GitHub Actions setup you can redeploy from
-   afterwards with a single tap, from a phone browser or the GitHub app.)
-3. **Enable Cloud Messaging** (enabled by default with the project).
-4. **Deploy Cloud Functions**:
-   ```
-   cd functions
-   npm install
-   npm run build
-   cd ..
-   firebase deploy --only functions
-   ```
-5. **Enable Google sign-in** in Firebase Console → Authentication →
-   Sign-in method → Google. Note the auto-created Web client - the
-   `com.google.gms.google-services` Gradle plugin generates a
-   `default_web_client_id` string resource from it automatically, which is
-   what Credential Manager uses (see `LoginScreen.kt`). No further app
-   registration is needed beyond the Android app already added in step 1.
+## Deploying Appwrite collections and Functions
 
-   Until this is done, `google-services.json`'s `oauth_client` array stays
-   empty and the plugin has nothing to generate that resource from -
-   `LoginScreen.kt` looks it up by name at runtime rather than a
-   compile-time `R.string` reference specifically so the app still builds
-   in that state, but tapping "Continue with Google" will show "Google
-   sign-in isn't configured yet" until you complete this step. After
-   enabling it, re-download `google-services.json` and replace
-   `app/google-services.json`.
+[`.github/workflows/deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
+is a manually-triggered ("Run workflow" in the **Actions** tab - works
+from the GitHub mobile site or app, no local Appwrite CLI or login
+needed) job that pushes the database/collections and all four Appwrite
+Functions from [`appwrite/appwrite.json`](appwrite/appwrite.json) using a
+server API key instead of an interactive login. It never runs on its own
+- a collections/Functions deploy going out on every push felt like too
+much blast radius for something this easy to trigger on demand instead.
 
-   Seeing that same message on a **release** build even though
-   `google-services.json` already has the Web client and Firebase
-   Console already has Google sign-in enabled and both SHA-1/SHA-256
-   fingerprints registered? Release builds turn on `shrinkResources`
-   (`app/build.gradle.kts`), and its static analysis can't see the
-   reflection-based `getIdentifier("default_web_client_id", ...)` lookup
-   `LoginScreen.kt` uses - so without `app/src/main/res/raw/keep.xml`
-   explicitly keeping it, the resource gets silently stripped from
-   release APKs only (debug builds aren't shrunk, so they're unaffected,
-   which is what makes this easy to miss). That file's presence in the
-   repo is what prevents it; if you see this, check it wasn't removed.
-6. **Register your signing certificates' SHA-1/SHA-256 fingerprints** in
-   Firebase Console → Project settings → Your apps, on both the
-   `com.github.lukelloyd1985.mytasks` and
-   `com.github.lukelloyd1985.mytasks.debug` entries. Google Sign-In
-   verifies the calling app's certificate as part of its silent
-   account-reauth check, so a build signed with an unregistered
-   certificate fails sign-in with a `GetCredentialException` of type
-   `TYPE_USER_CANCELED` and message `[16] Account reauth failed` - it
-   looks like a cancel, but it's really an unrecognized signer. Get each
-   fingerprint with:
-   ```
-   keytool -list -v -keystore <path-to-keystore> -alias <alias> -storepass <password>
-   ```
-   For a **release** build, that's your `MYTASKS_KEYSTORE_BASE64` keystore.
-   For a **local debug** build, it's Android Studio's per-machine
-   `~/.android/debug.keystore` (alias `androiddebugkey`, password
-   `android`). For a **CI-built debug APK**, see the debug keystore secrets
-   below - CI runners are a fresh VM every run, so without a keystore
-   secret configured there's no stable certificate to register at all.
+One-time setup - three repository secrets (Settings → Secrets and
+variables → Actions), all from the Appwrite Console:
 
-## Deploying Firestore rules and Cloud Functions
+| Secret | Value |
+| --- | --- |
+| `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
+| `APPWRITE_PROJECT_ID` | Console → Overview → Project ID |
+| `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 5 |
 
-`firebase deploy` (steps 2 and 4 above) needs the Firebase CLI and an
-interactive `firebase login` in a real browser tied to your Google
-account - fine from a laptop, not possible from a phone alone.
-[`.github/workflows/deploy-firebase.yml`](.github/workflows/deploy-firebase.yml)
-is a one-time-to-set-up alternative: a manually-triggered ("Run
-workflow" in the **Actions** tab - works from the GitHub mobile site or
-app, no CLI needed) job that deploys `firestore.rules`,
-`firestore.indexes.json`, and everything in `functions/` using a
-service account instead of your own login.
+That's the whole setup - a single scoped API key, considerably simpler
+than the old Firebase deploy's Google Cloud service account juggling five
+separate IAM roles (Firebase Admin, Cloud Build Editor, Service Account
+User, Cloud Scheduler Admin, Artifact Registry Admin) plus its
+Eventarc/Artifact-Registry first-deploy gotchas - none of that GCP-
+specific machinery has an Appwrite equivalent to configure.
 
-One-time setup:
-
-1. In [Google Cloud Console](https://console.cloud.google.com), switch
-   to this app's Firebase project (same project as `google-services.json`
-   - its ID is the `project_id` under `project_info` in that file), then
-   **IAM & Admin → Service Accounts → Create Service Account** (any name,
-   e.g. `mytasks-ci-deployer`).
-2. Grant it these five roles (search each by name when adding them):
-   **Firebase Admin** (covers Firestore rules/indexes and most of what
-   `functions` deploy needs), **Cloud Build Editor** and **Service
-   Account User** (2nd-gen Cloud Functions - what this project uses -
-   deploy through Cloud Build onto Cloud Run under the hood, which is why
-   plain "Cloud Functions Developer" alone isn't enough), **Cloud
-   Scheduler Admin** (`dueDateReminders` is a scheduled function -
-   `onSchedule` - which deploys by creating a Cloud Scheduler job behind
-   the scenes; without this role that specific step 403s on
-   `cloudscheduler.jobs.update` even though everything else deploys
-   fine), and **Artifact Registry Admin** (each deploy builds a container
-   image for the functions; without this role the workflow's cleanup
-   policy step - see below - can't set up automatic deletion of old
-   ones, and they'd otherwise accumulate storage cost indefinitely). If
-   a deploy still 403s on some other specific permission, the error
-   names it - add that one role and re-run rather than guessing further
-   roles up front.
-3. Open the service account → **Keys → Add Key → Create new key → JSON**
-   to download the key file, then add its full contents as the
-   `FIREBASE_SERVICE_ACCOUNT_JSON` repository secret (Settings → Secrets
-   and variables → Actions) - paste the raw JSON, not base64.
-4. From then on: **Actions tab → Deploy Firebase (Firestore rules +
-   Cloud Functions) → Run workflow**. It never runs on its own (a
-   security-rules/Cloud-Functions deploy going out on every push felt
-   like too much blast radius for something this easy to trigger
-   on demand instead) and it never deletes a function that's been
-   removed from source (no `--force`) - in non-interactive mode this
-   makes the deploy *abort* the moment it finds one to delete (printing
-   the exact `firebase functions:delete` command to run manually)
-   rather than delete anything on its own; if that's ever actually
-   wanted, run that printed command (or redeploy with `--force`) as its
-   own reviewed step rather than a side effect of an unrelated change.
-   The workflow also sets an Artifact Registry cleanup policy (container
-   images older than a day get deleted automatically) on every run -
-   harmless to repeat, and otherwise every deploy leaves an image behind
-   forever, at a small but ever-growing storage cost.
-
-**The very first deploy** may fail with "Permission denied while using
-the Eventarc Service Agent" and a note that it's your first time using
-2nd-gen functions - that's Google finishing first-time Eventarc setup
-for the project (`onTaskWrite` is a Firestore-triggered function, which
-2nd-gen functions implement via Eventarc), not a real error or a
-missing role. Just wait a few minutes and re-run the workflow.
-
-The Artifact Registry cleanup-policy step runs *before* the Firestore/
-Functions deploy, not after. That's because `firebase deploy --only
-functions` does its own internal cleanup-policy check on every run and,
-in non-interactive mode, hard-fails the *entire deploy* if no policy
-exists yet for the region - it only skips that check when a policy is
-already set. So the standalone `functions:artifacts:setpolicy` step has
-to set one first. That command does still target a per-region Artifact
-Registry repository that Cloud Functions itself only creates as part of
-a successful deploy to that region, and silently no-ops (no error,
-nothing set up) if that repository doesn't exist yet - true only before
-that region's very first successful function deploy. In that one case
-the standalone step no-ops and the deploy step right after it will fail
-with the cleanup-policy error once; simply re-running the workflow
-fixes it, since by then the region has a repository for the standalone
-step to set a policy on.
+From then on: **Actions tab → Deploy Appwrite (Collections + Functions) →
+Run workflow**. See the workflow file's own top comment for one open
+item: the exact `appwrite push` subcommand it uses should be
+double-checked against whatever `appwrite-cli` version is actually
+installed at deploy time.
 
 ## Building the APK
 
@@ -359,13 +301,20 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEY_ALIAS` | key alias (e.g. `mytasks`) |
 | `MYTASKS_KEY_PASSWORD` | key password |
 
-**Debug builds from CI need their own stable keystore too**, or Google
-Sign-In won't work on them (see [Backend setup](#backend-setup) step 6).
-Without it, `assembleDebug` falls back to AGP's built-in debug signing,
-which auto-generates a brand-new random keystore on every run - since CI
-runners are a fresh VM each time - so there's never a consistent
-certificate for Firebase to recognize. Generate one the same way and add
-it as its own set of secrets:
+**A stable debug keystore for CI builds is now optional.** It used to be
+required for Google Sign-In, because Firebase verified the calling app's
+signing certificate as part of its account-reauth check - since Auth
+moved to Appwrite's OAuth2 browser-redirect flow (see
+[Architecture](#architecture)), that check no longer exists, and sign-in
+works from a CI-built debug APK regardless of its signing certificate.
+It's still worth setting up if you want repeat CI debug builds to install
+*over* each other on a test device rather than requiring an uninstall
+first (Android refuses to install an update signed with a different
+certificate than what's already on the device) - without it,
+`assembleDebug` falls back to AGP's built-in debug signing, which
+auto-generates a brand-new random keystore on every run, since CI runners
+are a fresh VM each time. Generate one the same way and add it as its own
+set of secrets:
 
 ```
 keytool -genkeypair -v -keystore debug.keystore -alias mytasksdebug \
@@ -380,10 +329,8 @@ base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasksdebug`) |
 | `MYTASKS_DEBUG_KEY_PASSWORD` | debug key password |
 
-Then register this keystore's SHA-1 (and SHA-256) fingerprint against the
-`com.github.lukelloyd1985.mytasks.debug` app in Firebase Console per step
-6 above - that's the step that actually fixes Google Sign-In on
-CI-built debug APKs.
+No further registration step is needed - unlike the old Firebase setup,
+there's no per-certificate step to complete afterwards.
 
 ## Publishing to Google Play
 
@@ -516,26 +463,51 @@ everything after that, which CI automates.
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
   Don't recolor or restyle it.
+- **Offline persistence is gone**, and is the single most user-visible
+  regression from the Firebase migration: Firestore's local cache/sync
+  had no Appwrite SDK equivalent to carry over, so the app now requires
+  connectivity for every read and write - there is no more "keep working
+  on a flaky connection and sync later."
 - Any signed-in user can look up any other user's basic profile (name,
-  email, photo) by email, which is what powers "invite by email" on a
-  shared list. See `firestore.rules` if you want to tighten this further.
+  email, photo), which is what powers "invite by email" on a shared
+  list. See the `users` collection's permissions in
+  [Appwrite schema](#appwrite-schema) if you want to tighten this
+  further.
+- A related, new gap from the move to Appwrite's static per-document
+  permissions: any signed-in user can technically create a `tasks`
+  document against an arbitrary (but unguessable) `listId`, since the
+  `tasks` collection's create permission can't validate list membership
+  the way Firestore's rule (`isListMember(parentList())`) could against
+  the parent list document. Mirrors the existing "any signed-in user can
+  read any profile" tradeoff above.
 - Due-date reminders are best-effort: an on-device WorkManager job covers
-  the device that set the reminder, and the `dueDateReminders` Cloud
+  the device that set the reminder, and the `due-date-reminders` Appwrite
   Function sweeps every 15 minutes as the cross-device fallback.
+- `deleteList` and `reorderTasks` no longer run as an atomic batch -
+  Appwrite has no transactional multi-document write like Firestore's
+  `WriteBatch`. A crash mid-operation can leave a partial state (e.g. some
+  tasks reordered, some not), but it self-heals on retry rather than
+  silently losing data.
+- **Google Sign-In no longer requires registering the app's signing
+  certificate** (SHA-1/SHA-256) anywhere - see
+  [Backend setup](#backend-setup) step 3. The debug/release keystores
+  themselves are still required, just for Play Store/APK signing.
 - **Account deletion** satisfies Play's dual in-app + web requirement:
-  the Profile screen's "Delete my account" action calls the `deleteAccount`
-  callable Cloud Function (`functions/src/accountDeletion.ts`), which
-  transfers or removes the user's membership on every list they're part
-  of (a shared list they own is handed to another member rather than
-  deleted out from under them), unassigns their tasks elsewhere, deletes
-  their `users/{uid}` doc, then deletes their Firebase Auth account.
+  the Profile screen's "Delete my account" action calls the
+  `delete-account` Appwrite Function
+  (`appwrite/functions/delete-account/src`), which transfers or removes
+  the user's membership on every list they're part of (a shared list
+  they own is handed to another member rather than deleted out from
+  under them), unassigns their tasks elsewhere, deletes their
+  `users/{uid}` doc, then deletes their Appwrite Auth account.
   `docs/delete-account.html` covers the same thing for someone who no
   longer has the app installed, and gets registered as the "Delete
   account" URL in Play Console's Data safety section (see
   [Publishing to Google Play](#publishing-to-google-play)). This runs
   server-side rather than from the client both because one user must
-  never be able to delete another's account, and because
-  `firestore.rules` blocks client deletes of `users/{uid}` outright.
+  never be able to delete another's account, and because the `users`
+  collection's permissions (see [Appwrite schema](#appwrite-schema))
+  block client deletes of `users/{uid}` outright.
 - Kotlin sources compile via AGP 9's built-in Kotlin support (no
   `org.jetbrains.kotlin.android` plugin applied), and Hilt's annotation
   processing runs via KSP rather than the now-incompatible `kapt`. Both

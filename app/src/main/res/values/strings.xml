@@ -6,12 +6,6 @@
     <string name="notification_channel_tasks_name">Task reminders</string>
     <string name="notification_channel_tasks_desc">Due-date reminders and task assignment alerts</string>
 
-    <!-- default_web_client_id is intentionally NOT declared here: the
-         com.google.gms.google-services Gradle plugin generates it at build
-         time from google-services.json's client_type == 3 oauth_client
-         entry, and is what Credential Manager / Google Identity uses for
-         Google sign-in (see LoginScreen.kt). -->
-
     <!-- Common actions/labels reused across multiple screens -->
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
@@ -24,9 +18,6 @@
     <!-- Login -->
     <string name="login_tagline">Shared task lists for your home, garden, and everything in between</string>
     <string name="continue_with_google">Continue with Google</string>
-    <string name="error_google_signin_not_configured">Google sign-in isn\'t configured yet - see README Backend setup</string>
-    <string name="error_google_signin_failed">Google sign-in failed [%1$s]: %2$s</string>
-    <string name="error_unexpected_credential_type">Unexpected credential type from Google: %1$s</string>
     <string name="error_sign_in_failed">Sign-in failed</string>
 
     <!-- Lists screen -->
