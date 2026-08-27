@@ -1,0 +1,102 @@
+import { Client, Databases, Query, Permission, Role, Models } from "node-appwrite";
+import { listAllDocuments } from "./listAll";
+
+interface ListDoc extends Models.Document {
+  ownerId: string;
+  memberIds?: string[];
+}
+
+interface TaskDoc extends Models.Document {
+  listId: string;
+}
+
+interface RequestContext {
+  bodyJson?: ListDoc;
+  headers: Record<string, string>;
+}
+interface ResponseContext {
+  json: (data: unknown, statusCode?: number) => unknown;
+}
+interface FunctionContext {
+  req: RequestContext;
+  res: ResponseContext;
+  log: (message: unknown) => void;
+  error: (message: unknown) => void;
+}
+
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
+const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
+
+/** Every current owner + member of the list gets full read/update/delete
+ *  on each of its tasks - matches the current Firestore rule, where any
+ *  list member can fully CRUD tasks under it. */
+function buildTaskPermissions(ownerId: string, memberIds: string[]): string[] {
+  const ids = new Set([ownerId, ...memberIds]);
+  const permissions: string[] = [];
+  for (const id of ids) {
+    permissions.push(Permission.read(Role.user(id)));
+    permissions.push(Permission.update(Role.user(id)));
+    permissions.push(Permission.delete(Role.user(id)));
+  }
+  return permissions;
+}
+
+/**
+ * NEW function - not a port of any Firebase code. It exists because
+ * Appwrite permissions are static ACLs stored on each document, not a
+ * live rule evaluation against a parent document the way Firestore's
+ * security rules were (the old firestore.rules `parentList()` lookup
+ * re-checked list membership on every single task read/write). Appwrite
+ * has nothing equivalent for documents in a different, flat collection,
+ * so whenever a list's ownerId/memberIds change, every task under that
+ * list has to have its permissions explicitly recomputed and pushed here
+ * - otherwise a removed member would silently keep access to that list's
+ * tasks (or a newly added member would not yet have access) until
+ * something else happened to touch each task.
+ *
+ * Trigger: database event on lists documents.*.update.
+ */
+export default async ({ req, res, log, error }: FunctionContext) => {
+  const list = req.bodyJson;
+  if (!list || !list.$id) {
+    return res.json({ success: true, skipped: true });
+  }
+
+  const client = new Client()
+    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT ?? "")
+    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
+    .setKey(req.headers["x-appwrite-key"] ?? "");
+
+  const databases = new Databases(client);
+
+  const memberIds = list.memberIds ?? [];
+  const permissions = buildTaskPermissions(list.ownerId, memberIds);
+
+  const tasks = await listAllDocuments<TaskDoc>(databases, DATABASE_ID, TASKS_COLLECTION_ID, [
+    Query.equal("listId", list.$id),
+  ]);
+
+  if (tasks.length === 0) {
+    return res.json({ success: true, synced: 0 });
+  }
+
+  try {
+    // Only the permissions array is replaced here - no data fields are
+    // touched, so this can't clobber a concurrent edit to the task
+    // itself. No Appwrite batch-write primitive exists, so (as with
+    // due-date-reminders) this is a Promise.all of independent updates -
+    // an accepted small atomicity gap, not a data-corruption risk.
+    await Promise.all(
+      tasks.map((task) => databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {}, permissions)),
+    );
+  } catch (err) {
+    error(
+      `Failed to sync permissions for one or more tasks under list ${list.$id}: ${
+        err instanceof Error ? err.stack ?? err.message : err
+      }`,
+    );
+    return res.json({ success: false }, 500);
+  }
+
+  return res.json({ success: true, synced: tasks.length });
+};
