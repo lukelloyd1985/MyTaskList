@@ -40,18 +40,19 @@ class ListsViewModel @Inject constructor(
     val uiState: StateFlow<ListsUiState> = _uiState
 
     // The create dialog dismisses itself as soon as this is called (see
-    // ListsScreen) rather than waiting for this write to finish - lists
-    // are offline-first (see FirebaseModule), so the new list shows up via
-    // `lists` above the moment it's applied locally, with or without a
-    // network round trip. Any failure surfaces afterward via uiState
+    // ListsScreen) rather than waiting for this write to finish - the new
+    // list shows up via `lists` above once the create call round-trips and
+    // AppwriteListRepository re-fetches (no offline cache with Appwrite,
+    // unlike the old Firestore setup - see the migration plan's "Offline
+    // persistence" note). Any failure surfaces afterward via uiState
     // instead of leaving the dialog open with no feedback.
     fun createList(name: String, visibility: ListVisibility) {
         val user = authRepository.currentUser ?: return
         val owner = ListMember(
             uid = user.uid,
-            displayName = user.displayName ?: user.email.orEmpty(),
-            email = user.email.orEmpty(),
-            photoUrl = user.photoUrl?.toString().orEmpty(),
+            displayName = user.displayName.ifBlank { user.email },
+            email = user.email,
+            photoUrl = user.photoUrl,
         )
         viewModelScope.launch {
             try {

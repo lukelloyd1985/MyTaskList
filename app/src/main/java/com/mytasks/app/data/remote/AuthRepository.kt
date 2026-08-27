@@ -1,57 +1,149 @@
 package com.mytasks.app.data.remote
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.functions.FirebaseFunctions
-import kotlinx.coroutines.channels.awaitClose
+import android.app.Activity
+import androidx.activity.ComponentActivity
+import io.appwrite.exceptions.AppwriteException
+import io.appwrite.services.Account
+import io.appwrite.services.Functions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.mytasks.app.BuildConfig
+
+/** Firebase-independent stand-in for the old FirebaseUser, mapped from
+ *  Appwrite's Account/User model - see AppwriteAuthRepository. */
+data class AppUser(
+    val uid: String,
+    val displayName: String,
+    val email: String,
+    val photoUrl: String,
+)
 
 interface AuthRepository {
-    val authState: Flow<FirebaseUser?>
-    val currentUser: FirebaseUser?
+    val authState: Flow<AppUser?>
+    val currentUser: AppUser?
 
-    suspend fun signInWithGoogleIdToken(idToken: String): FirebaseUser
+    /** Runs Appwrite's OAuth2 browser-redirect flow for Google (opens a
+     *  Custom Tab against Appwrite's own hosted OAuth endpoint; no Google
+     *  ID token ever reaches app code - see AndroidManifest.xml's
+     *  appwriteCallbackScheme deep link and Appwrite Console's configured
+     *  Google provider). */
+    suspend fun signInWithGoogle(activity: Activity): AppUser
 
-    fun signOut()
+    suspend fun signOut()
 
-    /** Calls the `deleteAccount` Cloud Function, which deletes this user's
-     *  data (see `functions/src/accountDeletion.ts`) and their Firebase
-     *  Auth account, then clears the local session. */
+    /** Calls the `delete-account` Appwrite Function (runs as the
+     *  currently-signed-in user via the SDK's session), which deletes this
+     *  user's data and their Appwrite Auth account, then clears the local
+     *  session. */
     suspend fun deleteAccount()
 }
 
 @Singleton
-class FirebaseAuthRepository @Inject constructor(
-    private val firebaseAuth: FirebaseAuth,
-    private val functions: FirebaseFunctions,
+class AppwriteAuthRepository @Inject constructor(
+    private val account: Account,
+    private val functions: Functions,
 ) : AuthRepository {
 
-    override val authState: Flow<FirebaseUser?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener { auth -> trySend(auth.currentUser) }
-        firebaseAuth.addAuthStateListener(listener)
-        awaitClose { firebaseAuth.removeAuthStateListener(listener) }
+    // No AuthStateListener equivalent in the Appwrite SDK: this is updated
+    // imperatively after every sign-in/sign-out/delete, and seeded once at
+    // construction below.
+    private val _authState = MutableStateFlow<AppUser?>(null)
+    override val authState: Flow<AppUser?> = _authState.asStateFlow()
+
+    override val currentUser: AppUser?
+        get() = _authState.value
+
+    init {
+        // Fire-and-forget: seeds authState from any pre-existing session
+        // (e.g. app process restart while still signed in). A fresh
+        // install/signed-out user simply gets a 401 here, mapped to null.
+        CoroutineScope(Dispatchers.IO).launch { refreshCurrentUser() }
     }
 
-    override val currentUser: FirebaseUser?
-        get() = firebaseAuth.currentUser
-
-    override suspend fun signInWithGoogleIdToken(idToken: String): FirebaseUser {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        return firebaseAuth.signInWithCredential(credential).await().user
-            ?: error("Google sign-in returned no user")
+    private suspend fun refreshCurrentUser() {
+        _authState.value = try {
+            mapUser(account.get())
+        } catch (e: AppwriteException) {
+            null
+        }
     }
 
-    override fun signOut() {
-        firebaseAuth.signOut()
+    override suspend fun signInWithGoogle(activity: Activity): AppUser {
+        // [VERIFY] Exact createOAuth2Session parameter names/overload -
+        // couldn't be checked against a live copy of io.appwrite:sdk-for-android;
+        // see the migration report for the full list of assumptions made
+        // about this SDK's surface.
+        val componentActivity = activity as ComponentActivity
+        account.createOAuth2Session(
+            activity = componentActivity,
+            provider = "google",
+            scopes = listOf("email", "profile"),
+        )
+        val photoUrl = fetchGooglePhotoUrl()
+        val appUser = mapUser(account.get(), photoUrlOverride = photoUrl)
+        _authState.value = appUser
+        return appUser
+    }
+
+    override suspend fun signOut() {
+        account.deleteSession(sessionId = "current")
+        _authState.value = null
     }
 
     override suspend fun deleteAccount() {
-        functions.getHttpsCallable("deleteAccount").call().await()
-        firebaseAuth.signOut()
+        val execution = functions.createExecution(functionId = BuildConfig.APPWRITE_FUNCTION_DELETE_ACCOUNT_ID)
+        val statusCode = execution.responseStatusCode
+        val failed = execution.status.equals("failed", ignoreCase = true) ||
+            (statusCode != 0 && statusCode !in 200..299)
+        if (failed) {
+            error("Account deletion failed (status=${execution.status}, code=$statusCode)")
+        }
+        signOut()
     }
+
+    /** Appwrite's Account/User model has no OAuth profile-picture field.
+     *  Best-effort only: reads the Google OAuth access token off the
+     *  current session and asks Google's userinfo endpoint for the profile
+     *  photo. Any failure here (missing token, offline, unexpected
+     *  response shape) must never break sign-in, so every error path just
+     *  falls back to "". */
+    private suspend fun fetchGooglePhotoUrl(): String {
+        return try {
+            val session = account.getSession(sessionId = "current")
+            // [VERIFY] Field name - Session's OAuth provider access token
+            // field may not be named exactly this on the resolved SDK
+            // version.
+            val accessToken = session.providerAccessToken
+            if (accessToken.isNullOrBlank()) return ""
+            val connection = URL("https://www.googleapis.com/oauth2/v3/userinfo")
+                .openConnection() as HttpURLConnection
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
+            connection.inputStream.use { stream ->
+                val body = BufferedReader(InputStreamReader(stream)).readText()
+                JSONObject(body).optString("picture", "")
+            }
+        } catch (t: Throwable) {
+            ""
+        }
+    }
+
+    private fun mapUser(user: io.appwrite.models.User<*>, photoUrlOverride: String? = null): AppUser = AppUser(
+        uid = user.id,
+        displayName = user.name,
+        email = user.email,
+        photoUrl = photoUrlOverride.orEmpty(),
+    )
 }

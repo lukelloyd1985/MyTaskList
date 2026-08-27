@@ -21,11 +21,25 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.MyTasks">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Appwrite OAuth2 browser-redirect callback - see
+                 AuthRepository.signInWithGoogle and appwriteCallbackScheme
+                 in app/build.gradle.kts. [VERIFY] launchMode was changed
+                 from singleTop to singleTask for this: Appwrite's own
+                 sample apps typically use singleTask so the redirect lands
+                 back on the existing task instead of spawning a duplicate,
+                 but this wasn't verified against a live SDK integration. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${appwriteCallbackScheme}" />
             </intent-filter>
         </activity>
 

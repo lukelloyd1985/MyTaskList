@@ -1,52 +1,104 @@
 package com.mytasks.app.data.remote
 
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
-import kotlinx.coroutines.tasks.await
+import io.appwrite.Permission
+import io.appwrite.Query
+import io.appwrite.Role
+import io.appwrite.exceptions.AppwriteException
+import io.appwrite.models.Document
+import io.appwrite.services.Databases
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.mytasks.app.BuildConfig
 import com.mytasks.app.data.model.UserProfile
 
 interface UserRepository {
-    suspend fun upsertProfile(user: FirebaseUser)
+    suspend fun upsertProfile(user: AppUser)
     suspend fun findByEmail(email: String): UserProfile?
     suspend fun getById(uid: String): UserProfile?
     suspend fun addFcmToken(uid: String, token: String)
 }
 
 @Singleton
-class FirestoreUserRepository @Inject constructor(
-    private val firestore: FirebaseFirestore,
+class AppwriteUserRepository @Inject constructor(
+    private val databases: Databases,
 ) : UserRepository {
 
-    private val users get() = firestore.collection(FirestorePaths.USERS)
+    private val databaseId = BuildConfig.APPWRITE_DATABASE_ID
+    private val usersId = BuildConfig.APPWRITE_COLLECTION_USERS_ID
 
-    override suspend fun upsertProfile(user: FirebaseUser) {
-        val profile = mapOf(
-            "displayName" to (user.displayName ?: user.email.orEmpty()),
-            "email" to (user.email?.trim()?.lowercase() ?: ""),
-            "photoUrl" to (user.photoUrl?.toString() ?: ""),
+    // Appwrite has no Firestore-style set(merge=true): this is a manual
+    // get-or-create, updating the doc if it already exists (from a
+    // previous sign-in) or creating it - with doc ID == Appwrite Auth
+    // user's $id - the first time.
+    override suspend fun upsertProfile(user: AppUser) {
+        val fields = mapOf(
+            "displayName" to user.displayName.ifBlank { user.email },
+            "email" to user.email.trim().lowercase(),
+            "photoUrl" to user.photoUrl,
             "locale" to Locale.getDefault().language,
-            "lastSignedInAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
         )
-        users.document(user.uid).set(profile, SetOptions.merge()).await()
+        val existing = getDocumentOrNull(user.uid)
+        if (existing != null) {
+            databases.updateDocument(
+                databaseId = databaseId,
+                collectionId = usersId,
+                documentId = user.uid,
+                data = fields,
+            )
+        } else {
+            databases.createDocument(
+                databaseId = databaseId,
+                collectionId = usersId,
+                documentId = user.uid,
+                data = fields + mapOf("fcmTokens" to emptyList<String>()),
+                permissions = listOf(
+                    Permission.read(Role.users()),
+                    Permission.update(Role.user(user.uid)),
+                    Permission.delete(Role.user(user.uid)),
+                ),
+            )
+        }
     }
 
     override suspend fun findByEmail(email: String): UserProfile? {
-        val snapshot = users.whereEqualTo("email", email.trim().lowercase()).limit(1).get().await()
-        return snapshot.documents.firstOrNull()?.toObject(UserProfile::class.java)
+        val result = databases.listDocuments(
+            databaseId = databaseId,
+            collectionId = usersId,
+            queries = listOf(Query.equal("email", email.trim().lowercase()), Query.limit(1)),
+        )
+        return result.documents.firstOrNull()?.toUserProfile()
     }
 
-    override suspend fun getById(uid: String): UserProfile? {
-        return users.document(uid).get().await().toObject(UserProfile::class.java)
-    }
+    override suspend fun getById(uid: String): UserProfile? = getDocumentOrNull(uid)?.toUserProfile()
 
     override suspend fun addFcmToken(uid: String, token: String) {
-        users.document(uid).set(
-            mapOf("fcmTokens" to com.google.firebase.firestore.FieldValue.arrayUnion(token)),
-            SetOptions.merge(),
-        ).await()
+        val document = getDocumentOrNull(uid) ?: return
+        val current = document.toUserProfile()
+        if (token in current.fcmTokens) return
+        databases.updateDocument(
+            databaseId = databaseId,
+            collectionId = usersId,
+            documentId = uid,
+            data = mapOf("fcmTokens" to (current.fcmTokens + token)),
+        )
     }
+
+    private suspend fun getDocumentOrNull(uid: String): Document<Map<String, Any>>? = try {
+        databases.getDocument(databaseId, usersId, uid)
+    } catch (e: AppwriteException) {
+        if (e.code == 404) null else throw e
+    }
+}
+
+private fun Document<Map<String, Any>>.toUserProfile(): UserProfile {
+    val fields = data
+    return UserProfile(
+        uid = id,
+        displayName = fields["displayName"] as? String ?: "",
+        email = fields["email"] as? String ?: "",
+        photoUrl = fields["photoUrl"] as? String ?: "",
+        fcmTokens = (fields["fcmTokens"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+        locale = fields["locale"] as? String ?: "",
+    )
 }

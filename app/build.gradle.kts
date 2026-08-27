@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.google.services)
     alias(libs.plugins.play.publisher)
 }
 
@@ -34,6 +33,24 @@ android {
         versionName = System.getenv("RELEASE_VERSION_NAME") ?: "1.0.0-dev"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Appwrite Cloud connection details - never hardcoded in Kotlin
+        // source, always read from BuildConfig (same env-var-driven
+        // pattern as the signing config below). Empty-string defaults for
+        // the project/function IDs mean a build with no env vars set still
+        // compiles; it just fails at runtime when it tries to talk to
+        // Appwrite, same tradeoff as the old default_web_client_id gap.
+        buildConfigField("String", "APPWRITE_ENDPOINT", "\"${System.getenv("MYTASKS_APPWRITE_ENDPOINT") ?: "https://cloud.appwrite.io/v1"}\"")
+        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${System.getenv("MYTASKS_APPWRITE_DATABASE_ID") ?: "mytasks"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
+        buildConfigField("String", "APPWRITE_FUNCTION_DELETE_ACCOUNT_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID") ?: ""}\"")
+
+        // Deep link scheme Appwrite's OAuth2 flow redirects back into the
+        // app through - see AndroidManifest.xml and AuthRepository.
+        manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: "unset"}"
     }
 
     signingConfigs {
@@ -99,6 +116,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -123,6 +141,10 @@ play {
 
 dependencies {
     implementation(platform(libs.compose.bom))
+    // Kept solely so firebase-messaging-ktx (the one Firebase surface this
+    // migration keeps, as the FCM push transport) resolves its version -
+    // every other Firebase dependency that used to come off this BOM
+    // (auth/firestore/functions) is gone.
     implementation(platform(libs.firebase.bom))
 
     implementation(libs.core.ktx)
@@ -145,14 +167,13 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
-    implementation(libs.firebase.functions)
 
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services.auth)
-    implementation(libs.googleid)
+    // [VERIFY] Version pinned to a plausible recent stable - couldn't be
+    // checked against a live Maven Central listing in this environment;
+    // confirm this is actually the latest stable io.appwrite:sdk-for-android
+    // release before shipping (see migration report).
+    implementation(libs.appwrite)
 
     implementation(libs.work.runtime.ktx)
     implementation(libs.coil.compose)
