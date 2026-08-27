@@ -54,6 +54,25 @@ jobs:
             (cd "$dir" && npm install)
           done
 
+      # appwrite/appwrite.json is committed with a placeholder
+      # "REPLACE_WITH_APPWRITE_PROJECT_ID" projectId (there's no real,
+      # safe-to-commit value for it, unlike Firebase's google-services.json
+      # - see README "Backend setup"). A real run authenticated successfully
+      # via `appwrite client` above but then failed pushing with "Project
+      # with the requested ID could not be found" while the placeholder was
+      # still in place - likely `appwrite push` reads the project ID from
+      # this file directly rather than the authenticated client session,
+      # though that's inferred from the failure, not confirmed against CLI
+      # source. Substitute the real ID in at deploy time either way, since
+      # leaving a placeholder committed is wrong regardless of the exact
+      # mechanism.
+      - name: Set project ID in appwrite.json
+        env:
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+        run: |
+          jq --arg id "$APPWRITE_PROJECT_ID" '.projectId = $id' appwrite/appwrite.json > appwrite/appwrite.json.tmp
+          mv appwrite/appwrite.json.tmp appwrite/appwrite.json
+
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, collections, and functions to push) directly
       # - see README "Backend setup" for how that file is produced.
