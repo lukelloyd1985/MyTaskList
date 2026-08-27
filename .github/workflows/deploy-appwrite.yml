@@ -44,15 +44,26 @@ jobs:
       - name: Install Appwrite CLI
         run: npm install -g appwrite-cli
 
+      # The project ID isn't sensitive (it only identifies the project -
+      # no access without the API key below - and ships inside the built
+      # APK regardless), so unlike APPWRITE_ENDPOINT/APPWRITE_API_KEY it's
+      # not a GitHub secret: it's read straight from appwrite.json's own
+      # "projectId" field, the same file `appwrite push` itself reads it
+      # from (confirmed by a real run: authenticating with a correct
+      # secret still failed pushing with "Project ... could not be found"
+      # while a placeholder sat in this file - `appwrite push` doesn't use
+      # the authenticated client session's project for that). This also
+      # means the Android app (app/build.gradle.kts) and this workflow now
+      # share one source of truth instead of each needing their own copy
+      # of the same value - see README "Backend setup".
       - name: Authenticate with Appwrite
         env:
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
-          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
         run: |
           appwrite client \
             --endpoint "$APPWRITE_ENDPOINT" \
-            --project-id "$APPWRITE_PROJECT_ID" \
+            --project-id "$(jq -r '.projectId' appwrite/appwrite.json)" \
             --key "$APPWRITE_API_KEY"
 
       - name: Install function dependencies
@@ -60,25 +71,6 @@ jobs:
           for dir in appwrite/functions/*/; do
             (cd "$dir" && npm install)
           done
-
-      # appwrite/appwrite.json is committed with a placeholder
-      # "REPLACE_WITH_APPWRITE_PROJECT_ID" projectId (there's no real,
-      # safe-to-commit value for it, unlike Firebase's google-services.json
-      # - see README "Backend setup"). A real run authenticated successfully
-      # via `appwrite client` above but then failed pushing with "Project
-      # with the requested ID could not be found" while the placeholder was
-      # still in place - likely `appwrite push` reads the project ID from
-      # this file directly rather than the authenticated client session,
-      # though that's inferred from the failure, not confirmed against CLI
-      # source. Substitute the real ID in at deploy time either way, since
-      # leaving a placeholder committed is wrong regardless of the exact
-      # mechanism.
-      - name: Set project ID in appwrite.json
-        env:
-          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
-        run: |
-          jq --arg id "$APPWRITE_PROJECT_ID" '.projectId = $id' appwrite/appwrite.json > appwrite/appwrite.json.tmp
-          mv appwrite/appwrite.json.tmp appwrite/appwrite.json
 
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
