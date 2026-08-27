@@ -38,20 +38,27 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # android-actions/setup-android@v4 pins cmdline-tools build 14742923
+      # by default, which predates API 36/37 platform. Overridden to a
+      # current build (15859902, per developer.android.com's command-line
+      # tools download page as of writing) so sdkmanager's repository
+      # listing actually includes platforms;android-37 below - without
+      # this override, `sdkmanager "platforms;android-37"` fails with
+      # "Failed to find package" even though 37 is a released platform.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: "15859902"
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses > /dev/null || true
 
-      # compileSdk stays 36 - "platforms;android-37" isn't published to the
-      # public SDK repository yet (sdkmanager fails to find it), even
-      # though the Appwrite SDK's own AAR declares compileSdk = 37 (that's
-      # only what the library itself was built against, not a requirement
-      # on consumers). AGP 9.1.1 itself requires build-tools >= 36.0.0
-      # regardless of compileSdk.
+      # compileSdk = 37 is a hard requirement, not a preference - see the
+      # comment on `compileSdk` in app/build.gradle.kts. AGP 9.3.0's own
+      # minimum/default build-tools stays 36.0.0 regardless (build-tools
+      # versioning isn't 1:1 with compileSdk).
       - name: Install Android SDK platform & build-tools
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
 
       - name: Cache Gradle
         uses: actions/cache@v6
