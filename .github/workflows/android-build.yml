@@ -107,6 +107,11 @@ jobs:
           MYTASKS_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_PASSWORD }}
           MYTASKS_DEBUG_KEY_ALIAS: ${{ secrets.MYTASKS_DEBUG_KEY_ALIAS }}
           MYTASKS_DEBUG_KEY_PASSWORD: ${{ secrets.MYTASKS_DEBUG_KEY_PASSWORD }}
+          # Reuses the same APPWRITE_ENDPOINT secret deploy-appwrite.yml
+          # already has, rather than requiring a second, differently-named
+          # one for the same value - see app/build.gradle.kts for the env
+          # var Gradle actually reads.
+          MYTASKS_APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
         run: ./gradlew assembleDebug --stacktrace
 
       # Builds both the sideloadable APK (for the GitHub Release / direct
@@ -118,6 +123,7 @@ jobs:
           MYTASKS_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_KEYSTORE_PASSWORD }}
           MYTASKS_KEY_ALIAS: ${{ secrets.MYTASKS_KEY_ALIAS }}
           MYTASKS_KEY_PASSWORD: ${{ secrets.MYTASKS_KEY_PASSWORD }}
+          MYTASKS_APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
         run: ./gradlew assembleRelease bundleRelease --stacktrace
 
       - name: Upload debug APK artifact

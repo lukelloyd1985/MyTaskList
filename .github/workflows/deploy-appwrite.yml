@@ -1,31 +1,27 @@
-name: Deploy Appwrite (Collections + Functions)
+name: Deploy Appwrite (Tables + Functions)
 
 # Manual only (tap "Run workflow" in the Actions tab, from a phone browser
 # or the GitHub app included - no local Appwrite CLI or interactive login
 # needed) rather than on every push, since this pushes real database
-# collections and Functions straight to production. See README "CI deploy"
+# tables and Functions straight to production. See README "CI deploy"
 # for the one-time API key setup this needs.
 #
 # NOTE: `appwrite push` takes exactly one resource-type subcommand per
 # invocation, each accepting a single optional positional argument that
 # must literally be `all` - it does not accept multiple resource types in
-# one call. Confirmed from a real CI run's own CLI error: "`appwrite push
-# collection` takes no arguments except `all`, and was given `functions`.
-# Run `appwrite push collection all` to push every one". `database` isn't
-# pushed separately below since appwrite.json's databases are implied by
-# their collections - revisit if a real run shows otherwise.
+# one call (confirmed from a real CI run's own CLI error). `database`
+# isn't pushed separately below since appwrite.json's databases are
+# implied by their tables - revisit if a real run shows otherwise.
 #
-# `collection` itself is deprecated in favor of `tables` (a real run
-# logged: "appwrite push collection has been deprecated. Please consider
-# using 'appwrite push tables' instead") - switched below. appwrite.json's
-# own schema keys ("collections"/"attributes") are left as-is for now:
-# Appwrite's Tables rename appears to also change attribute type names
-# (e.g. generic "string" -> "varchar"/"text"/"mediumtext"/"longtext" by
-# size), but this couldn't be confirmed against a primary source from
-# this environment (appwrite.io itself is unreachable here, and the one
-# concrete example file found via search 404'd). If `push tables` errors
-# on the current schema, that error will say exactly what needs to change
-# - trust it over any further guessing here.
+# Uses `push tables`, not the older `push collection` (deprecated - a
+# real run logged: "appwrite push collection has been deprecated. Please
+# consider using 'appwrite push tables' instead"). appwrite.json's own
+# schema keys are "tables"/"columns" (renamed from "collections"/
+# "attributes") to match - confirmed necessary by a real run against the
+# old key names logging "No tables found" under `push tables`. Attribute
+# type names (e.g. "string") were left unchanged since nothing has
+# indicated they also need renaming - if that's wrong, the next run's
+# error will say so.
 on:
   workflow_dispatch:
 
@@ -48,15 +44,26 @@ jobs:
       - name: Install Appwrite CLI
         run: npm install -g appwrite-cli
 
+      # The project ID isn't sensitive (it only identifies the project -
+      # no access without the API key below - and ships inside the built
+      # APK regardless), so unlike APPWRITE_ENDPOINT/APPWRITE_API_KEY it's
+      # not a GitHub secret: it's read straight from appwrite.json's own
+      # "projectId" field, the same file `appwrite push` itself reads it
+      # from (confirmed by a real run: authenticating with a correct
+      # secret still failed pushing with "Project ... could not be found"
+      # while a placeholder sat in this file - `appwrite push` doesn't use
+      # the authenticated client session's project for that). This also
+      # means the Android app (app/build.gradle.kts) and this workflow now
+      # share one source of truth instead of each needing their own copy
+      # of the same value - see README "Backend setup".
       - name: Authenticate with Appwrite
         env:
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
-          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
         run: |
           appwrite client \
             --endpoint "$APPWRITE_ENDPOINT" \
-            --project-id "$APPWRITE_PROJECT_ID" \
+            --project-id "$(jq -r '.projectId' appwrite/appwrite.json)" \
             --key "$APPWRITE_API_KEY"
 
       - name: Install function dependencies
@@ -65,29 +72,10 @@ jobs:
             (cd "$dir" && npm install)
           done
 
-      # appwrite/appwrite.json is committed with a placeholder
-      # "REPLACE_WITH_APPWRITE_PROJECT_ID" projectId (there's no real,
-      # safe-to-commit value for it, unlike Firebase's google-services.json
-      # - see README "Backend setup"). A real run authenticated successfully
-      # via `appwrite client` above but then failed pushing with "Project
-      # with the requested ID could not be found" while the placeholder was
-      # still in place - likely `appwrite push` reads the project ID from
-      # this file directly rather than the authenticated client session,
-      # though that's inferred from the failure, not confirmed against CLI
-      # source. Substitute the real ID in at deploy time either way, since
-      # leaving a placeholder committed is wrong regardless of the exact
-      # mechanism.
-      - name: Set project ID in appwrite.json
-        env:
-          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
-        run: |
-          jq --arg id "$APPWRITE_PROJECT_ID" '.projectId = $id' appwrite/appwrite.json > appwrite/appwrite.json.tmp
-          mv appwrite/appwrite.json.tmp appwrite/appwrite.json
-
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
-      # listing the database, collections, and functions to push) directly
-      # - see README "Backend setup" for how that file is produced.
-      - name: Push collections and functions
+      # listing the database, tables, and functions to push) directly -
+      # see README "Backend setup" for how that file is produced.
+      - name: Push tables and functions
         working-directory: appwrite
         run: |
           appwrite push tables all --force

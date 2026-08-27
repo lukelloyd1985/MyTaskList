@@ -46,23 +46,37 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Appwrite Cloud connection details - never hardcoded in Kotlin
-        // source, always read from BuildConfig (same env-var-driven
-        // pattern as the signing config below). Empty-string defaults for
-        // the project/function IDs mean a build with no env vars set still
-        // compiles; it just fails at runtime when it tries to talk to
-        // Appwrite, same tradeoff as the old default_web_client_id gap.
+        // The Appwrite project ID isn't sensitive - like Firebase's
+        // committed google-services.json project ID, it only identifies
+        // the project (no access without a session/API key) and ships
+        // inside the compiled APK regardless of how it's configured here.
+        // So rather than duplicate it in a GitHub secret AND a separate
+        // local/CI env var (two places the same value has to be pasted
+        // and kept in sync), it's read directly from
+        // appwrite/appwrite.json's own "projectId" field - the same file
+        // deploy-appwrite.yml already pushes from, and the single place a
+        // contributor standing up their own backend needs to set it (see
+        // README "Backend setup").
+        val appwriteProjectId = Regex("\"projectId\"\\s*:\\s*\"([^\"]*)\"")
+            .find(rootProject.file("appwrite/appwrite.json").readText())
+            ?.groupValues?.get(1) ?: ""
+
+        // The rest of the Appwrite connection details are fixed IDs this
+        // codebase itself chose (not assigned by Appwrite), matching
+        // appwrite/appwrite.json's own $id fields - env-var overrides
+        // exist only for a contributor customizing them, not because
+        // they're expected to vary per-environment like the project ID.
         buildConfigField("String", "APPWRITE_ENDPOINT", "\"${System.getenv("MYTASKS_APPWRITE_ENDPOINT") ?: "https://cloud.appwrite.io/v1"}\"")
-        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"$appwriteProjectId\"")
         buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${System.getenv("MYTASKS_APPWRITE_DATABASE_ID") ?: "mytasks"}\"")
         buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
         buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
         buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
-        buildConfigField("String", "APPWRITE_FUNCTION_DELETE_ACCOUNT_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID") ?: ""}\"")
+        buildConfigField("String", "APPWRITE_FUNCTION_DELETE_ACCOUNT_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID") ?: "delete-account"}\"")
 
         // Deep link scheme Appwrite's OAuth2 flow redirects back into the
         // app through - see AndroidManifest.xml and AuthRepository.
-        manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${System.getenv("MYTASKS_APPWRITE_PROJECT_ID") ?: "unset"}"
+        manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${appwriteProjectId.ifEmpty { "unset" }}"
     }
 
     signingConfigs {
