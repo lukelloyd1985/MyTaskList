@@ -209,8 +209,12 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    service-account JSON and the FCM project ID.
 5. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
-   **`databases.read`** and **`databases.write`**, **`functions.read`**
-   and **`functions.write`**, and **`users.write`** (needed by
+   **`databases.read`** and **`databases.write`**, **`tables.read`** and
+   **`tables.write`**, **`columns.read`** and **`columns.write`** (the
+   Console's own scope list has already dropped the legacy
+   `collections`/`attributes` scopes in favor of `tables`/`columns` -
+   don't grant the deprecated ones), **`functions.read`** and
+   **`functions.write`**, and **`users.write`** (needed by
    `delete-account`'s cascading Auth-account deletion) - the read scopes
    are required alongside the write ones because `appwrite push` diffs
    local config against the deployed state before applying changes, not

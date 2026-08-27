@@ -9,9 +9,11 @@ name: Deploy Appwrite (Tables + Functions)
 # NOTE: `appwrite push` takes exactly one resource-type subcommand per
 # invocation, each accepting a single optional positional argument that
 # must literally be `all` - it does not accept multiple resource types in
-# one call (confirmed from a real CI run's own CLI error). `database`
-# isn't pushed separately below since appwrite.json's databases are
-# implied by their tables - revisit if a real run shows otherwise.
+# one call (confirmed from a real CI run's own CLI error). `database` IS
+# pushed separately below, before tables - a real run proved wrong the
+# earlier assumption that it'd be created implicitly: "Table users does
+# not exist in the project. Creating ..." immediately followed by
+# "Database with the requested ID 'mytasks' could not be found."
 #
 # Uses `push tables`, not the older `push collection` (deprecated - a
 # real run logged: "appwrite push collection has been deprecated. Please
@@ -74,9 +76,18 @@ jobs:
 
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
-      # see README "Backend setup" for how that file is produced.
-      - name: Push tables and functions
+      # see README "Backend setup" for how that file is produced. Database
+      # first: pushing tables/functions before the database they belong to
+      # exists fails with "Database with the requested ID 'mytasks' could
+      # not be found" (confirmed by a real run - `push tables` doesn't
+      # create it implicitly, despite starting to log "Table users does
+      # not exist ... Creating ..." first). `databases`, plural, by
+      # analogy with `push tables`/`push function` naming - unconfirmed
+      # against a specific error for this one, since none named it
+      # directly; the next run will say if it's wrong.
+      - name: Push database, tables, and functions
         working-directory: appwrite
         run: |
+          appwrite push databases all --force
           appwrite push tables all --force
           appwrite push function all --force
