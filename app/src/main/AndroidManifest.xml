@@ -21,21 +21,31 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
             android:theme="@style/Theme.MyTasks">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
 
-            <!-- Appwrite OAuth2 browser-redirect callback - see
-                 AuthRepository.signInWithGoogle and appwriteCallbackScheme
-                 in app/build.gradle.kts. [VERIFY] launchMode was changed
-                 from singleTop to singleTask for this: Appwrite's own
-                 sample apps typically use singleTask so the redirect lands
-                 back on the existing task instead of spawning a duplicate,
-                 but this wasn't verified against a live SDK integration. -->
-            <intent-filter>
+        <!-- Appwrite OAuth2 browser-redirect callback - see
+             AuthRepository.signInWithGoogle and appwriteCallbackScheme in
+             app/build.gradle.kts. The callback intent-filter must be
+             declared on the SDK's own io.appwrite.views.CallbackActivity,
+             not on an app Activity: that class is what routes the redirect
+             to WebAuthComponent.onCallback(), which is `internal` to the
+             SDK module and unreachable from app code. The SDK's own
+             AndroidManifest.xml doesn't declare this activity itself (no
+             manifest merger registers it automatically), so every
+             consuming app must add this block explicitly - confirmed
+             against github.com/appwrite/sdk-for-android's
+             example/src/main/AndroidManifest.xml and
+             library/.../views/CallbackActivity.kt. Originally (incorrectly)
+             attached to .MainActivity with launchMode="singleTask" instead. -->
+        <activity
+            android:name="io.appwrite.views.CallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="android_web_auth">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

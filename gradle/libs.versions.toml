@@ -11,9 +11,11 @@ androidxHilt = "1.2.0"
 firebaseBom = "33.7.0"
 playPublisher = "4.1.1"
 ksp = "2.3.10"
-# [VERIFY] Plausible recent stable pin, not checked against a live Maven
-# Central listing in this environment - see the migration report.
-appwrite = "6.1.0"
+# Verified against github.com/appwrite/sdk-for-android's README (Gradle
+# install snippet) and CHANGELOG.md: 27.0.0 is the current latest release,
+# compatible with Appwrite server 1.9.x. The previous pin (6.1.0) was far
+# out of date.
+appwrite = "27.0.0"
 workManager = "2.10.0"
 coil = "2.7.0"
 coroutines = "1.9.0"

@@ -2,6 +2,8 @@ package com.mytasks.app.data.remote
 
 import android.app.Activity
 import androidx.activity.ComponentActivity
+import io.appwrite.enums.ExecutionStatus
+import io.appwrite.enums.OAuthProvider
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.services.Account
 import io.appwrite.services.Functions
@@ -80,14 +82,22 @@ class AppwriteAuthRepository @Inject constructor(
     }
 
     override suspend fun signInWithGoogle(activity: Activity): AppUser {
-        // [VERIFY] Exact createOAuth2Session parameter names/overload -
-        // couldn't be checked against a live copy of io.appwrite:sdk-for-android;
-        // see the migration report for the full list of assumptions made
-        // about this SDK's surface.
+        // createOAuth2Session switched to createOAuth2Token: Appwrite's own
+        // guidance ("Fixing OAuth2 authentication issues in Appwrite",
+        // appwrite.io/blog/post/fixing-oauth2-issues-in-appwrite-cloud) is to
+        // use the token-based flow because the session-based flow depends on
+        // a cookie set on Appwrite's own domain, which third-party-cookie
+        // blocking can break. `provider` also takes the io.appwrite.enums.OAuthProvider
+        // enum, not a raw String - verified against
+        // io.appwrite/services/Account.kt in github.com/appwrite/sdk-for-android
+        // (both createOAuth2Session/createOAuth2Token still exist there as of
+        // SDK 27.0.0 and share this signature; on Android both already
+        // complete the session locally via the WebAuthComponent redirect
+        // callback, so no separate createSession() exchange call is needed).
         val componentActivity = activity as ComponentActivity
-        account.createOAuth2Session(
+        account.createOAuth2Token(
             activity = componentActivity,
-            provider = "google",
+            provider = OAuthProvider.GOOGLE,
             scopes = listOf("email", "profile"),
         )
         val photoUrl = fetchGooglePhotoUrl()
@@ -104,8 +114,12 @@ class AppwriteAuthRepository @Inject constructor(
     override suspend fun deleteAccount() {
         val execution = functions.createExecution(functionId = BuildConfig.APPWRITE_FUNCTION_DELETE_ACCOUNT_ID)
         val statusCode = execution.responseStatusCode
-        val failed = execution.status.equals("failed", ignoreCase = true) ||
-            (statusCode != 0 && statusCode !in 200..299)
+        // execution.status is the ExecutionStatus enum, not a String - the
+        // original `.equals("failed", ignoreCase = true)` doesn't resolve
+        // against that type (no such overload on an enum). Verified against
+        // io.appwrite.models.Execution in sdk-for-android.
+        val failed = execution.status == ExecutionStatus.FAILED ||
+            (statusCode != 0L && statusCode !in 200..299)
         if (failed) {
             error("Account deletion failed (status=${execution.status}, code=$statusCode)")
         }
@@ -121,9 +135,8 @@ class AppwriteAuthRepository @Inject constructor(
     private suspend fun fetchGooglePhotoUrl(): String {
         return try {
             val session = account.getSession(sessionId = "current")
-            // [VERIFY] Field name - Session's OAuth provider access token
-            // field may not be named exactly this on the resolved SDK
-            // version.
+            // Field name confirmed against io.appwrite.models.Session in
+            // sdk-for-android: providerAccessToken is correct.
             val accessToken = session.providerAccessToken
             if (accessToken.isNullOrBlank()) return ""
             val connection = URL("https://www.googleapis.com/oauth2/v3/userinfo")

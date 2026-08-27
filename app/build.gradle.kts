@@ -169,10 +169,12 @@ dependencies {
 
     implementation(libs.firebase.messaging)
 
-    // [VERIFY] Version pinned to a plausible recent stable - couldn't be
-    // checked against a live Maven Central listing in this environment;
-    // confirm this is actually the latest stable io.appwrite:sdk-for-android
-    // release before shipping (see migration report).
+    // io.appwrite:sdk-for-android is still the correct, actively-maintained
+    // client SDK for Android/Kotlin (it was not merged into
+    // io.appwrite:sdk-for-kotlin, which is a separate server-side SDK - see
+    // its README's "If you're looking for the Android SDK..." note). Version
+    // pin verified in gradle/libs.versions.toml against the SDK's own
+    // README/CHANGELOG.
     implementation(libs.appwrite)
 
     implementation(libs.work.runtime.ktx)
