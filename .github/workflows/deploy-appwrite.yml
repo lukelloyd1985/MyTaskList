@@ -1,0 +1,61 @@
+name: Deploy Appwrite (Collections + Functions)
+
+# Manual only (tap "Run workflow" in the Actions tab, from a phone browser
+# or the GitHub app included - no local Appwrite CLI or interactive login
+# needed) rather than on every push, since this pushes real database
+# collections and Functions straight to production. See README "CI deploy"
+# for the one-time API key setup this needs.
+#
+# NOTE: the exact push subcommand below (`appwrite push collections
+# functions --all --force`, current as of appwrite-cli's `push` command
+# family) should be double-checked against whatever appwrite-cli version
+# actually gets installed at deploy time - older CLI releases used
+# `appwrite deploy collection` / `appwrite deploy function` instead. This
+# couldn't be verified against a live Appwrite CLI install in the
+# environment this workflow was authored in, so treat this as a documented
+# open item to confirm on the first real run, not a verified command.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install Appwrite CLI
+        run: npm install -g appwrite-cli
+
+      - name: Authenticate with Appwrite
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: |
+          appwrite client \
+            --endpoint "$APPWRITE_ENDPOINT" \
+            --project-id "$APPWRITE_PROJECT_ID" \
+            --key "$APPWRITE_API_KEY"
+
+      - name: Install function dependencies
+        run: |
+          for dir in appwrite/functions/*/; do
+            (cd "$dir" && npm install)
+          done
+
+      # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
+      # listing the database, collections, and functions to push) directly
+      # - see README "Backend setup" for how that file is produced.
+      - name: Push collections and functions
+        working-directory: appwrite
+        run: appwrite push collections functions --all --force
