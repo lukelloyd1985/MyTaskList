@@ -222,7 +222,11 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
    table/function IDs below already default to this repo's own fixed
-   values, so only the endpoint needs setting explicitly:
+   values, so only the endpoint needs setting explicitly. In CI,
+   `android-build.yml` already reuses the same `APPWRITE_ENDPOINT` secret
+   [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
+   has you create - no separate CI secret needed. For a local build, set
+   it as a shell env var yourself before running Gradle:
 
    | Env var | Value |
    | --- | --- |
