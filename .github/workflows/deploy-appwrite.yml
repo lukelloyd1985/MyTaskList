@@ -6,24 +6,29 @@ name: Deploy Appwrite (Tables + Functions)
 # tables and Functions straight to production. See README "CI deploy"
 # for the one-time API key setup this needs.
 #
-# NOTE: `appwrite push` takes exactly one resource-type subcommand per
-# invocation, each accepting a single optional positional argument that
-# must literally be `all` - it does not accept multiple resource types in
-# one call (confirmed from a real CI run's own CLI error). `database` IS
-# pushed separately below, before tables - a real run proved wrong the
-# earlier assumption that it'd be created implicitly: "Table users does
-# not exist in the project. Creating ..." immediately followed by
-# "Database with the requested ID 'mytasks' could not be found."
+# NOTE: `appwrite push <resource-type>` (e.g. `collection`/`table`/
+# `function`) takes exactly one resource-type subcommand per invocation,
+# each accepting a single optional positional argument that must
+# literally be `all` - it does not accept multiple resource-type names in
+# one call (confirmed from a real CI run's own CLI error). It also
+# doesn't create prerequisite resources on its own: pushing tables before
+# their database exists fails with "Database with the requested ID
+# 'mytasks' could not be found" even though it logs "Table users does not
+# exist in the project. Creating ..." first - and there's no separate
+# `appwrite push databases` command either ("unknown command 'databases'
+# for 'appwrite push'", also from a real run). Below uses the documented
+# catch-all instead - `appwrite push all --all --force` - which pushes
+# every resource type together (letting the CLI handle the database-
+# before-tables ordering itself) rather than the three separate
+# per-resource-type calls this workflow used to make.
 #
-# Uses `push tables`, not the older `push collection` (deprecated - a
-# real run logged: "appwrite push collection has been deprecated. Please
-# consider using 'appwrite push tables' instead"). appwrite.json's own
-# schema keys are "tables"/"columns" (renamed from "collections"/
-# "attributes") to match - confirmed necessary by a real run against the
-# old key names logging "No tables found" under `push tables`. Attribute
-# type names (e.g. "string") were left unchanged since nothing has
-# indicated they also need renaming - if that's wrong, the next run's
-# error will say so.
+# appwrite.json's own schema keys are "tables"/"columns" (not the
+# deprecated "collections"/"attributes" - a real run logged: "appwrite
+# push collection has been deprecated. Please consider using 'appwrite
+# push tables' instead", and confirmed the rename was actually necessary,
+# not just the verb, via "No tables found" against the old key names).
+# Attribute type names (e.g. "string") were left unchanged since nothing
+# has indicated they also need renaming.
 on:
   workflow_dispatch:
 
@@ -76,18 +81,9 @@ jobs:
 
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
-      # see README "Backend setup" for how that file is produced. Database
-      # first: pushing tables/functions before the database they belong to
-      # exists fails with "Database with the requested ID 'mytasks' could
-      # not be found" (confirmed by a real run - `push tables` doesn't
-      # create it implicitly, despite starting to log "Table users does
-      # not exist ... Creating ..." first). `databases`, plural, by
-      # analogy with `push tables`/`push function` naming - unconfirmed
-      # against a specific error for this one, since none named it
-      # directly; the next run will say if it's wrong.
+      # see README "Backend setup" for how that file is produced. See the
+      # top-of-file note for why this is a single `push all` rather than
+      # separate per-resource-type calls.
       - name: Push database, tables, and functions
         working-directory: appwrite
-        run: |
-          appwrite push databases all --force
-          appwrite push tables all --force
-          appwrite push function all --force
+        run: appwrite push all --all --force
