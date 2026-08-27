@@ -10,7 +10,11 @@ plugins {
 
 android {
     namespace = "com.mytasks.app"
-    compileSdk = 35
+    // 37 (not 36) because the Appwrite SDK's own AAR was compiled against
+    // API 37 - AGP 9.1.1+ is required to compile against it, see the `agp`
+    // version pin in gradle/libs.versions.toml. Google Play's actual
+    // requirement is only API 36 (Android 16); see `targetSdk` below.
+    compileSdk = 37
 
     defaultConfig {
         // Play-facing identity only - not the same as `namespace` above,
@@ -21,7 +25,10 @@ android {
         // Play" for the Firebase re-registration this requires.
         applicationId = "com.github.lukelloyd1985.mytasks"
         minSdk = 26
-        targetSdk = 35
+        // Google Play requires new apps/updates to target API 36 (Android
+        // 16) or higher from August 31, 2026 - see README "Publishing to
+        // Google Play". Matches compileSdk above.
+        targetSdk = 37
 
         // Play Store rejects any upload whose versionCode isn't strictly
         // greater than every previous upload's. GITHUB_RUN_NUMBER
