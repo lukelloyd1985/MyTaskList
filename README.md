@@ -210,18 +210,16 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 5. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
-   **`tables.write`**, **`collections.read`** and **`collections.write`**
-   (a real run needed both the `tables.*` and `collections.*` scopes
-   together, even though `push tables`/`appwrite.json`'s schema use
-   "tables" terminology exclusively - Appwrite's Tables rename still
-   checks the legacy Collections scope underneath, at least for now),
-   **`functions.read`** and **`functions.write`**, and **`users.write`**
-   (needed by `delete-account`'s cascading Auth-account deletion) - the
-   read scopes are required alongside the write ones because `appwrite
-   push` diffs local config against the deployed state before applying
-   changes, not just write access; a key with write-only scopes fails
-   that diff step. This becomes the `APPWRITE_API_KEY` secret used by CI
-   - see
+   **`tables.write`**, **`columns.read`** and **`columns.write`** (the
+   Console's own scope list has already dropped the legacy
+   `collections`/`attributes` scopes in favor of `tables`/`columns` -
+   don't grant the deprecated ones), **`functions.read`** and
+   **`functions.write`**, and **`users.write`** (needed by
+   `delete-account`'s cascading Auth-account deletion) - the read scopes
+   are required alongside the write ones because `appwrite push` diffs
+   local config against the deployed state before applying changes, not
+   just write access; a key with write-only scopes fails that diff step.
+   This becomes the `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
    below.
 6. **Set the build-time env vars** the Android app reads (see
