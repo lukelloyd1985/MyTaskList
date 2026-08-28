@@ -171,32 +171,33 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    duplicated with a separate Android build-time env var. Both
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) and
    `app/build.gradle.kts` read it from here directly.
-3. **Create the `mytasks` database, then its three tables, entirely by
-   hand in the Console** (Databases → Create database, ID `mytasks` -
-   set the **Database ID field itself**, not just the display name,
-   since a separate, editable ID field sits alongside the name input,
-   usually behind an "ID" or advanced-options toggle - `appwrite push`
-   diffs by ID, not name). Then create the `users`, `lists`, and `tasks`
-   tables (Appwrite's Console/CLI terminology for what the Databases API
-   still calls collections of documents under the hood - see
-   [Appwrite schema](#appwrite-schema) above) inside it, matching
-   `appwrite/appwrite.json`'s field names, column types, indexes, and
-   permission arrays exactly.
+3. **Create the `mytasks` database** in the Console (Databases → Create
+   database, ID `mytasks` - set the **Database ID field itself**, not
+   just the display name, since a separate, editable ID field sits
+   alongside the name input, usually behind an "ID" or advanced-options
+   toggle - `appwrite push` diffs by ID, not name). This one step stays
+   manual - there's no confirmed API-key-compatible CLI command that
+   creates a database from scratch (see the top-of-file comment in
+   `deploy-appwrite.yml`).
 
-   **This has to be done manually, at least once - do not run
-   `appwrite push tables` against a freshly-created, table-less
-   database.** Doing so has *twice* deleted the database outright before
-   creating anything, even with a correctly-matching ID
-   ("`mytasks | deleting | Database | mytasks | (deleted locally)`",
-   despite `appwrite.json`'s own `databases` array clearly declaring it -
-   see the `WARNING` in `deploy-appwrite.yml`'s top-of-file comment for
-   the full detail). This looks like `push tables` treats a database with
-   zero *existing* tables as orphaned and prunes it, without accounting
-   for the tables it's about to create - a first-boot chicken-and-egg
-   problem. Once the database has at least one table in it (from doing
-   this step by hand), later `appwrite push tables` runs update existing
-   tables rather than creating into an empty database, which hasn't shown
-   this behavior.
+   **Twice, `appwrite push tables all --force` run against this database
+   while it had zero tables deleted it outright** before creating
+   anything, even with a correctly-matching ID. Two real schema bugs in
+   `appwrite/appwrite.json` were found and fixed as the likely cause
+   (each table's `documentSecurity` should have been `rowSecurity`, and
+   the `visibility`/`priority` columns should have been `"type": "enum"`
+   rather than `"type": "string"` with `"format": "enum"` - both
+   leftovers from the old Collections/Attributes schema that the current
+   CLI doesn't recognize, which plausibly made it treat those tables as
+   invalid and the database as orphaned). This is **not yet confirmed
+   against a live run** - see the detailed `WARNING` in
+   `deploy-appwrite.yml`'s top-of-file comment. `--force` stays off the
+   tables push regardless (a confirmation prompt failing the step is
+   preferable to risking a third deletion) - if a real run still shows
+   the same deletion, create the three tables by hand in Console too,
+   matching `appwrite/appwrite.json`'s field names, column types,
+   indexes, and permission arrays exactly, the same one-time treatment
+   as the database.
 4. **From here on, `appwrite push tables` keeps the tables in sync**
    with any future changes to `appwrite/appwrite.json` (`appwrite push
    tables all` / `appwrite push function all`, run via

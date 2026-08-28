@@ -30,19 +30,29 @@ name: Deploy Appwrite (Tables + Functions)
 # zero existing tables, has TWICE deleted that database outright before
 # creating anything - even with its ID correctly matching appwrite.json's
 # ("mytasks | deleting | Database | mytasks | (deleted locally)", despite
-# appwrite.json's own "databases" array clearly declaring it). This looks
-# like `push tables` treats a database with no *existing* remote tables
-# as orphaned and prunes it, without accounting for the tables it's about
-# to create into it - a first-boot chicken-and-egg problem, not a config
-# error. `--force` is why this happened with no confirmation prompt to
-# catch it. Given two real deletions, `--force` is deliberately dropped
-# from the tables push below - a required confirmation this CI can't
-# answer should fail the step, not risk a third deletion. Do not re-add
-# it until this is understood. Recommended workaround: create the three
-# tables by hand in the Console once (matching appwrite.json's field
-# names/types/columns/permissions exactly, same as the database's own
-# bootstrap step), so `push tables` is only ever run against a database
-# that already has tables in it, not an empty one.
+# appwrite.json's own "databases" array clearly declaring it).
+#
+# Likely (not yet live-verified) actual cause, found by installing
+# node-appwrite@28 locally and reading its real tables-db.d.ts rather
+# than guessing further: appwrite.json had two genuinely wrong field
+# names left over from the old Collections/Attributes schema, which
+# would make the CLI's parser reject the table declarations as invalid -
+# making the database look like it has zero *valid* local tables, which
+# would explain the "orphaned, prune it" behavior above independently of
+# whether the database was literally empty. Fixed:
+#   - Each table's "documentSecurity" -> "rowSecurity" (confirmed via
+#     TablesDB.createTable's real param list - "documentSecurity" isn't
+#     a recognized field at all under the current schema).
+#   - "visibility"/"priority" columns' "type": "string" + "format":
+#     "enum" -> just "type": "enum" (confirmed "enum" is its own valid
+#     top-level column type, not a string sub-format, per
+#     TablesDB.createEnumColumn/createTable's columns[] docs).
+# `--force` stays off the tables push below regardless, since this fix
+# hasn't been confirmed against a real run yet and two real deletions
+# already happened - a required confirmation this CI can't answer
+# should fail the step, not risk a third deletion. If a real run now
+# shows `push tables` correctly creating (not deleting) against the
+# existing empty database, that confirms this was the actual cause.
 #
 # Function runtime: appwrite.json declared "node-24", syntactically valid
 # per the CLI's own accepted-values list but rejected at push time with
@@ -102,13 +112,14 @@ jobs:
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
       # see README "Backend setup" for how that file is produced. The
-      # database itself must already exist, WITH its tables already
-      # created at least once (see the top-of-file WARNING - pushing
-      # tables into a table-less database has twice deleted the database
-      # outright). No --force on the tables push, deliberately: a
-      # confirmation prompt this CI can't answer should fail the step,
-      # not silently proceed - see the top-of-file note before changing
-      # this back.
+      # database itself must already exist (README "Backend setup" step
+      # 3) - two real schema bugs that likely caused the earlier database
+      # deletions are now fixed (see the top-of-file WARNING), but this
+      # hasn't been confirmed against a live run yet, so tables may still
+      # need creating by hand the first time if this still doesn't behave.
+      # No --force on the tables push, deliberately: a confirmation
+      # prompt this CI can't answer should fail the step, not silently
+      # proceed - see the top-of-file note before changing this back.
       - name: Push tables and functions
         working-directory: appwrite
         run: |

@@ -18,7 +18,7 @@
       "databaseId": "mytasks",
       "name": "users",
       "enabled": true,
-      "documentSecurity": true,
+      "rowSecurity": true,
       "columns": [
         {
           "key": "displayName",
@@ -79,7 +79,7 @@
       "databaseId": "mytasks",
       "name": "lists",
       "enabled": true,
-      "documentSecurity": true,
+      "rowSecurity": true,
       "columns": [
         {
           "key": "name",
@@ -107,11 +107,9 @@
         },
         {
           "key": "visibility",
-          "type": "string",
+          "type": "enum",
           "required": true,
           "array": false,
-          "size": 20,
-          "format": "enum",
           "elements": ["PRIVATE", "SHARED"],
           "default": "PRIVATE"
         },
@@ -166,7 +164,7 @@
       "databaseId": "mytasks",
       "name": "tasks",
       "enabled": true,
-      "documentSecurity": true,
+      "rowSecurity": true,
       "columns": [
         {
           "key": "listId",
@@ -210,11 +208,9 @@
         },
         {
           "key": "priority",
-          "type": "string",
+          "type": "enum",
           "required": true,
           "array": false,
-          "size": 10,
-          "format": "enum",
           "elements": ["LOW", "MEDIUM", "HIGH"],
           "default": "MEDIUM"
         },
