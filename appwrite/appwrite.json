@@ -108,7 +108,7 @@
         {
           "key": "visibility",
           "type": "enum",
-          "required": true,
+          "required": false,
           "array": false,
           "elements": ["PRIVATE", "SHARED"],
           "default": "PRIVATE"
@@ -209,7 +209,7 @@
         {
           "key": "priority",
           "type": "enum",
-          "required": true,
+          "required": false,
           "array": false,
           "elements": ["LOW", "MEDIUM", "HIGH"],
           "default": "MEDIUM"
@@ -224,14 +224,14 @@
         {
           "key": "notify",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "array": false,
           "default": false
         },
         {
           "key": "completed",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "array": false,
           "default": false
         },
@@ -263,7 +263,7 @@
         {
           "key": "reminderSent",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "array": false,
           "default": false
         }
