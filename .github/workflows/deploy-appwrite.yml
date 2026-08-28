@@ -38,11 +38,12 @@ name: Deploy Appwrite (Functions)
 # `bootstrap-tables.mjs` (see the step below) is now the only path that
 # touches the database/tables/columns/indexes, via the node-appwrite
 # server SDK's TablesDB service directly - entirely bypassing `push`'s
-# diff/delete logic. For now it deletes and recreates every table on
-# every run, so schema changes in appwrite.json always take effect
-# immediately - safe only because there's no real user data in Appwrite
-# yet. See the WARNING at the top of bootstrap-tables.mjs itself for what
-# has to change here before that's no longer true.
+# diff/delete logic. It's additive only: a table that already exists has
+# its columns/indexes diffed against appwrite.json and only what's
+# missing gets added - nothing is ever deleted or altered, so it's safe
+# to run against real data. See bootstrap-tables.mjs's own header comment
+# for the exact strategy and its limits (a drifted column is flagged, not
+# auto-fixed).
 #
 # Function runtime: appwrite.json declared "node-24", syntactically valid
 # per the CLI's own accepted-values list but rejected at push time with
@@ -50,18 +51,16 @@ name: Deploy Appwrite (Functions)
 # necessarily enabled for a given project/plan. Using "node-22" instead
 # (still satisfies each function's own package.json ">=22" floor).
 #
-# Function push also needs the API key to have every scope, not just the
-# ones documentation says it needs - a real run failed two functions with
-# "missing scopes (['rules.read'])", and Appwrite Console's own scope
-# picker doesn't reliably expose a scope matching every name its API
-# errors mention. Rather than keep guessing exact scope names against a
-# UI that's already drifted once (README "Backend setup" step 7), the key
-# is just granted every available scope. And the push is separately
-# capped by the Appwrite plan's function-count limit ("The maximum number
-# of functions allowed for the selected plan has reached") - that's a
-# plan/billing limit in Appwrite Console, not something this workflow or
-# its config can work around; upgrade the plan or remove/consolidate
-# functions in Console before re-running.
+# Function push can fail two different ways, neither fixable from this
+# repo's config:
+# - "missing scopes (['rules.read'])" - a confirmed, currently-open
+#   Appwrite bug (https://appwrite.io/threads/1318750327457058846):
+#   `rules.read` isn't offered anywhere in Console's API key scope picker
+#   to grant it. See README "Backend setup" step 7 for the workaround
+#   (deploy that function via Console instead of this workflow).
+# - "The maximum number of functions allowed for the selected plan has
+#   reached" - an Appwrite plan/billing limit; upgrade the plan or
+#   remove/consolidate functions in Console before re-running.
 on:
   workflow_dispatch:
 
@@ -117,10 +116,11 @@ jobs:
         run: npm install
 
       # See the top-of-file WARNING and bootstrap-tables.mjs's own header
-      # comment for why this exists and what it actually does: recreates
-      # every table declared in appwrite.json from scratch on every run,
+      # comment for why this exists and what it actually does: creates
+      # missing tables and adds missing columns/indexes to existing ones,
       # bypassing `appwrite push tables`'s repeatedly-destructive
-      # behavior entirely. Safe only pre-launch, with no real data yet.
+      # behavior entirely. Never deletes or alters anything - safe to run
+      # against real data.
       - name: Bootstrap database and tables
         working-directory: appwrite
         env:

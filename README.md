@@ -197,16 +197,16 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 4. **Schema changes to `appwrite/appwrite.json` take effect on the next
    run of `bootstrap-tables.mjs`** - re-run it (via
    [`deploy-appwrite.yml`](#deploying-appwrite-functions) or locally, see
-   step 3) any time you edit a table's columns/indexes. It deletes and
-   recreates every table declared in `appwrite.json` on every run, so the
-   deployed schema always matches the file exactly - **this deletes all
-   rows in every table, every time**. That's the deliberate tradeoff
-   while this project has no real user data in Appwrite yet: full,
-   guaranteed-correct recreation is much simpler than diffing and
-   patching an existing table, and there's nothing at risk to lose. **This
-   must change to a non-destructive, incremental-update strategy before
-   real user data exists in these tables** - see the warning at the top
-   of `bootstrap-tables.mjs`.
+   step 3) any time you edit a table's columns/indexes. It never deletes
+   anything: for a table that already exists, it lists the table's
+   current columns/indexes and adds only what's missing from
+   `appwrite.json` - existing rows, columns, and indexes are always left
+   alone. If a column that already exists has drifted from its local
+   declaration (e.g. `required` or `type` changed), the script logs a
+   warning and leaves it as-is rather than trying to alter it in place -
+   reconcile that by hand in Console, since some changes (like narrowing
+   a string's size, or changing a column's type) aren't safely automatable
+   without risking the existing data anyway.
 5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -242,21 +242,31 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    an unused function in Console before retrying; this repo can't work
    around a plan limit from config.
 7. **Create a server API key** for CI: Console → Overview →
-   Integrations → **API Keys** → Create API key, and **grant it every
-   scope** (there's a "Select all" option covering every category). This
-   key already has to touch the database/tables directly via the API
-   (step 3), plus Functions and Users - and picking scopes by name has
-   already gone wrong twice in real runs (`tables.read`/`columns.read`
-   vs. the deprecated `collections`/`attributes` names; then a
-   `functions push` failing on `rules.read`, a scope this project's
-   Console scope picker doesn't clearly expose under any obvious
-   category). Rather than keep guessing exact scope names against a
-   picker that's already inconsistent with the API's own error messages,
-   just grant everything - it's a single project-scoped server key used
-   only by this repo's own CI, not a shared or user-facing credential, so
-   the extra breadth costs nothing in practice. This becomes the
+   Integrations → **API Keys** → Create API key, scoped to
+   **`databases.read`** and **`databases.write`**, **`tables.read`** and
+   **`tables.write`**, **`columns.read`** and **`columns.write`** (the
+   Console's own scope list has already dropped the legacy
+   `collections`/`attributes` scopes in favor of `tables`/`columns` -
+   don't grant the deprecated ones), **`functions.read`** and
+   **`functions.write`**, and **`users.write`** (needed by
+   `delete-account`'s cascading Auth-account deletion). This becomes the
    `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below.
+
+   **Known gap: `appwrite push function` can fail with "missing scopes
+   (['rules.read'])"**, and `rules.read` isn't offered anywhere in
+   Console's API key scope picker to grant it - this is a confirmed,
+   currently-open Appwrite issue
+   ([Appwrite community thread](https://appwrite.io/threads/1318750327457058846)),
+   not a scope this repo's setup is missing by mistake, and not something
+   fixable from this repo's config. Until Appwrite exposes the scope (or
+   fixes the push command not to need it), deploy the affected function(s)
+   by hand instead: Console → Functions → the function → **Deploy** a new
+   version (Console uses your logged-in session, not the API key, so it
+   isn't blocked by this). `deploy-appwrite.yml`'s automated push still
+   works for whichever functions it doesn't hit this on - it's a
+   per-function, per-Appwrite-account thing, so check each run's log
+   rather than assuming which ones are affected.
 8. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
@@ -294,8 +304,8 @@ repeatedly planned to delete the `mytasks` database outright (see
 [Backend setup](#backend-setup) step 3 and `deploy-appwrite.yml`'s
 top-of-file comment for the full trail), so it's dropped from this
 workflow entirely. `bootstrap-tables.mjs` (also run by this workflow) is
-the only thing that creates the database and tables, and it never
-updates a table that already exists - see step 3 for that tradeoff.
+the only thing that creates or updates the database and tables, and it
+does so non-destructively - see step 4.
 
 One-time setup - two repository secrets (Settings → Secrets and
 variables → Actions), both from the Appwrite Console (the project ID
@@ -532,13 +542,21 @@ everything after that, which CI automates.
   directly via the API instead, and why `appwrite push tables` isn't run
   anywhere in this repo, including in CI - it's not just deferred until
   "after bootstrap," it's removed.
-- **`bootstrap-tables.mjs` deletes and recreates every table on every
-  run**, so it stays trivially correct - every deployed table always
-  exactly matches `appwrite/appwrite.json` - but it also means **every
-  row in every table is wiped on every deploy**. This is acceptable only
-  because the project has no real user data in Appwrite yet (see
-  [Backend setup](#backend-setup) step 4); a non-destructive incremental-
-  update strategy has to replace this before that stops being true.
+- **`bootstrap-tables.mjs` only ever adds - it never deletes or alters
+  anything.** A table that already exists has its columns/indexes
+  diffed against `appwrite/appwrite.json` and only what's missing is
+  added; a column that already exists but has drifted from its local
+  declaration is left as-is with a warning logged, not altered in place
+  (see [Backend setup](#backend-setup) step 4). Reconciling a genuinely
+  changed column (e.g. a type change) still needs a manual step in
+  Console, since that can't always be done without risking the existing
+  data - this script deliberately won't attempt it automatically.
+- **`appwrite push function` can fail with `missing scopes
+  (['rules.read'])`, and that scope isn't offered in Console's API key
+  scope picker to grant it.** Confirmed as a currently-open Appwrite
+  issue, not a config mistake in this repo - see
+  [Backend setup](#backend-setup) step 7 for the workaround (deploy the
+  affected function via Console instead of CI).
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
