@@ -1,5 +1,6 @@
 import { Client, Databases, Query, Permission, Role, Models } from "node-appwrite";
 import { listAllDocuments } from "./listAll";
+import type { FunctionContext } from "./context";
 
 interface ListDoc extends Models.Document {
   ownerId: string;
@@ -8,20 +9,6 @@ interface ListDoc extends Models.Document {
 
 interface TaskDoc extends Models.Document {
   listId: string;
-}
-
-interface RequestContext {
-  bodyJson?: ListDoc;
-  headers: Record<string, string>;
-}
-interface ResponseContext {
-  json: (data: unknown, statusCode?: number) => unknown;
-}
-interface FunctionContext {
-  req: RequestContext;
-  res: ResponseContext;
-  log: (message: unknown) => void;
-  error: (message: unknown) => void;
 }
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
@@ -54,10 +41,11 @@ function buildTaskPermissions(ownerId: string, memberIds: string[]): string[] {
  * tasks (or a newly added member would not yet have access) until
  * something else happened to touch each task.
  *
- * Trigger: database event on lists documents.*.update.
+ * Database event on lists documents.*.update - see main.ts's trigger
+ * dispatch.
  */
-export default async ({ req, res, log, error }: FunctionContext) => {
-  const list = req.bodyJson;
+export async function syncListPermissions({ req, res, error }: FunctionContext) {
+  const list = req.bodyJson as ListDoc | undefined;
   if (!list || !list.$id) {
     return res.json({ success: true, skipped: true });
   }
@@ -83,9 +71,10 @@ export default async ({ req, res, log, error }: FunctionContext) => {
   try {
     // Only the permissions array is replaced here - no data fields are
     // touched, so this can't clobber a concurrent edit to the task
-    // itself. No Appwrite batch-write primitive exists, so (as with
-    // due-date-reminders) this is a Promise.all of independent updates -
-    // an accepted small atomicity gap, not a data-corruption risk.
+    // itself. No Appwrite batch-write primitive exists, so (as with the
+    // due-date reminder sweep) this is a Promise.all of independent
+    // updates - an accepted small atomicity gap, not a data-corruption
+    // risk.
     await Promise.all(
       tasks.map((task) => databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {}, permissions)),
     );
@@ -99,4 +88,4 @@ export default async ({ req, res, log, error }: FunctionContext) => {
   }
 
   return res.json({ success: true, synced: tasks.length });
-};
+}

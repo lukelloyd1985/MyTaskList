@@ -79,17 +79,17 @@ with a **permission array stored on every document** - a static ACL, not
 a rule engine that can evaluate against a *different* (e.g. parent)
 document at read/write time. `users/{uid}` is readable by any signed-in
 user and writable only by the user themself (delete is in practice only
-ever done server-side by the `delete-account` Function), mirroring the
-old rules. `lists/{listId}` carries read for the owner plus every
-`memberIds` entry, and update/delete for the owner only, recomputed on
-every membership-changing write. `tasks/{taskId}` is meant to carry the
-*same* owner+members permissions as its parent list (so any list member
-can fully CRUD its tasks) - but Appwrite has no way to express "authorize
-like some other document." That gap is why a dedicated Appwrite Function,
-`sync-list-permissions`, exists: it fires on every list-membership change
-and rewrites permissions on every task under that list to match. Without
-it, a list's membership and its tasks' actual accessibility would
-silently drift apart over time.
+ever done server-side by the `maintenance` Function's account-deletion
+handler), mirroring the old rules. `lists/{listId}` carries read for the
+owner plus every `memberIds` entry, and update/delete for the owner only,
+recomputed on every membership-changing write. `tasks/{taskId}` is meant
+to carry the *same* owner+members permissions as its parent list (so any
+list member can fully CRUD its tasks) - but Appwrite has no way to express
+"authorize like some other document." That gap is why the `maintenance`
+Function's other handler, `syncListPermissions`, exists: it fires on
+every list-membership change and rewrites permissions on every task under
+that list to match. Without it, a list's membership and its tasks' actual
+accessibility would silently drift apart over time.
 
 ## Localization
 
@@ -138,16 +138,16 @@ To add another language:
    resource qualifier - e.g. Android's `values-cs` pairs with Play's
    `cs-CZ`, not `cs`).
 4. Add an entry for the language to `NOTIFICATION_STRINGS` in
-   `appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+   `appwrite/functions/notifications/src/notificationStrings.ts`
    and redeploy the Appwrite Functions, so push notifications are
    localized too (see below).
 
 Push notifications (task-assignment and due-date alerts sent by the
-Appwrite Functions in `/appwrite/functions`) are localized too:
-`UserRepository` writes `Locale.getDefault().language` to
+`notifications` Appwrite Function in `/appwrite/functions`) are localized
+too: `UserRepository` writes `Locale.getDefault().language` to
 `users/{uid}.locale` on every sign-in (this reflects any per-app
 language override automatically), and
-`appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+`appwrite/functions/notifications/src/notificationStrings.ts`
 picks the matching translation from its own small `NOTIFICATION_STRINGS`
 table when sending, falling back to English for an unset or unsupported
 locale. A task's own title/description are user-authored content and are
@@ -221,26 +221,30 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
    keystores themselves are still required - just for Play/APK signing,
    not for this.
-6. **Deploy the four Appwrite Functions** under
-   [`appwrite/functions/`](appwrite/functions/): `on-task-write`
-   (database event trigger, sends a push when a task's assignee changes),
-   `due-date-reminders` (CRON every 15 minutes, sweeps tasks due soon),
-   `delete-account` (HTTP-invoked from the app, cascades account
-   deletion), and `sync-list-permissions` (database event trigger, keeps
-   task permissions in sync with their parent list's membership - see
-   [Appwrite schema](#appwrite-schema)). Push them via
-   [`deploy-appwrite.yml`](#deploying-appwrite-functions) (`appwrite push
-   function all --force` - unlike tables, this hasn't shown any
-   destructive behavior), or create/deploy each one by hand in the
-   Console. Each needs its environment variables set (Console →
-   Functions → the function → Settings → Variables) - at minimum, the two
-   that send pushes (`on-task-write`, `due-date-reminders`) need the FCM
-   service-account JSON and the FCM project ID. Appwrite Cloud's free/
-   starter plan caps the number of Functions per project - if a push
-   fails with "The maximum number of functions allowed for the selected
-   plan has reached", either upgrade the plan or free up room by removing
-   an unused function in Console before retrying; this repo can't work
-   around a plan limit from config.
+6. **Deploy the two Appwrite Functions** under
+   [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
+   push both when a task's assignee changes - database event trigger -
+   and on the CRON due-date reminder sweep every 15 minutes) and
+   `maintenance` (HTTP-invoked account deletion, cascading through the
+   caller's lists/tasks; and a database event trigger that keeps task
+   permissions in sync with their parent list's membership - see
+   [Appwrite schema](#appwrite-schema)). Each is one Appwrite Function
+   serving two triggers - dispatched internally by the `x-appwrite-trigger`
+   request header (see either function's `src/main.ts`) - specifically to
+   fit inside Appwrite Cloud's free-tier limit of **2 Functions per
+   project**: this repo now declares exactly 2, so no plan upgrade or
+   consolidation should be needed for a standard setup. If you ever add a
+   third Function, you'll hit "The maximum number of functions allowed
+   for the selected plan has reached" and need to either merge it into
+   one of the existing two the same way, or upgrade the plan.
+
+   Push them via [`deploy-appwrite.yml`](#deploying-appwrite-functions)
+   (`appwrite push function all --force` - unlike tables, this hasn't
+   shown any destructive behavior), or create/deploy each one by hand in
+   the Console. Each needs its environment variables set (Console →
+   Functions → the function → Settings → Variables) - `notifications`
+   needs the FCM service-account JSON and the FCM project ID (both
+   trigger paths send pushes); `maintenance` needs neither.
 7. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
@@ -248,25 +252,12 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Console's own scope list has already dropped the legacy
    `collections`/`attributes` scopes in favor of `tables`/`columns` -
    don't grant the deprecated ones), **`functions.read`** and
-   **`functions.write`**, and **`users.write`** (needed by
-   `delete-account`'s cascading Auth-account deletion). This becomes the
-   `APPWRITE_API_KEY` secret used by CI - see
+   **`functions.write`**, **`rules.read`** (needed by `appwrite push
+   function` - it's listed under the **Proxy** category in the scope
+   picker, not Functions, which is easy to miss), and **`users.write`**
+   (needed by `maintenance`'s cascading Auth-account deletion). This
+   becomes the `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below.
-
-   **Known gap: `appwrite push function` can fail with "missing scopes
-   (['rules.read'])"**, and `rules.read` isn't offered anywhere in
-   Console's API key scope picker to grant it - this is a confirmed,
-   currently-open Appwrite issue
-   ([Appwrite community thread](https://appwrite.io/threads/1318750327457058846)),
-   not a scope this repo's setup is missing by mistake, and not something
-   fixable from this repo's config. Until Appwrite exposes the scope (or
-   fixes the push command not to need it), deploy the affected function(s)
-   by hand instead: Console → Functions → the function → **Deploy** a new
-   version (Console uses your logged-in session, not the API key, so it
-   isn't blocked by this). `deploy-appwrite.yml`'s automated push still
-   works for whichever functions it doesn't hit this on - it's a
-   per-function, per-Appwrite-account thing, so check each run's log
-   rather than assuming which ones are affected.
 8. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
@@ -283,9 +274,9 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 
    The rest (`MYTASKS_APPWRITE_DATABASE_ID`,
    `MYTASKS_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
-   `MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID`) are override knobs for
+   `MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
    a contributor customizing those IDs away from this repo's defaults
-   (`mytasks`/`users`/`lists`/`tasks`/`delete-account`) - not something
+   (`mytasks`/`users`/`lists`/`tasks`/`maintenance`) - not something
    you need to set for a standard setup.
 
 ## Deploying Appwrite Functions
@@ -293,7 +284,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 [`.github/workflows/deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
 is a manually-triggered ("Run workflow" in the **Actions** tab - works
 from the GitHub mobile site or app, no local Appwrite CLI or login
-needed) job that pushes all four Appwrite Functions from
+needed) job that pushes both Appwrite Functions from
 [`appwrite/appwrite.json`](appwrite/appwrite.json) using a server API key
 instead of an interactive login. It never runs on its own - a Functions
 deploy going out on every push felt like too much blast radius for
@@ -551,12 +542,17 @@ everything after that, which CI automates.
   changed column (e.g. a type change) still needs a manual step in
   Console, since that can't always be done without risking the existing
   data - this script deliberately won't attempt it automatically.
-- **`appwrite push function` can fail with `missing scopes
-  (['rules.read'])`, and that scope isn't offered in Console's API key
-  scope picker to grant it.** Confirmed as a currently-open Appwrite
-  issue, not a config mistake in this repo - see
-  [Backend setup](#backend-setup) step 7 for the workaround (deploy the
-  affected function via Console instead of CI).
+- **`appwrite push function` needs the `rules.read` scope**, which
+  Console's API key scope picker lists under the **Proxy** category, not
+  Functions - easy to miss (see [Backend setup](#backend-setup) step 7).
+- **Only 2 Appwrite Functions exist (`notifications`, `maintenance`),
+  each serving two triggers**, specifically to fit inside Appwrite
+  Cloud's free-tier limit of 2 Functions per project - see
+  [Backend setup](#backend-setup) step 6. This also happened to remove
+  duplicated code: `sendToUser.ts`/`notificationStrings.ts` were
+  byte-identical between the two functions now merged into
+  `notifications`, and `listAll.ts` likewise between the two now merged
+  into `maintenance`.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
@@ -579,8 +575,9 @@ everything after that, which CI automates.
   the parent list document. Mirrors the existing "any signed-in user can
   read any profile" tradeoff above.
 - Due-date reminders are best-effort: an on-device WorkManager job covers
-  the device that set the reminder, and the `due-date-reminders` Appwrite
-  Function sweeps every 15 minutes as the cross-device fallback.
+  the device that set the reminder, and the `notifications` Appwrite
+  Function's CRON-triggered sweep runs every 15 minutes as the
+  cross-device fallback.
 - `deleteList` and `reorderTasks` no longer run as an atomic batch -
   Appwrite has no transactional multi-document write like Firestore's
   `WriteBatch`. A crash mid-operation can leave a partial state (e.g. some
@@ -591,9 +588,9 @@ everything after that, which CI automates.
   [Backend setup](#backend-setup) step 5. The debug/release keystores
   themselves are still required, just for Play Store/APK signing.
 - **Account deletion** satisfies Play's dual in-app + web requirement:
-  the Profile screen's "Delete my account" action calls the
-  `delete-account` Appwrite Function
-  (`appwrite/functions/delete-account/src`), which transfers or removes
+  the Profile screen's "Delete my account" action HTTP-invokes the
+  `maintenance` Appwrite Function
+  (`appwrite/functions/maintenance/src/deleteAccount.ts`), which transfers or removes
   the user's membership on every list they're part of (a shared list
   they own is handed to another member rather than deleted out from
   under them), unassigns their tasks elsewhere, deletes their

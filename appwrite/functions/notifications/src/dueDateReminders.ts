@@ -1,17 +1,11 @@
 import { Client, Databases, Query, Models } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
+import type { FunctionContext } from "./context";
 
 interface TaskDoc extends Models.Document {
   title?: string;
   assigneeId?: string;
   completed?: boolean;
-}
-
-interface FunctionContext {
-  req: { headers: Record<string, string> };
-  res: { json: (data: unknown, statusCode?: number) => unknown };
-  log: (message: unknown) => void;
-  error: (message: unknown) => void;
 }
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
@@ -27,8 +21,10 @@ const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
  *  Ported from functions/src/notifications.ts's dueDateReminders(). The
  *  original needed a Firestore collection-group query across every list's
  *  tasks subcollection; since `tasks` is now a single flat collection with
- *  a `listId` field, this is just one ordinary query. */
-export default async ({ req, res, log, error }: FunctionContext) => {
+ *  a `listId` field, this is just one ordinary query.
+ *
+ *  Triggered by the CRON schedule - see main.ts's trigger dispatch. */
+export async function dueDateReminders({ req, res, error }: FunctionContext) {
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT ?? "")
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
@@ -87,4 +83,4 @@ export default async ({ req, res, log, error }: FunctionContext) => {
   );
 
   return res.json({ success: true, processed: dueTasks.documents.length });
-};
+}

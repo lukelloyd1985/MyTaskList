@@ -51,16 +51,16 @@ name: Deploy Appwrite (Functions)
 # necessarily enabled for a given project/plan. Using "node-22" instead
 # (still satisfies each function's own package.json ">=22" floor).
 #
-# Function push can fail two different ways, neither fixable from this
-# repo's config:
-# - "missing scopes (['rules.read'])" - a confirmed, currently-open
-#   Appwrite bug (https://appwrite.io/threads/1318750327457058846):
-#   `rules.read` isn't offered anywhere in Console's API key scope picker
-#   to grant it. See README "Backend setup" step 7 for the workaround
-#   (deploy that function via Console instead of this workflow).
-# - "The maximum number of functions allowed for the selected plan has
-#   reached" - an Appwrite plan/billing limit; upgrade the plan or
-#   remove/consolidate functions in Console before re-running.
+# Function push needs the API key scoped to "rules.read" too - a real run
+# failed with "missing scopes (['rules.read'])". That scope is listed
+# under Console's API key scope picker's "Proxy" category, not
+# "Functions" - see README "Backend setup" step 7.
+#
+# Appwrite Cloud's free tier caps a project at 2 Functions - appwrite.json
+# declares exactly 2 (`notifications`, `maintenance`), each dispatching
+# internally between two triggers via the x-appwrite-trigger request
+# header, specifically to fit that cap without needing a paid plan. See
+# either function's src/main.ts and README "Backend setup" step 6.
 on:
   workflow_dispatch:
 

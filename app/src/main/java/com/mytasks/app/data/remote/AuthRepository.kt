@@ -44,10 +44,12 @@ interface AuthRepository {
 
     suspend fun signOut()
 
-    /** Calls the `delete-account` Appwrite Function (runs as the
-     *  currently-signed-in user via the SDK's session), which deletes this
-     *  user's data and their Appwrite Auth account, then clears the local
-     *  session. */
+    /** Invokes the `maintenance` Appwrite Function over HTTP (runs as the
+     *  currently-signed-in user via the SDK's session) - the function
+     *  dispatches an HTTP-triggered execution to its account-deletion
+     *  handler (see appwrite/functions/maintenance/src/main.ts), which
+     *  deletes this user's data and their Appwrite Auth account. Clears the
+     *  local session afterward. */
     suspend fun deleteAccount()
 }
 
@@ -112,7 +114,7 @@ class AppwriteAuthRepository @Inject constructor(
     }
 
     override suspend fun deleteAccount() {
-        val execution = functions.createExecution(functionId = BuildConfig.APPWRITE_FUNCTION_DELETE_ACCOUNT_ID)
+        val execution = functions.createExecution(functionId = BuildConfig.APPWRITE_FUNCTION_MAINTENANCE_ID)
         val statusCode = execution.responseStatusCode
         // execution.status is the ExecutionStatus enum, not a String - the
         // original `.equals("failed", ignoreCase = true)` doesn't resolve

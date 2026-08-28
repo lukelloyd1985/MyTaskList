@@ -1,26 +1,11 @@
 import { Client, Databases } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
+import type { FunctionContext } from "./context";
 
 interface TaskDoc {
   $id: string;
   title?: string;
   assigneeId?: string;
-}
-
-interface RequestContext {
-  bodyJson?: TaskDoc;
-  headers: Record<string, string>;
-}
-
-interface ResponseContext {
-  json: (data: unknown, statusCode?: number) => unknown;
-}
-
-interface FunctionContext {
-  req: RequestContext;
-  res: ResponseContext;
-  log: (message: unknown) => void;
-  error: (message: unknown) => void;
 }
 
 /** Notifies a task's assignee whenever the task document is written to and
@@ -40,8 +25,11 @@ interface FunctionContext {
  *  `lastNotifiedAssigneeId` field to the task (set here after a successful
  *  send, compared against `assigneeId` before sending) would restore the
  *  original de-duplicated behavior - not implemented now to keep this port
- *  a faithful/minimal translation of the specified behavior. */
-export default async ({ req, res, log, error }: FunctionContext) => {
+ *  a faithful/minimal translation of the specified behavior.
+ *
+ *  Triggered by the database event on tasks documents.*.update - see
+ *  main.ts's trigger dispatch. */
+export async function onTaskWrite({ req, res, error }: FunctionContext) {
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT ?? "")
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
@@ -49,7 +37,7 @@ export default async ({ req, res, log, error }: FunctionContext) => {
 
   const databases = new Databases(client);
 
-  const task = req.bodyJson;
+  const task = req.bodyJson as TaskDoc | undefined;
   const assigneeId = task?.assigneeId;
 
   if (!task || !assigneeId) {
@@ -63,4 +51,4 @@ export default async ({ req, res, log, error }: FunctionContext) => {
   }
 
   return res.json({ success: true });
-};
+}
