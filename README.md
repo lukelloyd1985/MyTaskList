@@ -171,39 +171,38 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    duplicated with a separate Android build-time env var. Both
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) and
    `app/build.gradle.kts` read it from here directly.
-3. **Create the `mytasks` database** in the Console (Databases →
-   Create database) - a one-time manual step. An API key can push
-   tables/functions into an existing database, but there's no confirmed
-   API-key-compatible command that creates the database itself (a real
-   deploy run hit "unknown command 'databases' for `appwrite push`", and
-   the documented catch-all - `appwrite push all --all --force` - turned
-   out to also require an interactive login session for some resource
-   types, which an API key can't provide: "API keys work for project
-   commands ..., not console-only commands ..."). See the top-of-file
-   comment in `deploy-appwrite.yml` for the full trail.
+3. **Create the `mytasks` database** in the Console (Databases → Create
+   database, ID `mytasks` - set the **Database ID field itself**, not
+   just the display name, since a separate, editable ID field sits
+   alongside the name input, usually behind an "ID" or advanced-options
+   toggle - `appwrite push` diffs by ID, not name). This one step stays
+   manual - there's no confirmed API-key-compatible CLI command that
+   creates a database from scratch (see the top-of-file comment in
+   `deploy-appwrite.yml`).
 
-   **Set the Database ID field itself to `mytasks`** - don't leave it on
-   the Console's auto-generated default and only set the display name.
-   `appwrite push`'s diff matches by ID, not name: a real run created a
-   database named "mytasks" with an auto-generated ID, then a later push
-   saw no local `appwrite.json` entry matching that ID, concluded the
-   remote database wasn't declared locally, and **deleted it** (`--force`
-   skips the confirmation prompt that would otherwise catch this - see
-   `deploy-appwrite.yml`'s "Deleting database mytasks ... Success:
-   Deleted" in that run's log). Getting the ID right the first time
-   avoids this - Console's "Create database" dialog has a separate,
-   editable ID field alongside the name field, usually behind an "ID"
-   or advanced-options toggle next to the name input.
-4. **Push (or manually create) the three tables**: `users`, `lists`, and
-   `tasks` (Appwrite's Console/CLI terminology for what the Databases API
-   still calls collections of documents under the hood - see
-   [Appwrite schema](#appwrite-schema) above) - their columns, indexes,
-   and permissions are described there too, and defined in
-   `appwrite/appwrite.json`. Once the database from step 3 exists, either
-   run [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
-   (`appwrite push tables all` / `appwrite push function all`, see step 7
-   for its one-time CI setup) or create them by hand in the Console,
-   matching the file's field names, types, and permission arrays exactly.
+   **Twice, `appwrite push tables all --force` run against this database
+   while it had zero tables deleted it outright** before creating
+   anything, even with a correctly-matching ID. Two real schema bugs in
+   `appwrite/appwrite.json` were found and fixed as the likely cause
+   (each table's `documentSecurity` should have been `rowSecurity`, and
+   the `visibility`/`priority` columns should have been `"type": "enum"`
+   rather than `"type": "string"` with `"format": "enum"` - both
+   leftovers from the old Collections/Attributes schema that the current
+   CLI doesn't recognize, which plausibly made it treat those tables as
+   invalid and the database as orphaned). This is **not yet confirmed
+   against a live run** - see the detailed `WARNING` in
+   `deploy-appwrite.yml`'s top-of-file comment. `--force` stays off the
+   tables push regardless (a confirmation prompt failing the step is
+   preferable to risking a third deletion) - if a real run still shows
+   the same deletion, create the three tables by hand in Console too,
+   matching `appwrite/appwrite.json`'s field names, column types,
+   indexes, and permission arrays exactly, the same one-time treatment
+   as the database.
+4. **From here on, `appwrite push tables` keeps the tables in sync**
+   with any future changes to `appwrite/appwrite.json` (`appwrite push
+   tables all` / `appwrite push function all`, run via
+   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) - see
+   step 7 for its one-time CI setup).
 5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -503,6 +502,12 @@ everything after that, which CI automates.
 
 ## Notes & tradeoffs
 
+- **`appwrite push tables all --force` can delete the `mytasks`
+  database outright** if run against one with zero existing tables -
+  see [Backend setup](#backend-setup) step 3 and the `WARNING` in
+  `deploy-appwrite.yml`'s top-of-file comment. `deploy-appwrite.yml`
+  deliberately doesn't pass `--force` to the tables push for this
+  reason - don't re-add it without understanding this first.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
