@@ -329,7 +329,7 @@
     {
       "$id": "on-task-write",
       "name": "on-task-write",
-      "runtime": "node-24",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.mytasks.collections.tasks.documents.*.update"
@@ -350,7 +350,7 @@
     {
       "$id": "due-date-reminders",
       "name": "due-date-reminders",
-      "runtime": "node-24",
+      "runtime": "node-22",
       "execute": [],
       "events": [],
       "scopes": [
@@ -369,7 +369,7 @@
     {
       "$id": "delete-account",
       "name": "delete-account",
-      "runtime": "node-24",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -390,7 +390,7 @@
     {
       "$id": "sync-list-permissions",
       "name": "sync-list-permissions",
-      "runtime": "node-24",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.mytasks.collections.lists.documents.*.update"

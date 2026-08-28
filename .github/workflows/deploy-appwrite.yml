@@ -10,27 +10,45 @@ name: Deploy Appwrite (Tables + Functions)
 # `function`) takes exactly one resource-type subcommand per invocation,
 # each accepting a single optional positional argument that must
 # literally be `all` - it does not accept multiple resource-type names in
-# one call (confirmed from a real CI run's own CLI error), and there's no
-# separate `appwrite push databases` command ("unknown command
-# 'databases' for 'appwrite push'", also from a real run). The catch-all
-# `appwrite push all --all --force` was tried as a way around both of
-# those, but it also tries to push console-only resources (e.g.
-# `settings`) that an API key can't authenticate for - a real run failed
-# with "session not found. Run `appwrite login`. API keys work for
-# project commands (e.g. `appwrite push functions`), not console-only
-# commands (e.g. `appwrite push settings`)". So this stays scoped to the
-# specific resource types an API key CAN push (`table`, `function`) -
-# the `mytasks` database itself needs creating once, manually, via the
-# Console before the first run (see README "Backend setup" step 2) since
-# no confirmed API-key-compatible command creates it from scratch.
+# one call, and there's no separate `appwrite push databases` command
+# ("unknown command 'databases' for 'appwrite push'"). The catch-all
+# `appwrite push all --all --force` was tried as a way around both, but
+# it also tries to push console-only resources (e.g. `settings`) that an
+# API key can't authenticate for ("session not found ... API keys work
+# for project commands ..., not console-only commands ..."). So this
+# stays scoped to the resource types an API key CAN push (`table`,
+# `function`) - the `mytasks` database itself needs creating once,
+# manually, via the Console before the first run (README "Backend setup"
+# step 3), since no confirmed API-key-compatible command creates it.
 #
 # appwrite.json's own schema keys are "tables"/"columns" (not the
-# deprecated "collections"/"attributes" - a real run logged: "appwrite
-# push collection has been deprecated. Please consider using 'appwrite
-# push tables' instead", and confirmed the rename was actually necessary,
-# not just the verb, via "No tables found" against the old key names).
-# Attribute type names (e.g. "string") were left unchanged since nothing
-# has indicated they also need renaming.
+# deprecated "collections"/"attributes" - confirmed necessary, not just a
+# verb change, via "No tables found" against the old key names).
+#
+# WARNING - real, repeated destructive behavior: `appwrite push tables
+# all --force`, run against a freshly-created `mytasks` database with
+# zero existing tables, has TWICE deleted that database outright before
+# creating anything - even with its ID correctly matching appwrite.json's
+# ("mytasks | deleting | Database | mytasks | (deleted locally)", despite
+# appwrite.json's own "databases" array clearly declaring it). This looks
+# like `push tables` treats a database with no *existing* remote tables
+# as orphaned and prunes it, without accounting for the tables it's about
+# to create into it - a first-boot chicken-and-egg problem, not a config
+# error. `--force` is why this happened with no confirmation prompt to
+# catch it. Given two real deletions, `--force` is deliberately dropped
+# from the tables push below - a required confirmation this CI can't
+# answer should fail the step, not risk a third deletion. Do not re-add
+# it until this is understood. Recommended workaround: create the three
+# tables by hand in the Console once (matching appwrite.json's field
+# names/types/columns/permissions exactly, same as the database's own
+# bootstrap step), so `push tables` is only ever run against a database
+# that already has tables in it, not an empty one.
+#
+# Function runtime: appwrite.json declared "node-24", syntactically valid
+# per the CLI's own accepted-values list but rejected at push time with
+# "Runtime "node-24" is not supported" - not every listed runtime is
+# necessarily enabled for a given project/plan. Using "node-22" instead
+# (still satisfies each function's own package.json ">=22" floor).
 on:
   workflow_dispatch:
 
@@ -84,10 +102,15 @@ jobs:
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
       # see README "Backend setup" for how that file is produced. The
-      # database itself must already exist (see the top-of-file note) -
-      # this only pushes the resource types an API key can push.
+      # database itself must already exist, WITH its tables already
+      # created at least once (see the top-of-file WARNING - pushing
+      # tables into a table-less database has twice deleted the database
+      # outright). No --force on the tables push, deliberately: a
+      # confirmation prompt this CI can't answer should fail the step,
+      # not silently proceed - see the top-of-file note before changing
+      # this back.
       - name: Push tables and functions
         working-directory: appwrite
         run: |
-          appwrite push tables all --force
+          appwrite push tables all
           appwrite push function all --force
