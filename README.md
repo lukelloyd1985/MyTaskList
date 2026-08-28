@@ -172,15 +172,28 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) and
    `app/build.gradle.kts` read it from here directly.
 3. **Create the `mytasks` database** in the Console (Databases →
-   Create database, ID `mytasks`) - a one-time manual step. An API key
-   can push tables/functions into an existing database, but there's no
-   confirmed API-key-compatible command that creates the database itself
-   (a real deploy run hit "unknown command 'databases' for `appwrite
-   push`", and the documented catch-all - `appwrite push all --all
-   --force` - turned out to also require an interactive login session for
-   some resource types, which an API key can't provide: "API keys work
-   for project commands ..., not console-only commands ..."). See the
-   top-of-file comment in `deploy-appwrite.yml` for the full trail.
+   Create database) - a one-time manual step. An API key can push
+   tables/functions into an existing database, but there's no confirmed
+   API-key-compatible command that creates the database itself (a real
+   deploy run hit "unknown command 'databases' for `appwrite push`", and
+   the documented catch-all - `appwrite push all --all --force` - turned
+   out to also require an interactive login session for some resource
+   types, which an API key can't provide: "API keys work for project
+   commands ..., not console-only commands ..."). See the top-of-file
+   comment in `deploy-appwrite.yml` for the full trail.
+
+   **Set the Database ID field itself to `mytasks`** - don't leave it on
+   the Console's auto-generated default and only set the display name.
+   `appwrite push`'s diff matches by ID, not name: a real run created a
+   database named "mytasks" with an auto-generated ID, then a later push
+   saw no local `appwrite.json` entry matching that ID, concluded the
+   remote database wasn't declared locally, and **deleted it** (`--force`
+   skips the confirmation prompt that would otherwise catch this - see
+   `deploy-appwrite.yml`'s "Deleting database mytasks ... Success:
+   Deleted" in that run's log). Getting the ID right the first time
+   avoids this - Console's "Create database" dialog has a separate,
+   editable ID field alongside the name field, usually behind an "ID"
+   or advanced-options toggle next to the name input.
 4. **Push (or manually create) the three tables**: `users`, `lists`, and
    `tasks` (Appwrite's Console/CLI terminology for what the Databases API
    still calls collections of documents under the hood - see
