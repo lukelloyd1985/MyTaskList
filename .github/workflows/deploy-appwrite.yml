@@ -80,8 +80,25 @@ name: Deploy Appwrite (Functions)
 # layout than the standard node_modules tree). Fixed by having each
 # function's package.json "build" script invoke
 # `node node_modules/typescript/bin/tsc` directly instead of going
-# through the `.bin/tsc` shim - verified locally (rm -rf node_modules
-# dist && npm install && npm run build) for both functions.
+# through the `.bin/tsc` shim.
+#
+# That fix got past the missing-module error, but the actual build still
+# failed with `error TS5083: Cannot read file '/usr/local/tsconfig.base.json'`
+# plus a cascade of TS18028/TS2802 errors from tsc silently falling back
+# to an old default `target` once it couldn't read the extended config.
+# Root cause: each function's tsconfig.json did
+# `"extends": "../tsconfig.base.json"`, pointing at
+# appwrite/functions/tsconfig.base.json - one level above the function's
+# own directory. `appwrite push function` only uploads the function's own
+# directory (its `path` in appwrite.json), never the parent, so that file
+# was never part of what got pushed. This is why the earlier "verified
+# locally" check didn't catch it - running from inside the full repo
+# checkout, the sibling file genuinely exists there. Fixed by inlining
+# each function's tsconfig.json completely (no `extends`) and deleting
+# the now-unused shared appwrite/functions/tsconfig.base.json. Verified
+# this time by copying each function's directory alone to an empty
+# location and building from there - the same isolation `push` actually
+# gives it.
 on:
   workflow_dispatch:
 
