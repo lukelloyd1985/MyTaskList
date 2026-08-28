@@ -3,24 +3,29 @@
 // via the node-appwrite server SDK, bypassing `appwrite push tables`
 // entirely.
 //
-// WHY THIS EXISTS: `appwrite push tables all --force`, run against the
-// `mytasks` database while it has zero existing tables, has repeatedly
-// planned to DELETE the database outright before creating anything -
-// even with appwrite.json's schema fully correct (confirmed by a real
-// run with --force removed: it still planned the exact same deletion,
-// just refused to proceed without an interactive confirmation instead of
-// silently deleting). This looks like inherent behavior of `push
-// tables`'s diffing against an empty database, not a fixable config bug
-// - see deploy-appwrite.yml's top-of-file comment for the full history.
-// This script sidesteps `push tables` for the one-time bootstrap
-// entirely, creating the database/tables/columns/indexes directly via
-// the API instead.
+// WHY THIS EXISTS: `appwrite push tables all --force` has, on four
+// separate real runs, planned to DELETE the `mytasks` database outright -
+// including once against a database that already held a fully correct,
+// non-empty schema, which rules out every theory tried (empty database,
+// ID mismatch, two real schema bugs already fixed). This looks like
+// inherent, unfixable-from-config behavior of `push tables` against this
+// project - see deploy-appwrite.yml's top-of-file comment for the full
+// history. `appwrite push tables` is not used anywhere in this repo as a
+// result; this script is the only thing that ever touches the database
+// or tables, via the API directly.
 //
-// Purely additive - it never deletes or modifies anything, and treats
-// "already exists" (HTTP 409) as success - so it's safe to re-run. Once
-// the database has tables in it, `appwrite push tables` (still used for
-// ongoing schema changes - see deploy-appwrite.yml) hasn't shown this
-// deletion behavior against a non-empty database.
+// CURRENT STRATEGY - full recreate, not incremental update: every table
+// declared in appwrite.json is deleted (if it exists) and recreated fresh
+// on every run, so the deployed schema always exactly matches
+// appwrite.json. This is only safe because the project has no real user
+// data in Appwrite yet - deleting a table deletes every row in it.
+// BEFORE THIS PROJECT HAS REAL DATA IN APPWRITE, THIS MUST CHANGE to a
+// non-destructive incremental-update strategy (e.g. diffing columns/
+// indexes and only adding what's missing, never dropping a table that
+// already has rows) - don't copy this delete-and-recreate approach into a
+// project with real data to protect.
+//
+// The database itself is never deleted or recreated - only tables.
 //
 // Requires APPWRITE_ENDPOINT and APPWRITE_API_KEY env vars (the same
 // ones deploy-appwrite.yml already uses for `appwrite client`). The
@@ -57,6 +62,10 @@ function isAlreadyExists(err) {
   return err instanceof AppwriteException && err.code === 409;
 }
 
+function isNotFound(err) {
+  return err instanceof AppwriteException && err.code === 404;
+}
+
 async function ensureDatabase(db) {
   try {
     await tablesDB.create({
@@ -74,37 +83,37 @@ async function ensureDatabase(db) {
   }
 }
 
-async function ensureTable(table) {
+async function recreateTable(table) {
   try {
-    await tablesDB.createTable({
+    await tablesDB.deleteTable({
       databaseId: table.databaseId,
       tableId: table.$id,
-      name: table.name,
-      permissions: table.$permissions,
-      rowSecurity: table.rowSecurity,
-      enabled: table.enabled ?? true,
-      columns: table.columns,
-      indexes: table.indexes,
     });
-    console.log(`Created table "${table.$id}" (with its columns and indexes)`);
+    console.log(`Deleted existing table "${table.$id}"`);
   } catch (err) {
-    if (isAlreadyExists(err)) {
-      console.log(
-        `Table "${table.$id}" already exists, skipping - this script ` +
-          `never updates existing tables, use "appwrite push tables" for ` +
-          `incremental schema changes once bootstrap is done`,
-      );
-    } else {
+    if (!isNotFound(err)) {
       throw err;
     }
   }
+
+  await tablesDB.createTable({
+    databaseId: table.databaseId,
+    tableId: table.$id,
+    name: table.name,
+    permissions: table.$permissions,
+    rowSecurity: table.rowSecurity,
+    enabled: table.enabled ?? true,
+    columns: table.columns,
+    indexes: table.indexes,
+  });
+  console.log(`Created table "${table.$id}" (with its columns and indexes)`);
 }
 
 for (const db of config.databases ?? []) {
   await ensureDatabase(db);
 }
 for (const table of config.tables ?? []) {
-  await ensureTable(table);
+  await recreateTable(table);
 }
 
 console.log("Bootstrap complete.");

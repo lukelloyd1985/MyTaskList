@@ -193,20 +193,20 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 
    [`appwrite/bootstrap-tables.mjs`](appwrite/bootstrap-tables.mjs)
    creates the database and tables directly via the `node-appwrite`
-   server SDK instead, bypassing `appwrite push` entirely. It's purely
-   additive (create-if-missing, treats "already exists" as success), so
-   it's safe to run every time, not just the first - but it only
-   *creates*, it never updates a table that already exists. Run it
-   yourself locally instead of waiting for CI, if you want
-   (`cd appwrite && npm install && APPWRITE_ENDPOINT=... APPWRITE_API_KEY=...
-   npm run bootstrap-tables`).
-4. **Once the database and tables exist, schema changes to them need a
-   different path than CI** - `appwrite push tables` isn't used (see step
-   3), and `bootstrap-tables.mjs` only creates missing tables, it doesn't
-   alter existing ones. For now that means applying changes by hand in
-   Console, or extending `bootstrap-tables.mjs` with an explicit update
-   mode, on a case-by-case basis - deliberately not automated yet, to
-   avoid reintroducing the risk in step 3.
+   server SDK instead, bypassing `appwrite push` entirely.
+4. **Schema changes to `appwrite/appwrite.json` take effect on the next
+   run of `bootstrap-tables.mjs`** - re-run it (via
+   [`deploy-appwrite.yml`](#deploying-appwrite-functions) or locally, see
+   step 3) any time you edit a table's columns/indexes. It deletes and
+   recreates every table declared in `appwrite.json` on every run, so the
+   deployed schema always matches the file exactly - **this deletes all
+   rows in every table, every time**. That's the deliberate tradeoff
+   while this project has no real user data in Appwrite yet: full,
+   guaranteed-correct recreation is much simpler than diffing and
+   patching an existing table, and there's nothing at risk to lose. **This
+   must change to a non-destructive, incremental-update strategy before
+   real user data exists in these tables** - see the warning at the top
+   of `bootstrap-tables.mjs`.
 5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -242,20 +242,20 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    an unused function in Console before retrying; this repo can't work
    around a plan limit from config.
 7. **Create a server API key** for CI: Console → Overview →
-   Integrations → **API Keys** → Create API key, scoped to
-   **`databases.read`** and **`databases.write`**, **`tables.read`** and
-   **`tables.write`**, **`columns.read`** and **`columns.write`** (the
-   Console's own scope list has already dropped the legacy
-   `collections`/`attributes` scopes in favor of `tables`/`columns` -
-   don't grant the deprecated ones), **`functions.read`** and
-   **`functions.write`**, **`rules.read`** (a real `appwrite push
-   function` run failed two functions with "missing scopes
-   (['rules.read'])" without it), and **`users.write`** (needed by
-   `delete-account`'s cascading Auth-account deletion) - the read scopes
-   are required alongside the write ones because `appwrite push` diffs
-   local config against the deployed state before applying changes, not
-   just write access; a key with write-only scopes fails that diff step.
-   This becomes the `APPWRITE_API_KEY` secret used by CI - see
+   Integrations → **API Keys** → Create API key, and **grant it every
+   scope** (there's a "Select all" option covering every category). This
+   key already has to touch the database/tables directly via the API
+   (step 3), plus Functions and Users - and picking scopes by name has
+   already gone wrong twice in real runs (`tables.read`/`columns.read`
+   vs. the deprecated `collections`/`attributes` names; then a
+   `functions push` failing on `rules.read`, a scope this project's
+   Console scope picker doesn't clearly expose under any obvious
+   category). Rather than keep guessing exact scope names against a
+   picker that's already inconsistent with the API's own error messages,
+   just grant everything - it's a single project-scoped server key used
+   only by this repo's own CI, not a shared or user-facing credential, so
+   the extra breadth costs nothing in practice. This becomes the
+   `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below.
 8. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
@@ -531,8 +531,14 @@ everything after that, which CI automates.
   `appwrite/bootstrap-tables.mjs` creates the database and tables
   directly via the API instead, and why `appwrite push tables` isn't run
   anywhere in this repo, including in CI - it's not just deferred until
-  "after bootstrap," it's removed. The tradeoff: schema changes to an
-  already-existing table have no automated path right now (see step 4).
+  "after bootstrap," it's removed.
+- **`bootstrap-tables.mjs` deletes and recreates every table on every
+  run**, so it stays trivially correct - every deployed table always
+  exactly matches `appwrite/appwrite.json` - but it also means **every
+  row in every table is wiped on every deploy**. This is acceptable only
+  because the project has no real user data in Appwrite yet (see
+  [Backend setup](#backend-setup) step 4); a non-destructive incremental-
+  update strategy has to replace this before that stops being true.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).

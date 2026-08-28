@@ -36,17 +36,13 @@ name: Deploy Appwrite (Functions)
 #
 # `appwrite push tables` is therefore DROPPED FROM THIS WORKFLOW ENTIRELY.
 # `bootstrap-tables.mjs` (see the step below) is now the only path that
-# touches the database/tables/columns/indexes: it creates them directly
-# via the node-appwrite server SDK's TablesDB service, reading the same
-# appwrite.json, entirely bypassing `push`'s diff/delete logic. It's
-# purely additive - create-if-missing, treating "already exists" (409) as
-# success - so it's safe to re-run and never deletes anything. Its
-# tradeoff: it only creates, it never updates an already-existing table's
-# columns/indexes. Future schema changes to tables that already exist in
-# production need a different path (e.g. extending bootstrap-tables.mjs
-# with an explicit update mode, or a manually-run, manually-reviewed
-# `appwrite push tables` outside CI) - not decided yet, deliberately left
-# out of this workflow rather than re-risking the deletion above.
+# touches the database/tables/columns/indexes, via the node-appwrite
+# server SDK's TablesDB service directly - entirely bypassing `push`'s
+# diff/delete logic. For now it deletes and recreates every table on
+# every run, so schema changes in appwrite.json always take effect
+# immediately - safe only because there's no real user data in Appwrite
+# yet. See the WARNING at the top of bootstrap-tables.mjs itself for what
+# has to change here before that's no longer true.
 #
 # Function runtime: appwrite.json declared "node-24", syntactically valid
 # per the CLI's own accepted-values list but rejected at push time with
@@ -54,14 +50,18 @@ name: Deploy Appwrite (Functions)
 # necessarily enabled for a given project/plan. Using "node-22" instead
 # (still satisfies each function's own package.json ">=22" floor).
 #
-# Function push also needs the API key scoped to "rules.read" (a real
-# run failed two functions with "missing scopes (['rules.read'])") - see
-# README "Backend setup" step 7's scope list. And it's capped by the
-# Appwrite plan's function-count limit ("The maximum number of functions
-# allowed for the selected plan has reached") - that's a plan/billing
-# limit in Appwrite Console, not something this workflow or its config
-# can work around; upgrade the plan or remove/consolidate functions in
-# Console before re-running.
+# Function push also needs the API key to have every scope, not just the
+# ones documentation says it needs - a real run failed two functions with
+# "missing scopes (['rules.read'])", and Appwrite Console's own scope
+# picker doesn't reliably expose a scope matching every name its API
+# errors mention. Rather than keep guessing exact scope names against a
+# UI that's already drifted once (README "Backend setup" step 7), the key
+# is just granted every available scope. And the push is separately
+# capped by the Appwrite plan's function-count limit ("The maximum number
+# of functions allowed for the selected plan has reached") - that's a
+# plan/billing limit in Appwrite Console, not something this workflow or
+# its config can work around; upgrade the plan or remove/consolidate
+# functions in Console before re-running.
 on:
   workflow_dispatch:
 
@@ -116,12 +116,11 @@ jobs:
         working-directory: appwrite
         run: npm install
 
-      # See the top-of-file WARNING for why this exists: creates the
-      # database/tables/columns/indexes declared in appwrite.json
-      # directly via the node-appwrite SDK, bypassing `appwrite push
-      # tables`'s repeatedly-destructive behavior against an empty
-      # database. Purely additive and idempotent - safe to run on every
-      # deploy, not just the first.
+      # See the top-of-file WARNING and bootstrap-tables.mjs's own header
+      # comment for why this exists and what it actually does: recreates
+      # every table declared in appwrite.json from scratch on every run,
+      # bypassing `appwrite push tables`'s repeatedly-destructive
+      # behavior entirely. Safe only pre-launch, with no real data yet.
       - name: Bootstrap database and tables
         working-directory: appwrite
         env:
