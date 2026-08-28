@@ -10,17 +10,19 @@ name: Deploy Appwrite (Tables + Functions)
 # `function`) takes exactly one resource-type subcommand per invocation,
 # each accepting a single optional positional argument that must
 # literally be `all` - it does not accept multiple resource-type names in
-# one call (confirmed from a real CI run's own CLI error). It also
-# doesn't create prerequisite resources on its own: pushing tables before
-# their database exists fails with "Database with the requested ID
-# 'mytasks' could not be found" even though it logs "Table users does not
-# exist in the project. Creating ..." first - and there's no separate
-# `appwrite push databases` command either ("unknown command 'databases'
-# for 'appwrite push'", also from a real run). Below uses the documented
-# catch-all instead - `appwrite push all --all --force` - which pushes
-# every resource type together (letting the CLI handle the database-
-# before-tables ordering itself) rather than the three separate
-# per-resource-type calls this workflow used to make.
+# one call (confirmed from a real CI run's own CLI error), and there's no
+# separate `appwrite push databases` command ("unknown command
+# 'databases' for 'appwrite push'", also from a real run). The catch-all
+# `appwrite push all --all --force` was tried as a way around both of
+# those, but it also tries to push console-only resources (e.g.
+# `settings`) that an API key can't authenticate for - a real run failed
+# with "session not found. Run `appwrite login`. API keys work for
+# project commands (e.g. `appwrite push functions`), not console-only
+# commands (e.g. `appwrite push settings`)". So this stays scoped to the
+# specific resource types an API key CAN push (`table`, `function`) -
+# the `mytasks` database itself needs creating once, manually, via the
+# Console before the first run (see README "Backend setup" step 2) since
+# no confirmed API-key-compatible command creates it from scratch.
 #
 # appwrite.json's own schema keys are "tables"/"columns" (not the
 # deprecated "collections"/"attributes" - a real run logged: "appwrite
@@ -81,9 +83,11 @@ jobs:
 
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
-      # see README "Backend setup" for how that file is produced. See the
-      # top-of-file note for why this is a single `push all` rather than
-      # separate per-resource-type calls.
-      - name: Push database, tables, and functions
+      # see README "Backend setup" for how that file is produced. The
+      # database itself must already exist (see the top-of-file note) -
+      # this only pushes the resource types an API key can push.
+      - name: Push tables and functions
         working-directory: appwrite
-        run: appwrite push all --all --force
+        run: |
+          appwrite push tables all --force
+          appwrite push function all --force

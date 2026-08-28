@@ -159,28 +159,39 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 
 1. **Create an Appwrite Cloud project** in the
    [Appwrite Console](https://cloud.appwrite.io). Note its API endpoint
-   (e.g. `https://fra.cloud.appwrite.io/v1`, needed in step 6) and its
+   (e.g. `https://fra.cloud.appwrite.io/v1`, needed in step 8) and its
    project ID (needed in step 2, right below).
 2. **Set the project ID in `appwrite/appwrite.json`**, replacing its
-   `"projectId"` placeholder with the real one from step 1, and **create
-   the database and three tables.** One database, ID `mytasks`, with
-   `users`, `lists`, and `tasks` tables (Appwrite's Console/CLI
-   terminology for what the Databases API still calls collections of
-   documents under the hood - see [Appwrite schema](#appwrite-schema)
-   above) - their columns, indexes, and permissions are described there
-   too. `appwrite/appwrite.json` is the Appwrite CLI's config for all of
-   this - the project ID isn't sensitive (same category as Firebase's
-   committed `google-services.json` project ID - it only identifies the
-   project, and ships inside the built APK regardless), so it's the one
-   place this repo needs it set, rather than a GitHub secret duplicated
-   with a separate Android build-time env var. It's what
-   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) pushes
-   from (`appwrite push tables all` / `appwrite push function all`) and
-   what `app/build.gradle.kts` reads the project ID from directly; for a
-   first, manual walkthrough you can instead create the database and
-   tables by hand in the Console, matching the file's field names,
-   types, and permission arrays exactly.
-3. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
+   `"projectId"` placeholder with the real one from step 1.
+   `appwrite/appwrite.json` is the Appwrite CLI's config for the database/
+   tables/functions below - the project ID isn't sensitive (same category
+   as Firebase's committed `google-services.json` project ID - it only
+   identifies the project, and ships inside the built APK regardless), so
+   it's the one place this repo needs it set, rather than a GitHub secret
+   duplicated with a separate Android build-time env var. Both
+   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) and
+   `app/build.gradle.kts` read it from here directly.
+3. **Create the `mytasks` database** in the Console (Databases →
+   Create database, ID `mytasks`) - a one-time manual step. An API key
+   can push tables/functions into an existing database, but there's no
+   confirmed API-key-compatible command that creates the database itself
+   (a real deploy run hit "unknown command 'databases' for `appwrite
+   push`", and the documented catch-all - `appwrite push all --all
+   --force` - turned out to also require an interactive login session for
+   some resource types, which an API key can't provide: "API keys work
+   for project commands ..., not console-only commands ..."). See the
+   top-of-file comment in `deploy-appwrite.yml` for the full trail.
+4. **Push (or manually create) the three tables**: `users`, `lists`, and
+   `tasks` (Appwrite's Console/CLI terminology for what the Databases API
+   still calls collections of documents under the hood - see
+   [Appwrite schema](#appwrite-schema) above) - their columns, indexes,
+   and permissions are described there too, and defined in
+   `appwrite/appwrite.json`. Once the database from step 3 exists, either
+   run [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
+   (`appwrite push tables all` / `appwrite push function all`, see step 7
+   for its one-time CI setup) or create them by hand in the Console,
+   matching the file's field names, types, and permission arrays exactly.
+5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
    [Google Cloud Console](https://console.cloud.google.com) (APIs &
@@ -194,7 +205,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
    keystores themselves are still required - just for Play/APK signing,
    not for this.
-4. **Deploy the four Appwrite Functions** under
+6. **Deploy the four Appwrite Functions** under
    [`appwrite/functions/`](appwrite/functions/): `on-task-write`
    (database event trigger, sends a push when a task's assignee changes),
    `due-date-reminders` (CRON every 15 minutes, sweeps tasks due soon),
@@ -202,12 +213,12 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    deletion), and `sync-list-permissions` (database event trigger, keeps
    task permissions in sync with their parent list's membership - see
    [Appwrite schema](#appwrite-schema)). Push them with the same
-   `appwrite push` command as step 2, or create/deploy each one by hand
+   `appwrite push` command as step 4, or create/deploy each one by hand
    in the Console. Each needs its environment variables set (Console →
    Functions → the function → Settings → Variables) - at minimum, the two
    that send pushes (`on-task-write`, `due-date-reminders`) need the FCM
    service-account JSON and the FCM project ID.
-5. **Create a server API key** for CI: Console → Overview →
+7. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
    **`tables.write`**, **`columns.read`** and **`columns.write`** (the
@@ -222,7 +233,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    This becomes the `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
    below.
-6. **Set the build-time env vars** the Android app reads (see
+8. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
    table/function IDs below already default to this repo's own fixed
@@ -262,7 +273,7 @@ isn't among them - it's read from `appwrite/appwrite.json`, see
 | Secret | Value |
 | --- | --- |
 | `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
-| `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 5 |
+| `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 7 |
 
 That's the whole setup - a single scoped API key, considerably simpler
 than the old Firebase deploy's Google Cloud service account juggling five
@@ -510,7 +521,7 @@ everything after that, which CI automates.
   silently losing data.
 - **Google Sign-In no longer requires registering the app's signing
   certificate** (SHA-1/SHA-256) anywhere - see
-  [Backend setup](#backend-setup) step 3. The debug/release keystores
+  [Backend setup](#backend-setup) step 5. The debug/release keystores
   themselves are still required, just for Play Store/APK signing.
 - **Account deletion** satisfies Play's dual in-app + web requirement:
   the Profile screen's "Delete my account" action calls the
