@@ -171,38 +171,38 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    duplicated with a separate Android build-time env var. Both
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) and
    `app/build.gradle.kts` read it from here directly.
-3. **Create the `mytasks` database** in the Console (Databases → Create
-   database, ID `mytasks` - set the **Database ID field itself**, not
-   just the display name, since a separate, editable ID field sits
-   alongside the name input, usually behind an "ID" or advanced-options
-   toggle - `appwrite push` diffs by ID, not name). This one step stays
-   manual - there's no confirmed API-key-compatible CLI command that
-   creates a database from scratch (see the top-of-file comment in
-   `deploy-appwrite.yml`).
-
-   **Twice, `appwrite push tables all --force` run against this database
-   while it had zero tables deleted it outright** before creating
-   anything, even with a correctly-matching ID. Two real schema bugs in
-   `appwrite/appwrite.json` were found and fixed as the likely cause
-   (each table's `documentSecurity` should have been `rowSecurity`, and
-   the `visibility`/`priority` columns should have been `"type": "enum"`
+3. **No manual Console work needed for the database or tables** -
+   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
+   step 7 for its one-time CI setup) creates them for you when it runs.
+   This wasn't always true: `appwrite push tables all --force`, run
+   against the `mytasks` database while it had zero existing tables,
+   *three times* deleted the database outright before creating anything
+   - even with correct IDs and, eventually, a fully correct schema (two
+   real bugs were found and fixed along the way: each table's
+   `documentSecurity` should have been `rowSecurity`, and the
+   `visibility`/`priority` columns should have been `"type": "enum"`
    rather than `"type": "string"` with `"format": "enum"` - both
-   leftovers from the old Collections/Attributes schema that the current
-   CLI doesn't recognize, which plausibly made it treat those tables as
-   invalid and the database as orphaned). This is **not yet confirmed
-   against a live run** - see the detailed `WARNING` in
-   `deploy-appwrite.yml`'s top-of-file comment. `--force` stays off the
-   tables push regardless (a confirmation prompt failing the step is
-   preferable to risking a third deletion) - if a real run still shows
-   the same deletion, create the three tables by hand in Console too,
-   matching `appwrite/appwrite.json`'s field names, column types,
-   indexes, and permission arrays exactly, the same one-time treatment
-   as the database.
+   leftovers from the old Collections/Attributes schema). None of that
+   was the actual cause - a run with `--force` removed still *planned*
+   the same deletion, just refused to execute it without confirmation.
+   This looks like inherent `appwrite push tables` behavior against an
+   empty database, not a fixable config mistake - see the full trail in
+   `deploy-appwrite.yml`'s top-of-file comment.
+
+   So [`appwrite/bootstrap-tables.mjs`](appwrite/bootstrap-tables.mjs)
+   creates the database and tables directly via the `node-appwrite`
+   server SDK instead, bypassing `appwrite push` entirely for this part.
+   It's purely additive (create-if-missing, treats "already exists" as
+   success), so it's safe to run every time, not just the first. Run it
+   yourself locally instead of waiting for CI, if you want
+   (`cd appwrite && npm install && APPWRITE_ENDPOINT=... APPWRITE_API_KEY=...
+   npm run bootstrap-tables`).
 4. **From here on, `appwrite push tables` keeps the tables in sync**
    with any future changes to `appwrite/appwrite.json` (`appwrite push
-   tables all` / `appwrite push function all`, run via
-   [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) - see
-   step 7 for its one-time CI setup).
+   tables all --force` / `appwrite push function all --force`, run via
+   `deploy-appwrite.yml` right after the bootstrap step above - safe to
+   use `--force` here since the database always has tables in it by this
+   point, the state where the deletion behavior above hasn't been seen).
 5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -502,12 +502,14 @@ everything after that, which CI automates.
 
 ## Notes & tradeoffs
 
-- **`appwrite push tables all --force` can delete the `mytasks`
-  database outright** if run against one with zero existing tables -
-  see [Backend setup](#backend-setup) step 3 and the `WARNING` in
-  `deploy-appwrite.yml`'s top-of-file comment. `deploy-appwrite.yml`
-  deliberately doesn't pass `--force` to the tables push for this
-  reason - don't re-add it without understanding this first.
+- **`appwrite push tables all --force` can delete the `mytasks` database
+  outright** if run against one with zero existing tables - confirmed
+  three separate times, see [Backend setup](#backend-setup) step 3 and
+  the `WARNING` in `deploy-appwrite.yml`'s top-of-file comment. This is
+  why `appwrite/bootstrap-tables.mjs` creates the database and tables
+  directly via the API instead of `appwrite push`, and why the tables
+  push only ever runs after that bootstrap step, never before it - don't
+  reorder or skip the bootstrap step without understanding this first.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).

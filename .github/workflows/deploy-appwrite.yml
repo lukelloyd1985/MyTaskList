@@ -15,44 +15,40 @@ name: Deploy Appwrite (Tables + Functions)
 # `appwrite push all --all --force` was tried as a way around both, but
 # it also tries to push console-only resources (e.g. `settings`) that an
 # API key can't authenticate for ("session not found ... API keys work
-# for project commands ..., not console-only commands ..."). So this
-# stays scoped to the resource types an API key CAN push (`table`,
-# `function`) - the `mytasks` database itself needs creating once,
-# manually, via the Console before the first run (README "Backend setup"
-# step 3), since no confirmed API-key-compatible command creates it.
+# for project commands ..., not console-only commands ...").
 #
 # appwrite.json's own schema keys are "tables"/"columns" (not the
 # deprecated "collections"/"attributes" - confirmed necessary, not just a
 # verb change, via "No tables found" against the old key names).
 #
-# WARNING - real, repeated destructive behavior: `appwrite push tables
-# all --force`, run against a freshly-created `mytasks` database with
-# zero existing tables, has TWICE deleted that database outright before
-# creating anything - even with its ID correctly matching appwrite.json's
-# ("mytasks | deleting | Database | mytasks | (deleted locally)", despite
-# appwrite.json's own "databases" array clearly declaring it).
+# WARNING - `appwrite push tables all --force`, run against the `mytasks`
+# database while it has zero existing tables, has on THREE separate real
+# runs planned to DELETE the database outright before creating anything -
+# even with its ID correctly matching appwrite.json, and even after
+# fixing two genuine schema bugs (each table's "documentSecurity" ->
+# "rowSecurity", and the "visibility"/"priority" columns' "type":
+# "string" + "format": "enum" -> "type": "enum" - both confirmed against
+# node-appwrite@28's real tables-db.d.ts, not guessed). The third run had
+# --force removed specifically as a safety net, and it correctly refused
+# instead of deleting ("needs an answer but there is no interactive
+# terminal") - but it still PLANNED the identical deletion, which rules
+# out the schema-bug theory as the actual cause. This looks like a
+# genuine, reproducible `appwrite push tables` behavior against an empty
+# database, independent of what's declared locally - not a config
+# mistake to keep chasing.
 #
-# Likely (not yet live-verified) actual cause, found by installing
-# node-appwrite@28 locally and reading its real tables-db.d.ts rather
-# than guessing further: appwrite.json had two genuinely wrong field
-# names left over from the old Collections/Attributes schema, which
-# would make the CLI's parser reject the table declarations as invalid -
-# making the database look like it has zero *valid* local tables, which
-# would explain the "orphaned, prune it" behavior above independently of
-# whether the database was literally empty. Fixed:
-#   - Each table's "documentSecurity" -> "rowSecurity" (confirmed via
-#     TablesDB.createTable's real param list - "documentSecurity" isn't
-#     a recognized field at all under the current schema).
-#   - "visibility"/"priority" columns' "type": "string" + "format":
-#     "enum" -> just "type": "enum" (confirmed "enum" is its own valid
-#     top-level column type, not a string sub-format, per
-#     TablesDB.createEnumColumn/createTable's columns[] docs).
-# `--force` stays off the tables push below regardless, since this fix
-# hasn't been confirmed against a real run yet and two real deletions
-# already happened - a required confirmation this CI can't answer
-# should fail the step, not risk a third deletion. If a real run now
-# shows `push tables` correctly creating (not deleting) against the
-# existing empty database, that confirms this was the actual cause.
+# So bootstrapping the database and tables no longer goes through
+# `appwrite push` at all: `bootstrap-tables.mjs` (see the step below)
+# creates them directly via the node-appwrite server SDK's TablesDB
+# service, reading the same appwrite.json, entirely bypassing `push`'s
+# diff/delete logic. It's purely additive - create-if-missing, treating
+# "already exists" (409) as success - so it's safe to re-run and never
+# deletes anything. Once it has run once, the database always has at
+# least one table in it before `appwrite push tables` ever runs against
+# it, which is the state where this deletion behavior hasn't been
+# observed - so `--force` is safe to keep on the ongoing sync push below
+# (for later schema changes to already-existing tables). This reasoning
+# hasn't been confirmed against a live run yet.
 #
 # Function runtime: appwrite.json declared "node-24", syntactically valid
 # per the CLI's own accepted-values list but rejected at push time with
@@ -109,19 +105,33 @@ jobs:
             (cd "$dir" && npm install)
           done
 
+      - name: Install bootstrap script dependencies
+        working-directory: appwrite
+        run: npm install
+
+      # See the top-of-file WARNING for why this exists: creates the
+      # database/tables/columns/indexes declared in appwrite.json
+      # directly via the node-appwrite SDK, bypassing `appwrite push
+      # tables`'s repeatedly-destructive behavior against an empty
+      # database. Purely additive and idempotent - safe to run on every
+      # deploy, not just the first.
+      - name: Bootstrap database and tables
+        working-directory: appwrite
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: npm run bootstrap-tables
+
       # Reads appwrite/appwrite.json (the project's Appwrite CLI config,
       # listing the database, tables, and functions to push) directly -
-      # see README "Backend setup" for how that file is produced. The
-      # database itself must already exist (README "Backend setup" step
-      # 3) - two real schema bugs that likely caused the earlier database
-      # deletions are now fixed (see the top-of-file WARNING), but this
-      # hasn't been confirmed against a live run yet, so tables may still
-      # need creating by hand the first time if this still doesn't behave.
-      # No --force on the tables push, deliberately: a confirmation
-      # prompt this CI can't answer should fail the step, not silently
-      # proceed - see the top-of-file note before changing this back.
+      # see README "Backend setup" for how that file is produced. --force
+      # is back on the tables push here: by this point the bootstrap step
+      # above guarantees the database already has tables in it, which is
+      # the state where the deletion behavior in the top-of-file WARNING
+      # hasn't been observed - this push now only needs to apply
+      # incremental schema changes to already-existing tables.
       - name: Push tables and functions
         working-directory: appwrite
         run: |
-          appwrite push tables all
+          appwrite push tables all --force
           appwrite push function all --force
