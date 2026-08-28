@@ -1,5 +1,6 @@
 import { Client, Databases, Users, Query, Permission, Role, Models } from "node-appwrite";
 import { listAllDocuments } from "./listAll";
+import type { FunctionContext } from "./context";
 
 interface ListMemberData {
   uid: string;
@@ -19,19 +20,6 @@ interface ListDoc extends Models.Document {
 interface TaskDoc extends Models.Document {
   listId: string;
   assigneeId?: string;
-}
-
-interface RequestContext {
-  headers: Record<string, string>;
-}
-interface ResponseContext {
-  json: (data: unknown, statusCode?: number) => unknown;
-}
-interface FunctionContext {
-  req: RequestContext;
-  res: ResponseContext;
-  log: (message: unknown) => void;
-  error: (message: unknown) => void;
 }
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
@@ -99,9 +87,10 @@ async function deleteAllTasksForList(databases: Databases, listId: string) {
  * delete `users/{uid}` outright - only this trusted server-side function
  * (using the dynamic per-execution API key) can do this cascade.
  *
- * Ported from functions/src/accountDeletion.ts's deleteAccount().
+ * Ported from functions/src/accountDeletion.ts's deleteAccount(). HTTP
+ * invocation - see main.ts's trigger dispatch.
  */
-export default async ({ req, res, log, error }: FunctionContext) => {
+export async function deleteAccount({ req, res, log, error }: FunctionContext) {
   // Appwrite injects the calling user's ID for an execution invoked with a
   // user session/JWT via x-appwrite-user-id - this must be used instead of
   // anything in the request body, which a caller could forge to target
@@ -150,10 +139,10 @@ export default async ({ req, res, log, error }: FunctionContext) => {
         },
         buildListPermissions(newOwnerId, remainingMemberIds),
       );
-      // This update also fires the sync-list-permissions function (it
-      // watches lists documents.*.update), which fans the new
-      // owner/member set out to every task under this list - we don't
-      // need to touch task permissions here ourselves.
+      // This update also fires the maintenance function's
+      // syncListPermissions handler (it watches lists documents.*.update),
+      // which fans the new owner/member set out to every task under this
+      // list - we don't need to touch task permissions here ourselves.
       await unassignTasks(databases, list.$id, uid);
     } else {
       // Private, or shared with no one left to hand it to - nothing of
@@ -206,4 +195,4 @@ export default async ({ req, res, log, error }: FunctionContext) => {
 
   log(`Deleted account and data for ${uid}`);
   return res.json({ success: true });
-};
+}

@@ -323,8 +323,8 @@
   ],
   "functions": [
     {
-      "$id": "on-task-write",
-      "name": "on-task-write",
+      "$id": "notifications",
+      "name": "notifications",
       "runtime": "node-22",
       "execute": [],
       "events": [
@@ -336,40 +336,23 @@
         "users.read",
         "users.write"
       ],
-      "schedule": "",
-      "timeout": 30,
-      "entrypoint": "src/main.ts",
-      "commands": "npm install && npm run build",
-      "specification": "s-0.5vcpu-512mb",
-      "path": "functions/on-task-write"
-    },
-    {
-      "$id": "due-date-reminders",
-      "name": "due-date-reminders",
-      "runtime": "node-22",
-      "execute": [],
-      "events": [],
-      "scopes": [
-        "databases.read",
-        "databases.write",
-        "users.read",
-        "users.write"
-      ],
       "schedule": "*/15 * * * *",
       "timeout": 60,
       "entrypoint": "src/main.ts",
       "commands": "npm install && npm run build",
       "specification": "s-0.5vcpu-512mb",
-      "path": "functions/due-date-reminders"
+      "path": "functions/notifications"
     },
     {
-      "$id": "delete-account",
-      "name": "delete-account",
+      "$id": "maintenance",
+      "name": "maintenance",
       "runtime": "node-22",
       "execute": [
         "users"
       ],
-      "events": [],
+      "events": [
+        "databases.mytasks.collections.lists.documents.*.update"
+      ],
       "scopes": [
         "databases.read",
         "databases.write",
@@ -381,26 +364,7 @@
       "entrypoint": "src/main.ts",
       "commands": "npm install && npm run build",
       "specification": "s-0.5vcpu-512mb",
-      "path": "functions/delete-account"
-    },
-    {
-      "$id": "sync-list-permissions",
-      "name": "sync-list-permissions",
-      "runtime": "node-22",
-      "execute": [],
-      "events": [
-        "databases.mytasks.collections.lists.documents.*.update"
-      ],
-      "scopes": [
-        "databases.read",
-        "databases.write"
-      ],
-      "schedule": "",
-      "timeout": 30,
-      "entrypoint": "src/main.ts",
-      "commands": "npm install && npm run build",
-      "specification": "s-0.5vcpu-512mb",
-      "path": "functions/sync-list-permissions"
+      "path": "functions/maintenance"
     }
   ]
 }

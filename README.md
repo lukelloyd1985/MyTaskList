@@ -79,17 +79,17 @@ with a **permission array stored on every document** - a static ACL, not
 a rule engine that can evaluate against a *different* (e.g. parent)
 document at read/write time. `users/{uid}` is readable by any signed-in
 user and writable only by the user themself (delete is in practice only
-ever done server-side by the `delete-account` Function), mirroring the
-old rules. `lists/{listId}` carries read for the owner plus every
-`memberIds` entry, and update/delete for the owner only, recomputed on
-every membership-changing write. `tasks/{taskId}` is meant to carry the
-*same* owner+members permissions as its parent list (so any list member
-can fully CRUD its tasks) - but Appwrite has no way to express "authorize
-like some other document." That gap is why a dedicated Appwrite Function,
-`sync-list-permissions`, exists: it fires on every list-membership change
-and rewrites permissions on every task under that list to match. Without
-it, a list's membership and its tasks' actual accessibility would
-silently drift apart over time.
+ever done server-side by the `maintenance` Function's account-deletion
+handler), mirroring the old rules. `lists/{listId}` carries read for the
+owner plus every `memberIds` entry, and update/delete for the owner only,
+recomputed on every membership-changing write. `tasks/{taskId}` is meant
+to carry the *same* owner+members permissions as its parent list (so any
+list member can fully CRUD its tasks) - but Appwrite has no way to express
+"authorize like some other document." That gap is why the `maintenance`
+Function's other handler, `syncListPermissions`, exists: it fires on
+every list-membership change and rewrites permissions on every task under
+that list to match. Without it, a list's membership and its tasks' actual
+accessibility would silently drift apart over time.
 
 ## Localization
 
@@ -138,16 +138,16 @@ To add another language:
    resource qualifier - e.g. Android's `values-cs` pairs with Play's
    `cs-CZ`, not `cs`).
 4. Add an entry for the language to `NOTIFICATION_STRINGS` in
-   `appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+   `appwrite/functions/notifications/src/notificationStrings.ts`
    and redeploy the Appwrite Functions, so push notifications are
    localized too (see below).
 
 Push notifications (task-assignment and due-date alerts sent by the
-Appwrite Functions in `/appwrite/functions`) are localized too:
-`UserRepository` writes `Locale.getDefault().language` to
+`notifications` Appwrite Function in `/appwrite/functions`) are localized
+too: `UserRepository` writes `Locale.getDefault().language` to
 `users/{uid}.locale` on every sign-in (this reflects any per-app
 language override automatically), and
-`appwrite/functions/due-date-reminders/src/notificationStrings.ts`
+`appwrite/functions/notifications/src/notificationStrings.ts`
 picks the matching translation from its own small `NOTIFICATION_STRINGS`
 table when sending, falling back to English for an unset or unsupported
 locale. A task's own title/description are user-authored content and are
@@ -174,35 +174,39 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 3. **No manual Console work needed for the database or tables** -
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
    step 7 for its one-time CI setup) creates them for you when it runs.
-   This wasn't always true: `appwrite push tables all --force`, run
-   against the `mytasks` database while it had zero existing tables,
-   *three times* deleted the database outright before creating anything
-   - even with correct IDs and, eventually, a fully correct schema (two
-   real bugs were found and fixed along the way: each table's
-   `documentSecurity` should have been `rowSecurity`, and the
-   `visibility`/`priority` columns should have been `"type": "enum"`
-   rather than `"type": "string"` with `"format": "enum"` - both
-   leftovers from the old Collections/Attributes schema). None of that
-   was the actual cause - a run with `--force` removed still *planned*
-   the same deletion, just refused to execute it without confirmation.
-   This looks like inherent `appwrite push tables` behavior against an
-   empty database, not a fixable config mistake - see the full trail in
-   `deploy-appwrite.yml`'s top-of-file comment.
+   This wasn't always true: `appwrite push tables all --force` has, on
+   **four** separate real runs, planned to delete the `mytasks` database
+   outright before creating anything - the first three against an empty
+   database (ruling out two real, separately-fixed schema bugs along the
+   way: each table's `documentSecurity` should have been `rowSecurity`,
+   and the `visibility`/`priority` columns should have been `"type":
+   "enum"` rather than `"type": "string"` with `"format": "enum"`, both
+   leftovers from the old Collections/Attributes schema), and the fourth
+   against a database that already held all 3 correctly-created tables -
+   which rules out "empty database" as the cause too. This looks like
+   `appwrite push tables` fundamentally not recognizing this project's
+   local config as matching its deployed state, not a fixable config
+   mistake - see the full trail in `deploy-appwrite.yml`'s top-of-file
+   comment. **`appwrite push tables` is not used anywhere in this repo
+   as a result** - only `bootstrap-tables.mjs` ever touches the database
+   or tables.
 
-   So [`appwrite/bootstrap-tables.mjs`](appwrite/bootstrap-tables.mjs)
+   [`appwrite/bootstrap-tables.mjs`](appwrite/bootstrap-tables.mjs)
    creates the database and tables directly via the `node-appwrite`
-   server SDK instead, bypassing `appwrite push` entirely for this part.
-   It's purely additive (create-if-missing, treats "already exists" as
-   success), so it's safe to run every time, not just the first. Run it
-   yourself locally instead of waiting for CI, if you want
-   (`cd appwrite && npm install && APPWRITE_ENDPOINT=... APPWRITE_API_KEY=...
-   npm run bootstrap-tables`).
-4. **From here on, `appwrite push tables` keeps the tables in sync**
-   with any future changes to `appwrite/appwrite.json` (`appwrite push
-   tables all --force` / `appwrite push function all --force`, run via
-   `deploy-appwrite.yml` right after the bootstrap step above - safe to
-   use `--force` here since the database always has tables in it by this
-   point, the state where the deletion behavior above hasn't been seen).
+   server SDK instead, bypassing `appwrite push` entirely.
+4. **Schema changes to `appwrite/appwrite.json` take effect on the next
+   run of `bootstrap-tables.mjs`** - re-run it (via
+   [`deploy-appwrite.yml`](#deploying-appwrite-functions) or locally, see
+   step 3) any time you edit a table's columns/indexes. It never deletes
+   anything: for a table that already exists, it lists the table's
+   current columns/indexes and adds only what's missing from
+   `appwrite.json` - existing rows, columns, and indexes are always left
+   alone. If a column that already exists has drifted from its local
+   declaration (e.g. `required` or `type` changed), the script logs a
+   warning and leaves it as-is rather than trying to alter it in place -
+   reconcile that by hand in Console, since some changes (like narrowing
+   a string's size, or changing a column's type) aren't safely automatable
+   without risking the existing data anyway.
 5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
    **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
    for this and shows you the redirect URI to register in
@@ -217,19 +221,30 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
    keystores themselves are still required - just for Play/APK signing,
    not for this.
-6. **Deploy the four Appwrite Functions** under
-   [`appwrite/functions/`](appwrite/functions/): `on-task-write`
-   (database event trigger, sends a push when a task's assignee changes),
-   `due-date-reminders` (CRON every 15 minutes, sweeps tasks due soon),
-   `delete-account` (HTTP-invoked from the app, cascades account
-   deletion), and `sync-list-permissions` (database event trigger, keeps
-   task permissions in sync with their parent list's membership - see
-   [Appwrite schema](#appwrite-schema)). Push them with the same
-   `appwrite push` command as step 4, or create/deploy each one by hand
-   in the Console. Each needs its environment variables set (Console →
-   Functions → the function → Settings → Variables) - at minimum, the two
-   that send pushes (`on-task-write`, `due-date-reminders`) need the FCM
-   service-account JSON and the FCM project ID.
+6. **Deploy the two Appwrite Functions** under
+   [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
+   push both when a task's assignee changes - database event trigger -
+   and on the CRON due-date reminder sweep every 15 minutes) and
+   `maintenance` (HTTP-invoked account deletion, cascading through the
+   caller's lists/tasks; and a database event trigger that keeps task
+   permissions in sync with their parent list's membership - see
+   [Appwrite schema](#appwrite-schema)). Each is one Appwrite Function
+   serving two triggers - dispatched internally by the `x-appwrite-trigger`
+   request header (see either function's `src/main.ts`) - specifically to
+   fit inside Appwrite Cloud's free-tier limit of **2 Functions per
+   project**: this repo now declares exactly 2, so no plan upgrade or
+   consolidation should be needed for a standard setup. If you ever add a
+   third Function, you'll hit "The maximum number of functions allowed
+   for the selected plan has reached" and need to either merge it into
+   one of the existing two the same way, or upgrade the plan.
+
+   Push them via [`deploy-appwrite.yml`](#deploying-appwrite-functions)
+   (`appwrite push function all --force` - unlike tables, this hasn't
+   shown any destructive behavior), or create/deploy each one by hand in
+   the Console. Each needs its environment variables set (Console →
+   Functions → the function → Settings → Variables) - `notifications`
+   needs the FCM service-account JSON and the FCM project ID (both
+   trigger paths send pushes); `maintenance` needs neither.
 7. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
@@ -237,22 +252,20 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Console's own scope list has already dropped the legacy
    `collections`/`attributes` scopes in favor of `tables`/`columns` -
    don't grant the deprecated ones), **`functions.read`** and
-   **`functions.write`**, and **`users.write`** (needed by
-   `delete-account`'s cascading Auth-account deletion) - the read scopes
-   are required alongside the write ones because `appwrite push` diffs
-   local config against the deployed state before applying changes, not
-   just write access; a key with write-only scopes fails that diff step.
-   This becomes the `APPWRITE_API_KEY` secret used by CI - see
-   [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
-   below.
+   **`functions.write`**, **`rules.read`** (needed by `appwrite push
+   function` - it's listed under the **Proxy** category in the scope
+   picker, not Functions, which is easy to miss), and **`users.write`**
+   (needed by `maintenance`'s cascading Auth-account deletion). This
+   becomes the `APPWRITE_API_KEY` secret used by CI - see
+   [Deploying Appwrite Functions](#deploying-appwrite-functions) below.
 8. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
    table/function IDs below already default to this repo's own fixed
    values, so only the endpoint needs setting explicitly. In CI,
    `android-build.yml` already reuses the same `APPWRITE_ENDPOINT` secret
-   [Deploying Appwrite tables and Functions](#deploying-appwrite-tables-and-functions)
-   has you create - no separate CI secret needed. For a local build, set
+   [Deploying Appwrite Functions](#deploying-appwrite-functions) has you
+   create - no separate CI secret needed. For a local build, set
    it as a shell env var yourself before running Gradle:
 
    | Env var | Value |
@@ -261,21 +274,29 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 
    The rest (`MYTASKS_APPWRITE_DATABASE_ID`,
    `MYTASKS_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
-   `MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID`) are override knobs for
+   `MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
    a contributor customizing those IDs away from this repo's defaults
-   (`mytasks`/`users`/`lists`/`tasks`/`delete-account`) - not something
+   (`mytasks`/`users`/`lists`/`tasks`/`maintenance`) - not something
    you need to set for a standard setup.
 
-## Deploying Appwrite tables and Functions
+## Deploying Appwrite Functions
 
 [`.github/workflows/deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml)
 is a manually-triggered ("Run workflow" in the **Actions** tab - works
 from the GitHub mobile site or app, no local Appwrite CLI or login
-needed) job that pushes the database/tables and all four Appwrite
-Functions from [`appwrite/appwrite.json`](appwrite/appwrite.json) using a
-server API key instead of an interactive login. It never runs on its own
-- a tables/Functions deploy going out on every push felt like too much
-blast radius for something this easy to trigger on demand instead.
+needed) job that pushes both Appwrite Functions from
+[`appwrite/appwrite.json`](appwrite/appwrite.json) using a server API key
+instead of an interactive login. It never runs on its own - a Functions
+deploy going out on every push felt like too much blast radius for
+something this easy to trigger on demand instead.
+
+It does **not** push the database/tables - `appwrite push tables` has
+repeatedly planned to delete the `mytasks` database outright (see
+[Backend setup](#backend-setup) step 3 and `deploy-appwrite.yml`'s
+top-of-file comment for the full trail), so it's dropped from this
+workflow entirely. `bootstrap-tables.mjs` (also run by this workflow) is
+the only thing that creates or updates the database and tables, and it
+does so non-destructively - see step 4.
 
 One-time setup - two repository secrets (Settings → Secrets and
 variables → Actions), both from the Appwrite Console (the project ID
@@ -294,8 +315,8 @@ User, Cloud Scheduler Admin, Artifact Registry Admin) plus its
 Eventarc/Artifact-Registry first-deploy gotchas - none of that GCP-
 specific machinery has an Appwrite equivalent to configure.
 
-From then on: **Actions tab → Deploy Appwrite (Tables + Functions) →
-Run workflow**.
+From then on: **Actions tab → Deploy Appwrite (Functions) → Run
+workflow**.
 
 ## Building the APK
 
@@ -503,13 +524,35 @@ everything after that, which CI automates.
 ## Notes & tradeoffs
 
 - **`appwrite push tables all --force` can delete the `mytasks` database
-  outright** if run against one with zero existing tables - confirmed
-  three separate times, see [Backend setup](#backend-setup) step 3 and
-  the `WARNING` in `deploy-appwrite.yml`'s top-of-file comment. This is
-  why `appwrite/bootstrap-tables.mjs` creates the database and tables
-  directly via the API instead of `appwrite push`, and why the tables
-  push only ever runs after that bootstrap step, never before it - don't
-  reorder or skip the bootstrap step without understanding this first.
+  outright** - confirmed on four separate real runs, including one
+  against a database that already held all 3 correctly-created tables,
+  which rules out "only happens when empty". See
+  [Backend setup](#backend-setup) step 3 and the `WARNING` in
+  `deploy-appwrite.yml`'s top-of-file comment. This is why
+  `appwrite/bootstrap-tables.mjs` creates the database and tables
+  directly via the API instead, and why `appwrite push tables` isn't run
+  anywhere in this repo, including in CI - it's not just deferred until
+  "after bootstrap," it's removed.
+- **`bootstrap-tables.mjs` only ever adds - it never deletes or alters
+  anything.** A table that already exists has its columns/indexes
+  diffed against `appwrite/appwrite.json` and only what's missing is
+  added; a column that already exists but has drifted from its local
+  declaration is left as-is with a warning logged, not altered in place
+  (see [Backend setup](#backend-setup) step 4). Reconciling a genuinely
+  changed column (e.g. a type change) still needs a manual step in
+  Console, since that can't always be done without risking the existing
+  data - this script deliberately won't attempt it automatically.
+- **`appwrite push function` needs the `rules.read` scope**, which
+  Console's API key scope picker lists under the **Proxy** category, not
+  Functions - easy to miss (see [Backend setup](#backend-setup) step 7).
+- **Only 2 Appwrite Functions exist (`notifications`, `maintenance`),
+  each serving two triggers**, specifically to fit inside Appwrite
+  Cloud's free-tier limit of 2 Functions per project - see
+  [Backend setup](#backend-setup) step 6. This also happened to remove
+  duplicated code: `sendToUser.ts`/`notificationStrings.ts` were
+  byte-identical between the two functions now merged into
+  `notifications`, and `listAll.ts` likewise between the two now merged
+  into `maintenance`.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).
@@ -532,8 +575,9 @@ everything after that, which CI automates.
   the parent list document. Mirrors the existing "any signed-in user can
   read any profile" tradeoff above.
 - Due-date reminders are best-effort: an on-device WorkManager job covers
-  the device that set the reminder, and the `due-date-reminders` Appwrite
-  Function sweeps every 15 minutes as the cross-device fallback.
+  the device that set the reminder, and the `notifications` Appwrite
+  Function's CRON-triggered sweep runs every 15 minutes as the
+  cross-device fallback.
 - `deleteList` and `reorderTasks` no longer run as an atomic batch -
   Appwrite has no transactional multi-document write like Firestore's
   `WriteBatch`. A crash mid-operation can leave a partial state (e.g. some
@@ -544,9 +588,9 @@ everything after that, which CI automates.
   [Backend setup](#backend-setup) step 5. The debug/release keystores
   themselves are still required, just for Play Store/APK signing.
 - **Account deletion** satisfies Play's dual in-app + web requirement:
-  the Profile screen's "Delete my account" action calls the
-  `delete-account` Appwrite Function
-  (`appwrite/functions/delete-account/src`), which transfers or removes
+  the Profile screen's "Delete my account" action HTTP-invokes the
+  `maintenance` Appwrite Function
+  (`appwrite/functions/maintenance/src/deleteAccount.ts`), which transfers or removes
   the user's membership on every list they're part of (a shared list
   they own is handed to another member rather than deleted out from
   under them), unassigns their tasks elsewhere, deletes their

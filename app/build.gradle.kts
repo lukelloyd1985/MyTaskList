@@ -72,7 +72,7 @@ android {
         buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
         buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
         buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
-        buildConfigField("String", "APPWRITE_FUNCTION_DELETE_ACCOUNT_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_DELETE_ACCOUNT_ID") ?: "delete-account"}\"")
+        buildConfigField("String", "APPWRITE_FUNCTION_MAINTENANCE_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID") ?: "maintenance"}\"")
 
         // Deep link scheme Appwrite's OAuth2 flow redirects back into the
         // app through - see AndroidManifest.xml and AuthRepository.
