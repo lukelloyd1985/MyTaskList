@@ -71,6 +71,25 @@ function isNotFound(err) {
 }
 
 async function ensureDatabase(db) {
+  // Checked via a read first, rather than create-then-catch-409: a real
+  // run showed that once a project is at its plan's database-count limit
+  // (Appwrite Cloud's free tier allows 1), `create` returns 403
+  // "additional_resource_not_allowed" even when called with an ID that
+  // already exists - the quota check fires before the duplicate-ID
+  // check, so a 409-only catch never sees "already exists" again after
+  // the first successful run. `get` costs nothing against that quota, so
+  // this sidesteps the ambiguity entirely instead of trying to
+  // special-case that error code too.
+  try {
+    await tablesDB.get({ databaseId: db.$id });
+    console.log(`Database "${db.$id}" already exists, skipping`);
+    return;
+  } catch (err) {
+    if (!isNotFound(err)) {
+      throw err;
+    }
+  }
+
   try {
     await tablesDB.create({
       databaseId: db.$id,
