@@ -45,6 +45,14 @@ name: Deploy Appwrite (Functions)
 # for the exact strategy and its limits (a drifted column is flagged, not
 # auto-fixed).
 #
+# The database itself is checked for existence via a `get` call before
+# ever calling `create` - a real run showed that once a project is at its
+# plan's database-count limit (Appwrite Cloud's free tier allows 1),
+# `create` returns 403 "additional_resource_not_allowed" even for an ID
+# that already exists (the quota check fires before the duplicate-ID
+# check), so treating only 409 as "already exists" stopped working after
+# the first successful bootstrap run.
+#
 # Function runtime: appwrite.json declared "node-24", syntactically valid
 # per the CLI's own accepted-values list but rejected at push time with
 # "Runtime "node-24" is not supported" - not every listed runtime is
