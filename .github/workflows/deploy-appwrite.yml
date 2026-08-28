@@ -61,6 +61,19 @@ name: Deploy Appwrite (Functions)
 # internally between two triggers via the x-appwrite-trigger request
 # header, specifically to fit that cap without needing a paid plan. See
 # either function's src/main.ts and README "Backend setup" step 6.
+#
+# Appwrite's own build container ("open-runtimes") failed both functions'
+# `npm run build` with "Cannot find module '../lib/tsc.js'" from
+# node_modules/.bin/tsc - that symlink (-> ../typescript/bin/tsc, which
+# does require('../lib/tsc.js') relative to itself) resolves fine with a
+# normal local `npm install`, but not in that container (which logs an
+# "Unknown env config 'store-dir'" warning right before the failure,
+# suggesting its npm is configured to install into a different physical
+# layout than the standard node_modules tree). Fixed by having each
+# function's package.json "build" script invoke
+# `node node_modules/typescript/bin/tsc` directly instead of going
+# through the `.bin/tsc` shim - verified locally (rm -rf node_modules
+# dist && npm install && npm run build) for both functions.
 on:
   workflow_dispatch:
 
