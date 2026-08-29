@@ -1,6 +1,5 @@
 package com.mytasks.app.ui.auth
 
-import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,11 +39,11 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 
-    fun signInWithGoogle(activity: Activity) {
+    fun onGoogleIdToken(idToken: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
             try {
-                val user = authRepository.signInWithGoogle(activity)
+                val user = authRepository.signInWithGoogleIdToken(idToken)
                 userRepository.upsertProfile(user)
                 _uiState.value = AuthUiState(isLoading = false)
             } catch (t: Throwable) {

@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Listes de tâches partagées pour la maison, le jardin et tout le reste</string>
     <string name="continue_with_google">Continuer avec Google</string>
-    <string name="error_google_signin_not_configured">La connexion Google n\'est pas encore configurée - voir README, section Backend setup</string>
     <string name="error_google_signin_failed">Échec de la connexion Google [%1$s] : %2$s</string>
     <string name="error_unexpected_credential_type">Type d\'identifiant inattendu de Google : %1$s</string>
     <string name="error_sign_in_failed">Échec de la connexion</string>

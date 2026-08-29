@@ -19,6 +19,8 @@
     <string name="login_tagline">Shared task lists for your home, garden, and everything in between</string>
     <string name="continue_with_google">Continue with Google</string>
     <string name="error_sign_in_failed">Sign-in failed</string>
+    <string name="error_google_signin_failed">Google sign-in failed [%1$s]: %2$s</string>
+    <string name="error_unexpected_credential_type">Unexpected credential type from Google: %1$s</string>
 
     <!-- Lists screen -->
     <string name="lists_title">My lists</string>

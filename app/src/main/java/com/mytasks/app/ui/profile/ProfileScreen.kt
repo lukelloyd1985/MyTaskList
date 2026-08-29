@@ -81,10 +81,11 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // AppUser.photoUrl is "" (not null) when it's unset - Appwrite's
-            // Account model has no OAuth avatar field, so this is only ever
-            // populated on a best-effort basis right after sign-in (see
-            // AuthRepository.fetchGooglePhotoUrl). Treat blank the same as
-            // absent so the fallback icon below still shows.
+            // Account model has no OAuth avatar field, so this comes from
+            // the verified Google ID token's picture claim, forwarded by
+            // the maintenance Function's /google-sign-in route (see
+            // AuthRepository.signInWithGoogleIdToken). Treat blank the same
+            // as absent so the fallback icon below still shows.
             val photoUrl = user?.photoUrl?.takeIf { it.isNotBlank() }
             if (photoUrl != null) {
                 AsyncImage(

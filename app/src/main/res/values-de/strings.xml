@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Geteilte Aufgabenlisten für Zuhause, Garten und alles dazwischen</string>
     <string name="continue_with_google">Weiter mit Google</string>
-    <string name="error_google_signin_not_configured">Google-Anmeldung ist noch nicht eingerichtet - siehe README, Abschnitt Backend setup</string>
     <string name="error_google_signin_failed">Google-Anmeldung fehlgeschlagen [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Unerwarteter Anmeldedatentyp von Google: %1$s</string>
     <string name="error_sign_in_failed">Anmeldung fehlgeschlagen</string>

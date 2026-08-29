@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Общие списки задач для дома, сада и всего остального</string>
     <string name="continue_with_google">Продолжить через Google</string>
-    <string name="error_google_signin_not_configured">Вход через Google ещё не настроен - см. README, раздел Backend setup</string>
     <string name="error_google_signin_failed">Не удалось войти через Google [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Неожиданный тип учётных данных от Google: %1$s</string>
     <string name="error_sign_in_failed">Не удалось войти</string>

@@ -1,11 +1,8 @@
 package com.mytasks.app.data.remote
 
-import android.app.Activity
 import android.content.Context
-import androidx.activity.ComponentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.appwrite.enums.ExecutionStatus
-import io.appwrite.enums.OAuthProvider
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.services.Account
 import io.appwrite.services.Functions
@@ -16,10 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,12 +31,16 @@ interface AuthRepository {
     val authState: Flow<AppUser?>
     val currentUser: AppUser?
 
-    /** Runs Appwrite's OAuth2 browser-redirect flow for Google (opens a
-     *  Custom Tab against Appwrite's own hosted OAuth endpoint; no Google
-     *  ID token ever reaches app code - see AndroidManifest.xml's
-     *  appwriteCallbackScheme deep link and Appwrite Console's configured
-     *  Google provider). */
-    suspend fun signInWithGoogle(activity: Activity): AppUser
+    /** Bridges a Google ID token obtained natively via Credential Manager
+     *  (see LoginScreen.kt - no browser redirect, no Appwrite-branded page
+     *  ever shown) into a real Appwrite session. Sends the token to the
+     *  `maintenance` Function's /google-sign-in route (see
+     *  appwrite/functions/maintenance/src/googleSignIn.ts), which verifies
+     *  it against Google, creates the Appwrite Auth user on first sign-in,
+     *  and mints a custom token; this then exchanges that token for a
+     *  session via account.createSession, following Appwrite's documented
+     *  Custom Token login pattern. */
+    suspend fun signInWithGoogleIdToken(idToken: String): AppUser
 
     suspend fun signOut()
 
@@ -101,28 +98,22 @@ class AppwriteAuthRepository @Inject constructor(
         }
     }
 
-    override suspend fun signInWithGoogle(activity: Activity): AppUser {
-        // createOAuth2Session switched to createOAuth2Token: Appwrite's own
-        // guidance ("Fixing OAuth2 authentication issues in Appwrite",
-        // appwrite.io/blog/post/fixing-oauth2-issues-in-appwrite-cloud) is to
-        // use the token-based flow because the session-based flow depends on
-        // a cookie set on Appwrite's own domain, which third-party-cookie
-        // blocking can break. `provider` also takes the io.appwrite.enums.OAuthProvider
-        // enum, not a raw String - verified against
-        // io.appwrite/services/Account.kt in github.com/appwrite/sdk-for-android
-        // (both createOAuth2Session/createOAuth2Token still exist there as of
-        // SDK 25.2.0, this project's pinned version - see gradle/libs.versions.toml
-        // for why it's pinned below the SDK's current latest - and share this
-        // signature; on Android both already complete the session locally via
-        // the WebAuthComponent redirect callback, so no separate createSession()
-        // exchange call is needed).
-        val componentActivity = activity as ComponentActivity
-        account.createOAuth2Token(
-            activity = componentActivity,
-            provider = OAuthProvider.GOOGLE,
-            scopes = listOf("email", "profile"),
+    override suspend fun signInWithGoogleIdToken(idToken: String): AppUser {
+        val requestBody = JSONObject().put("idToken", idToken).toString()
+        val execution = functions.createExecution(
+            functionId = BuildConfig.APPWRITE_FUNCTION_MAINTENANCE_ID,
+            body = requestBody,
+            path = "/google-sign-in",
         )
-        val photoUrl = fetchGooglePhotoUrl()
+        val responseBody = JSONObject(execution.responseBody)
+        if (!responseBody.optBoolean("success", false)) {
+            error(responseBody.optString("message", "Google sign-in failed"))
+        }
+        val userId = responseBody.getString("userId")
+        val secret = responseBody.getString("secret")
+        val photoUrl = responseBody.optString("photoUrl", "")
+
+        account.createSession(userId = userId, secret = secret)
         val appUser = mapUser(account.get(), photoUrlOverride = photoUrl)
         _authState.value = appUser
         return appUser
@@ -150,33 +141,6 @@ class AppwriteAuthRepository @Inject constructor(
             error("Account deletion failed (status=${execution.status}, code=$statusCode)")
         }
         signOut()
-    }
-
-    /** Appwrite's Account/User model has no OAuth profile-picture field.
-     *  Best-effort only: reads the Google OAuth access token off the
-     *  current session and asks Google's userinfo endpoint for the profile
-     *  photo. Any failure here (missing token, offline, unexpected
-     *  response shape) must never break sign-in, so every error path just
-     *  falls back to "". */
-    private suspend fun fetchGooglePhotoUrl(): String {
-        return try {
-            val session = account.getSession(sessionId = "current")
-            // Field name confirmed against io.appwrite.models.Session in
-            // sdk-for-android: providerAccessToken is correct.
-            val accessToken = session.providerAccessToken
-            if (accessToken.isNullOrBlank()) return ""
-            val connection = URL("https://www.googleapis.com/oauth2/v3/userinfo")
-                .openConnection() as HttpURLConnection
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 10_000
-            connection.setRequestProperty("Authorization", "Bearer $accessToken")
-            connection.inputStream.use { stream ->
-                val body = BufferedReader(InputStreamReader(stream)).readText()
-                JSONObject(body).optString("picture", "")
-            }
-        } catch (t: Throwable) {
-            ""
-        }
     }
 
     private fun mapUser(user: io.appwrite.models.User<*>, photoUrlOverride: String? = null): AppUser = AppUser(

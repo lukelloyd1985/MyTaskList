@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Liste di attività condivise per casa, giardino e tutto il resto</string>
     <string name="continue_with_google">Continua con Google</string>
-    <string name="error_google_signin_not_configured">L\'accesso con Google non è ancora configurato - vedi il README, sezione Backend setup</string>
     <string name="error_google_signin_failed">Accesso con Google non riuscito [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Tipo di credenziale inatteso da Google: %1$s</string>
     <string name="error_sign_in_failed">Accesso non riuscito</string>

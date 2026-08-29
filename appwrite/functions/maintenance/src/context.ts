@@ -1,6 +1,7 @@
 export interface RequestContext {
   bodyJson?: unknown;
   headers: Record<string, string>;
+  path: string;
 }
 
 export interface ResponseContext {

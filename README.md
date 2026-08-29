@@ -40,12 +40,18 @@ both.
   local cache/sync, so the app now requires connectivity for every read
   and write - see [Notes & tradeoffs](#notes--tradeoffs), this is the
   single most user-visible change from the old backend.
-- **Auth**: Appwrite Account, Google sign-in only - via Appwrite's OAuth2
-  browser-redirect token flow (`account.createOAuth2Token` opens a
-  Custom Tab against Appwrite's own hosted Google OAuth endpoint and
-  redirects back through an `appwrite-callback-<PROJECT_ID>://` deep
-  link), replacing the old Credential-Manager/Google-Identity native ID
-  token flow - see `AuthRepository.kt` and `LoginScreen.kt`.
+- **Auth**: Appwrite Account, Google sign-in only - via Android's native
+  Credential Manager / Google Identity Services "Sign in with Google" UI
+  (no browser, no Appwrite-branded page ever shown to the user), bridged
+  into a real Appwrite session by a **custom-token exchange**: the
+  Credential Manager flow yields a Google ID token, which the
+  `maintenance` Function's `/google-sign-in` route verifies server-side
+  against Google, creates/looks up the matching Appwrite Auth user, and
+  mints a one-time token via `users.createToken`; the app then exchanges
+  that `{userId, secret}` pair for a session with
+  `account.createSession` - Appwrite's documented "Custom Token" login
+  pattern. See `LoginScreen.kt`, `AuthRepository.kt`, and
+  `appwrite/functions/maintenance/src/googleSignIn.ts`.
 - **Notifications**: still delivered over Firebase Cloud Messaging as the
   transport, but sent via **Appwrite Messaging** rather than a direct call
   to FCM's API. The Android app registers each device as an Appwrite
@@ -191,14 +197,11 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    appends `applicationIdSuffix = ".debug"`, so a debug build (`./gradlew
    assembleDebug`, the CI debug APK, or any local testing) genuinely
    runs under that different package name, not the base one above. Skip
-   either registration and every Appwrite Account/session call from a
-   build using that package name - sign-in included - fails, because
-   Appwrite only trusts redirect/callback URLs whose hostname is in the
-   project's registered platform list; an unregistered app gets the
-   same "Missing redirect URL" error as a genuinely misconfigured Google
-   OAuth client (see step 6 below), even with that side fully correct.
-   This is a separate requirement from step 6's Google Cloud Console
-   redirect URI - both are needed, neither substitutes for the other.
+   either registration and every Appwrite call from a build using that
+   package name fails, since Appwrite only serves API requests from an
+   app whose package name is in the project's registered platform list.
+   This is separate from step 6's Google-side certificate registration -
+   both are needed, neither substitutes for the other.
 4. **No manual Console work needed for the database or tables** -
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
    step 10 for its one-time CI setup) creates them for you when it runs.
@@ -235,45 +238,45 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    reconcile that by hand in Console, since some changes (like narrowing
    a string's size, or changing a column's type) aren't safely automatable
    without risking the existing data anyway.
-6. **Enable the Google OAuth2 provider.** Appwrite does **not**
-   auto-provision anything on Google's side for this - you create the
-   Google OAuth client yourself and hand its credentials to Appwrite, in
-   this order (getting the order wrong, or skipping the last step, is
-   exactly what produces Appwrite's "Missing redirect URL" sign-in error
-   and the "To complete set up, add this OAuth2 redirect URI to your
-   Google app configuration" prompt on the provider's settings page):
+6. **Create a Google Cloud OAuth 2.0 Web application Client ID.** Sign-in
+   never touches Appwrite's own hosted OAuth2 pages at all (no
+   `appwrite.io`-branded page is ever shown to the user) - instead the
+   Android app gets a Google ID token natively via Credential Manager,
+   and the `maintenance` Function verifies that token server-side and
+   bridges it into an Appwrite session (see
+   [Architecture](#architecture)'s Auth bullet). Both sides of that
+   bridge need to agree on one Google OAuth client:
    1. [Google Cloud Console](https://console.cloud.google.com) → APIs &
       Services → **Credentials** → Create credentials → **OAuth client
       ID** → Application type **Web application**. (If this is the
       project's first OAuth client, Google makes you configure the
       **OAuth consent screen** first - the defaults are fine for
-      getting a working client.) Give it any name; for **Authorized
-      redirect URIs**, add a temporary placeholder for now (e.g.
-      `https://localhost/`) since you don't have Appwrite's real one
-      yet. Save, and copy the **Client ID** and **Client secret** it
-      generates.
-   2. Appwrite Console → Auth → Settings → **Google** → paste the Client
-      ID into **App ID** and the Client secret into **App Secret**,
-      toggle the provider on, and save.
-   3. The same Appwrite settings page now shows the real redirect URI to
-      use, next to the "To complete set up..." prompt - copy it exactly
-      as shown (don't hand-construct it; the typical shape is
-      `https://<APPWRITE_ENDPOINT_HOST>/v1/account/sessions/oauth2/callback/google/<PROJECT_ID>`,
-      but copy the literal value Console gives you).
-   4. Back in Google Cloud Console, on the same OAuth client from step
-      1, replace the placeholder in **Authorized redirect URIs** with
-      that real URI, and save. Sign-in should work on the next attempt -
-      Google only redirects back to URIs it has listed exactly, so a
-      mismatch (or the placeholder never being replaced) is what causes
-      the failure you'd otherwise see.
-
-   This is still simpler than the old Firebase setup: because sign-in
-   goes through Appwrite's own hosted OAuth endpoint rather than a
-   native Credential-Manager flow on the device, Google never needs the
-   app's own signing-certificate SHA-1/SHA-256 fingerprints registered
-   anywhere (see [Notes & tradeoffs](#notes--tradeoffs)). The
-   debug/release keystores themselves are still required - just for
-   Play/APK signing, not for this.
+      getting a working client.) Give it any name; no redirect URI is
+      needed here, since there's no redirect - the ID token goes
+      straight from the device to the `maintenance` Function. Save, and
+      copy the **Client ID** it generates (the **Client secret** isn't
+      needed for this flow - Credential Manager only ever sends the
+      Client ID, never the secret, off-device).
+   2. **Register the app's signing-certificate fingerprint** with that
+      same OAuth client: Google Cloud Console → the OAuth client from
+      step 1 → it also needs an **Android** OAuth client (Create
+      credentials → OAuth client ID → Application type **Android**)
+      with this repo's package name (`com.github.lukelloyd1985.mytasks`,
+      and a second one for `com.github.lukelloyd1985.mytasks.debug` -
+      see step 3's Platform registration for why both) and that build's
+      signing-certificate **SHA-1** fingerprint (`./gradlew
+      signingReport` prints both the debug and release ones). Unlike
+      the old OAuth2 browser-redirect flow, Credential Manager runs
+      natively on-device, so Google does need to recognize the calling
+      app's own certificate - see
+      [Notes & tradeoffs](#notes--tradeoffs).
+   3. Use the **Web application** Client ID from step 1 (not either
+      Android client ID from step 2 - those exist only to satisfy
+      Google's cert check, Credential Manager never sends them
+      anywhere) as both `MYTASKS_GOOGLE_WEB_CLIENT_ID` (step 11) and the
+      `maintenance` Function's `GOOGLE_WEB_CLIENT_ID` variable (step 9) -
+      it's what makes the ID token's `aud` claim match what
+      `googleSignIn.ts` verifies server-side.
 7. **Configure the FCM Provider for Appwrite Messaging**: Console →
    Messaging → **Providers** → Add provider → **FCM** (under Push). Give
    it a name (e.g. `fcm`) and provide the same two values push
@@ -310,25 +313,30 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
    push both when a task's assignee changes - database event trigger -
    and on the CRON due-date reminder sweep every 15 minutes) and
-   `maintenance` (HTTP-invoked account deletion, cascading through the
-   caller's lists/tasks; and a database event trigger that keeps task
-   permissions in sync with their parent list's membership - see
-   [Appwrite schema](#appwrite-schema)). Each is one Appwrite Function
-   serving two triggers - dispatched internally by the `x-appwrite-trigger`
-   request header (see either function's `src/main.ts`) - specifically to
-   fit inside Appwrite Cloud's free-tier limit of **2 Functions per
-   project**: this repo now declares exactly 2, so no plan upgrade or
-   consolidation should be needed for a standard setup. If you ever add a
-   third Function, you'll hit "The maximum number of functions allowed
-   for the selected plan has reached" and need to either merge it into
-   one of the existing two the same way, or upgrade the plan.
+   `maintenance` (HTTP-invoked Google sign-in bridge and account
+   deletion, cascading through the caller's lists/tasks; and a database
+   event trigger that keeps task permissions in sync with their parent
+   list's membership - see [Appwrite schema](#appwrite-schema)). Each is
+   one Appwrite Function serving multiple triggers/routes - dispatched
+   internally by the `x-appwrite-trigger` request header and, for
+   `maintenance`'s two HTTP routes, the request path (see either
+   function's `src/main.ts`) - specifically to fit inside Appwrite
+   Cloud's free-tier limit of **2 Functions per project**: this repo now
+   declares exactly 2, so no plan upgrade or consolidation should be
+   needed for a standard setup. If you ever add a third Function, you'll
+   hit "The maximum number of functions allowed for the selected plan
+   has reached" and need to either merge it into one of the existing two
+   the same way, or upgrade the plan.
 
    Push them via [`deploy-appwrite.yml`](#deploying-appwrite-functions)
    (`appwrite push function all --force` - unlike tables, this hasn't
    shown any destructive behavior), or create/deploy each one by hand in
-   the Console. Neither needs any environment variables set - the FCM
+   the Console. `notifications` needs no environment variables - the FCM
    credential lives with the Provider from step 7, not a Function
-   secret.
+   secret. `maintenance` needs one: Console → Functions → `maintenance` →
+   **Variables** → add `GOOGLE_WEB_CLIENT_ID`, set to the Web application
+   Client ID from step 6 - `googleSignIn.ts` uses it to verify the
+   audience of every Google ID token it's handed.
 10. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
@@ -350,12 +358,14 @@ entry to that table to match the new `values-<language code>/strings.xml`.
     CI, `android-build.yml` already reuses the same `APPWRITE_ENDPOINT`
     secret [Deploying Appwrite Functions](#deploying-appwrite-functions)
     has you create for the Appwrite endpoint, and separately reads the
-    four Firebase values below from four more repository secrets it
-    already expects (Settings → Secrets and variables → Actions):
-    `MYTASKS_FIREBASE_PROJECT_ID`, `MYTASKS_FIREBASE_APPLICATION_ID`,
-    `MYTASKS_FIREBASE_API_KEY`, `MYTASKS_FIREBASE_SENDER_ID` - create
-    those four with the values from step 8's table. For a local build,
-    export all five as shell env vars yourself before running Gradle:
+    four Firebase values and the Google Web Client ID below from five
+    more repository secrets it already expects (Settings → Secrets and
+    variables → Actions): `MYTASKS_FIREBASE_PROJECT_ID`,
+    `MYTASKS_FIREBASE_APPLICATION_ID`, `MYTASKS_FIREBASE_API_KEY`,
+    `MYTASKS_FIREBASE_SENDER_ID`, `MYTASKS_GOOGLE_WEB_CLIENT_ID` - create
+    those five with the values from step 8's table and step 6. For a
+    local build, export all six as shell env vars yourself before
+    running Gradle:
 
     | Env var | Value |
     | --- | --- |
@@ -364,6 +374,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
     | `MYTASKS_FIREBASE_APPLICATION_ID` | App ID from step 8's table |
     | `MYTASKS_FIREBASE_API_KEY` | API key from step 8's table |
     | `MYTASKS_FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
+    | `MYTASKS_GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
 
     The rest (`MYTASKS_APPWRITE_DATABASE_ID`,
     `MYTASKS_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
@@ -458,19 +469,20 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEY_ALIAS` | key alias (e.g. `mytasks`) |
 | `MYTASKS_KEY_PASSWORD` | key password |
 
-**A stable debug keystore for CI builds is now optional.** It used to be
-required for Google Sign-In, because Firebase verified the calling app's
-signing certificate as part of its account-reauth check - since Auth
-moved to Appwrite's OAuth2 browser-redirect flow (see
-[Architecture](#architecture)), that check no longer exists, and sign-in
-works from a CI-built debug APK regardless of its signing certificate.
-It's still worth setting up if you want repeat CI debug builds to install
-*over* each other on a test device rather than requiring an uninstall
-first (Android refuses to install an update signed with a different
-certificate than what's already on the device) - without it,
-`assembleDebug` falls back to AGP's built-in debug signing, which
-auto-generates a brand-new random keystore on every run, since CI runners
-are a fresh VM each time. Generate one the same way and add it as its own
+**A stable debug keystore for CI builds is required for Google Sign-In to
+work on a CI-built debug APK.** Credential Manager's Google Identity
+Services flow verifies the calling app's signing certificate against the
+Android OAuth client registered in step 6.2 - unless that certificate is
+registered there, `GetGoogleIdOption`/`GetSignInWithGoogleOption` fails.
+Without a stable keystore, `assembleDebug` falls back to AGP's
+built-in debug signing, which auto-generates a brand-new random keystore
+on every run (CI runners are a fresh VM each time), so the fingerprint
+registered in Google Cloud Console would only ever match one specific CI
+run. It's also worth setting up for the same reason even ignoring
+sign-in: it lets repeat CI debug builds install *over* each other on a
+test device rather than requiring an uninstall first (Android refuses to
+install an update signed with a different certificate than what's
+already on the device). Generate one the same way and add it as its own
 set of secrets:
 
 ```
@@ -644,20 +656,20 @@ everything after that, which CI automates.
   [Backend setup](#backend-setup) step 9. This also happened to remove
   duplicated code: `listAll.ts` was byte-identical between the two
   functions now merged into `maintenance`.
-- **An unregistered Platform produces the same "Missing redirect URL"
-  error as a misconfigured Google OAuth client** - Appwrite validates
-  every redirect/callback URL's hostname against the project's
-  registered Platform list (Console → project Dashboard → Platforms),
-  independent of whatever's configured on Google's side. Both this
-  (see [Backend setup](#backend-setup) step 3) and the Google Cloud
-  Console redirect URI (step 6) are required; neither substitutes for
-  the other, and the error message alone doesn't say which one is
-  missing. Register **both** the release package name
-  (`com.github.lukelloyd1985.mytasks`) and the debug one
-  (`com.github.lukelloyd1985.mytasks.debug`, from the debug build
-  type's `applicationIdSuffix`) as separate Platforms - a build using
-  either package name only works if that exact package name has its
-  own registration.
+- **An unregistered Platform and an unregistered Google OAuth Android
+  client are two separate, easy-to-conflate failure modes** - the
+  former (Console → project Dashboard → Platforms, see
+  [Backend setup](#backend-setup) step 3) is Appwrite's own check on
+  which app package names may call the project's API at all; the latter
+  (step 6.2) is Google's own check, independent of Appwrite, on which
+  app package name + signing certificate may obtain a Google ID token
+  in the first place. A build failing either one fails sign-in, but at
+  a different point in the flow, with a different error. Register
+  **both** the release package name (`com.github.lukelloyd1985.mytasks`)
+  and the debug one (`com.github.lukelloyd1985.mytasks.debug`, from the
+  debug build type's `applicationIdSuffix`) with **both** systems - a
+  build using either package name only works if that exact package name
+  is registered everywhere it needs to be.
 - **Notifications go through Appwrite Messaging, not a direct FCM API
   call** - the Android app registers each device as a Messaging push
   Target (`AuthRepository.registerPushTarget`), and the `notifications`
@@ -724,10 +736,21 @@ everything after that, which CI automates.
   `WriteBatch`. A crash mid-operation can leave a partial state (e.g. some
   tasks reordered, some not), but it self-heals on retry rather than
   silently losing data.
-- **Google Sign-In no longer requires registering the app's signing
-  certificate** (SHA-1/SHA-256) anywhere - see
-  [Backend setup](#backend-setup) step 6. The debug/release keystores
-  themselves are still required, just for Play Store/APK signing.
+- **Sign-in goes through Android's native Credential Manager, not
+  Appwrite's hosted OAuth2 pages** - the earlier version of this
+  migration used `account.createOAuth2Token`, which opens a Custom Tab
+  against an `appwrite.io`-branded page before redirecting back into the
+  app. That's a worse sign-in experience (an extra branded hop the user
+  didn't ask for) for no real benefit here, so this app instead keeps
+  the native Credential Manager UI and bridges the resulting Google ID
+  token into an Appwrite session server-side via the `maintenance`
+  Function's custom-token exchange - see
+  [Architecture](#architecture)'s Auth bullet. The tradeoff: Google
+  **does** need the app's signing-certificate SHA-1 fingerprint
+  registered again (see [Backend setup](#backend-setup) step 6.2),
+  which the OAuth2-redirect approach would have avoided - the
+  debug/release keystores matter for this now, not just for Play
+  Store/APK signing.
 - **Account deletion** satisfies Play's dual in-app + web requirement:
   the Profile screen's "Delete my account" action HTTP-invokes the
   `maintenance` Appwrite Function
