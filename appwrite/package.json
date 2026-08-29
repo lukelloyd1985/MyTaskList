@@ -2,9 +2,10 @@
   "name": "mytasks-appwrite-tooling",
   "private": true,
   "type": "module",
-  "description": "One-off scripts for provisioning the Appwrite project (see bootstrap-tables.mjs) - separate from appwrite/functions/*, which each have their own independent package.json as required for individual Appwrite Function deployment.",
+  "description": "One-off scripts for provisioning the Appwrite project (see bootstrap-tables.mjs, set-function-variables.mjs) - separate from appwrite/functions/*, which each have their own independent package.json as required for individual Appwrite Function deployment.",
   "scripts": {
-    "bootstrap-tables": "node bootstrap-tables.mjs"
+    "bootstrap-tables": "node bootstrap-tables.mjs",
+    "set-function-variables": "node set-function-variables.mjs"
   },
   "dependencies": {
     "node-appwrite": "^28.0.0"

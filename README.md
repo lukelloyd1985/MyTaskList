@@ -366,10 +366,17 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    shown any destructive behavior), or create/deploy each one by hand in
    the Console. `notifications` needs no environment variables - the FCM
    credential lives with the Provider from step 7, not a Function
-   secret. `maintenance` needs one: Console → Functions → `maintenance` →
-   **Variables** → add `GOOGLE_WEB_CLIENT_ID`, set to the Web application
-   Client ID from step 6 - `googleSignIn.ts` uses it to verify the
-   audience of every Google ID token it's handed.
+   secret. `maintenance` needs one, `GOOGLE_WEB_CLIENT_ID` (the Web
+   application Client ID from step 6 - `googleSignIn.ts` uses it to
+   verify the audience of every Google ID token it's handed) - CI sets
+   this automatically on every deploy run (see
+   `set-function-variables.mjs`, step 11's
+   `MYTASKS_GOOGLE_WEB_CLIENT_ID` secret, and
+   [Deploying Appwrite Functions](#deploying-appwrite-functions) below),
+   so there's nothing to click in Console for a standard CI-driven
+   setup. Only needed by hand if deploying via Console instead of CI:
+   Console → Functions → `maintenance` → **Variables** → add
+   `GOOGLE_WEB_CLIENT_ID`, same value.
 10. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
@@ -377,7 +384,13 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Console's own scope list has already dropped the legacy
    `collections`/`attributes` scopes in favor of `tables`/`columns` -
    don't grant the deprecated ones), **`functions.read`** and
-   **`functions.write`**, **`rules.read`** (needed by `appwrite push
+   **`functions.write`** (also covers setting the `maintenance`
+   Function's `GOOGLE_WEB_CLIENT_ID` variable - see
+   `set-function-variables.mjs` and
+   [Deploying Appwrite Functions](#deploying-appwrite-functions) below -
+   Appwrite's scopes are per-resource, not per-subresource, so this
+   isn't a separate grant; if a deploy run ever disagrees, that's the
+   first scope to check), **`rules.read`** (needed by `appwrite push
    function` - it's listed under the **Proxy** category in the scope
    picker, not Functions, which is easy to miss), and **`users.write`**
    (needed by `maintenance`'s cascading Auth-account deletion). This
@@ -429,9 +442,14 @@ is a manually-triggered ("Run workflow" in the **Actions** tab - works
 from the GitHub mobile site or app, no local Appwrite CLI or login
 needed) job that pushes both Appwrite Functions from
 [`appwrite/appwrite.json`](appwrite/appwrite.json) using a server API key
-instead of an interactive login. It never runs on its own - a Functions
-deploy going out on every push felt like too much blast radius for
-something this easy to trigger on demand instead.
+instead of an interactive login, and also sets the `maintenance`
+Function's `GOOGLE_WEB_CLIENT_ID` environment variable via
+`set-function-variables.mjs` (see [Backend setup](#backend-setup) step
+9 - `appwrite push function` itself never touches Function variables, so
+this fills that gap directly through the API instead of requiring a
+manual Console click on every fresh setup). It never runs on its own - a
+Functions deploy going out on every push felt like too much blast radius
+for something this easy to trigger on demand instead.
 
 It does **not** push the database/tables - `appwrite push tables` has
 repeatedly planned to delete the `mytasks` database outright (see
@@ -441,17 +459,17 @@ workflow entirely. `bootstrap-tables.mjs` (also run by this workflow) is
 the only thing that creates or updates the database and tables, and it
 does so non-destructively - see step 5.
 
-One-time setup - two repository secrets (Settings → Secrets and
-variables → Actions), both from the Appwrite Console (the project ID
-isn't among them - it's read from `appwrite/appwrite.json`, see
-[Backend setup](#backend-setup) step 2):
+One-time setup - three repository secrets (Settings → Secrets and
+variables → Actions); the project ID isn't among them - it's read from
+`appwrite/appwrite.json`, see [Backend setup](#backend-setup) step 2:
 
 | Secret | Value |
 | --- | --- |
 | `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
 | `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 10 |
+| `MYTASKS_GOOGLE_WEB_CLIENT_ID` | The same secret [Backend setup](#backend-setup) step 11 has the Android build read - reused here rather than duplicated under a second name, since it's the identical Client ID value both sides need to agree on (see step 6.3) |
 
-That's the whole setup - a single scoped API key, considerably simpler
+That's nearly the whole setup - one scoped API key plus one shared Client ID secret, considerably simpler
 than the old Firebase deploy's Google Cloud service account juggling five
 separate IAM roles (Firebase Admin, Cloud Build Editor, Service Account
 User, Cloud Scheduler Admin, Artifact Registry Admin) plus its
