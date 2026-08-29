@@ -292,23 +292,50 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Notifications bullet for why (Appwrite Messaging handles FCM dispatch
    directly; the `notifications` Function only decides what to send and
    to whom).
-8. **Register an Android app in that same Firebase project**, so the app
-   itself can obtain FCM tokens: Firebase Console → Project settings →
+8. **Register two Android apps in that same Firebase project** - one per
+   package name this repo actually ships, so the app itself can obtain
+   FCM tokens under either one: Firebase Console → Project settings →
    General → **Your apps** → Add app → **Android**, using this repo's
-   `applicationId` (`com.github.lukelloyd1985.mytasks` - see
+   release `applicationId` (`com.github.lukelloyd1985.mytasks` - see
    `app/build.gradle.kts`; the package name has to match exactly or the
-   registration won't apply to this app). You can skip the SDK setup
-   instructions Firebase shows afterward (the `google-services.json`
-   download, the Gradle plugin) - this repo doesn't use either, see
-   step 11. Once the app is registered, note down its four values from
-   Project settings → General → **Your apps** → the app you just added:
+   registration won't apply to this app). **Repeat Add app a second time**
+   for `com.github.lukelloyd1985.mytasks.debug` (the debug build type's
+   `applicationIdSuffix`). Two separate registrations are needed - each
+   app gets its own **App ID**, which Firebase/Crashlytics use to
+   identify which app a given build belongs to - but they share
+   **one** underlying Android API key: Firebase auto-creates a single
+   Android key *per project* (see the table below), and registering a
+   second Android app just adds its package name + signing certificate
+   as another entry to that same key's Android restrictions in Google
+   Cloud Console, rather than minting a new key. This still mirrors step
+   3's Appwrite Platform and step 6.2's Google OAuth Android client,
+   which both need the release/debug pair registered separately - just
+   for App ID here, not the API key too.
+
+   You can skip the SDK setup instructions Firebase shows after adding
+   each app (the `google-services.json` download, the Gradle plugin) -
+   this repo doesn't use either, see step 11. Once both apps are
+   registered, note down these values from Project settings → General →
+   **Your apps** → each app:
 
    | Value | Where to find it |
    | --- | --- |
-   | Project ID | Firebase Console → Project settings → General → **Project ID** (same value as step 7) |
-   | App ID | Firebase Console → Project settings → General → **Your apps** → the Android app → **App ID** |
-   | API key | Not in Firebase Console at all - Android gets its own, separately-restricted key, only visible in [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) (same underlying project) as **"Android key (auto created by Firebase)"**. This is *not* the "Web API Key" shown in Firebase Console's General tab - that's a different key, generated for the Web platform specifically, and Firebase issues a distinct key per platform. |
-   | Sender ID (Project number) | Firebase Console → Project settings → General → **Project number** |
+   | Project ID | Firebase Console → Project settings → General → **Project ID** (same value as step 7; shared by both apps - no duplicate needed) |
+   | App ID (release) | Firebase Console → Project settings → General → **Your apps** → the `com.github.lukelloyd1985.mytasks` Android app → **App ID** |
+   | App ID (debug) | Same, for the `com.github.lukelloyd1985.mytasks.debug` Android app |
+   | API key | Not in Firebase Console at all - only visible in [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) (same underlying project) as the single **"Android key (auto created by Firebase)"** - one key total, shared by both apps you registered above (see this step's intro). This is *not* the "Web API Key" shown in Firebase Console's General tab - that's a different key, generated for the Web platform specifically. |
+   | Sender ID (Project number) | Firebase Console → Project settings → General → **Project number** (also shared by both apps) |
+
+   The shared Android key's restriction needs both apps' certificates
+   for FCM to actually work on each: the release signing certificate,
+   and the **stable debug keystore**'s SHA-1 (see
+   [Building the APK](#building-the-apk) → GitHub Actions - the same
+   one step 6.2 registers with Google). Add each Android app's SHA
+   certificate fingerprint under Firebase Console → Project settings →
+   General → **Your apps** → the app → **Add fingerprint** if it wasn't
+   prompted for one when you registered it - without a debug build's
+   fingerprint on file, that build's FCM token requests fail even
+   though the API key value itself is shared and otherwise correct.
 9. **Deploy the two Appwrite Functions** under
    [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
    push both when a task's assignee changes - database event trigger -
@@ -358,21 +385,27 @@ entry to that table to match the new `values-<language code>/strings.xml`.
     CI, `android-build.yml` already reuses the same `APPWRITE_ENDPOINT`
     secret [Deploying Appwrite Functions](#deploying-appwrite-functions)
     has you create for the Appwrite endpoint, and separately reads the
-    four Firebase values and the Google Web Client ID below from five
-    more repository secrets it already expects (Settings → Secrets and
-    variables → Actions): `MYTASKS_FIREBASE_PROJECT_ID`,
-    `MYTASKS_FIREBASE_APPLICATION_ID`, `MYTASKS_FIREBASE_API_KEY`,
-    `MYTASKS_FIREBASE_SENDER_ID`, `MYTASKS_GOOGLE_WEB_CLIENT_ID` - create
-    those five with the values from step 8's table and step 6. For a
-    local build, export all six as shell env vars yourself before
-    running Gradle:
+    Firebase values and the Google Web Client ID below from repository
+    secrets it already expects (Settings → Secrets and variables →
+    Actions) - create those with the values from step 8's table and step
+    6. Note that `MYTASKS_FIREBASE_APPLICATION_ID` and
+    `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` are genuinely different
+    values (one per Firebase app registration, per step 8) - not the
+    same secret duplicated under two names; `MYTASKS_FIREBASE_API_KEY`
+    has no `_DEBUG` counterpart, since that one's shared. For a local
+    build, export whichever set you need as shell env vars yourself
+    before running Gradle (`assembleDebug` reads the `_DEBUG` App ID,
+    `assembleRelease`/`bundleRelease` the non-suffixed one; both read the
+    same `MYTASKS_FIREBASE_API_KEY` - see `app/build.gradle.kts`'s
+    `buildTypes` block):
 
     | Env var | Value |
     | --- | --- |
     | `MYTASKS_APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
     | `MYTASKS_FIREBASE_PROJECT_ID` | Project ID from step 8's table |
-    | `MYTASKS_FIREBASE_APPLICATION_ID` | App ID from step 8's table |
-    | `MYTASKS_FIREBASE_API_KEY` | API key from step 8's table |
+    | `MYTASKS_FIREBASE_API_KEY` | API key from step 8's table (shared by both apps) |
+    | `MYTASKS_FIREBASE_APPLICATION_ID` | App ID (release) from step 8's table |
+    | `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` | App ID (debug) from step 8's table |
     | `MYTASKS_FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
     | `MYTASKS_GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
 
@@ -469,12 +502,18 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEY_ALIAS` | key alias (e.g. `mytasks`) |
 | `MYTASKS_KEY_PASSWORD` | key password |
 
-**A stable debug keystore for CI builds is required for Google Sign-In to
-work on a CI-built debug APK.** Credential Manager's Google Identity
-Services flow verifies the calling app's signing certificate against the
-Android OAuth client registered in step 6.2 - unless that certificate is
-registered there, `GetGoogleIdOption`/`GetSignInWithGoogleOption` fails.
-Without a stable keystore, `assembleDebug` falls back to AGP's
+**A stable debug keystore for CI builds is required for Google Sign-In
+and debug push notifications to work on a CI-built debug APK.**
+Credential Manager's Google Identity Services flow verifies the calling
+app's signing certificate against the Android OAuth client registered in
+step 6.2 - unless that certificate is registered there,
+`GetGoogleIdOption`/`GetSignInWithGoogleOption` fails. The shared
+Firebase Android API key's restriction (step 8) needs the debug app's
+SHA fingerprint on file the same way - so a mismatched or missing debug
+certificate silently breaks FCM token retrieval too (no crash, no
+visible error, just no push - see
+[Notes & tradeoffs](#notes--tradeoffs)). Without a stable keystore,
+`assembleDebug` falls back to AGP's
 built-in debug signing, which auto-generates a brand-new random keystore
 on every run (CI runners are a fresh VM each time), so the fingerprint
 registered in Google Cloud Console would only ever match one specific CI
@@ -669,7 +708,35 @@ everything after that, which CI automates.
   and the debug one (`com.github.lukelloyd1985.mytasks.debug`, from the
   debug build type's `applicationIdSuffix`) with **both** systems - a
   build using either package name only works if that exact package name
-  is registered everywhere it needs to be.
+  is registered everywhere it needs to be. A related but distinct split
+  applies to the Firebase Android app registration (step 8) - see the
+  next bullet - though there it's *App ID only*, not everything.
+- **Debug and release builds each need their own registered Firebase
+  Android app and App ID, but share one API key** - unlike the
+  Appwrite Platform and Google OAuth Android client above, getting this
+  one wrong doesn't fail loudly. Firebase auto-creates a single Android
+  API key *per project*, not per app (confirmed against a real
+  project's Google Cloud Console - only one "Android key (auto created
+  by Firebase)" shows up regardless of how many Android apps are
+  registered); registering a second Android app adds its package name +
+  signing certificate as another entry to that *same* key's Android
+  restrictions, rather than minting a new key. So `app/build.gradle.kts`
+  reads a single shared `MYTASKS_FIREBASE_API_KEY` for both builds, but
+  a debug-specific `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` alongside the
+  release `MYTASKS_FIREBASE_APPLICATION_ID` - App ID is the one value
+  genuinely unique per registered app - see
+  [Backend setup](#backend-setup) step 8. What *does* still need doing
+  per build: each app's SHA certificate fingerprint has to be on file
+  with Firebase (added automatically when you register the app with a
+  fingerprint, or by hand afterward under Project settings → General →
+  the app → **Add fingerprint**) for the shared key's restriction to
+  actually accept that build - miss the debug one and its FCM token
+  request is silently rejected, caught by
+  `AuthViewModel.registerPushTarget`'s `runCatching`, so nothing
+  crashes and nothing errors on screen, push notifications on that
+  build just never work. Project ID and Sender ID (project number) are
+  project-level too, so both builds share those the same way as the API
+  key.
 - **Notifications go through Appwrite Messaging, not a direct FCM API
   call** - the Android app registers each device as a Messaging push
   Target (`AuthRepository.registerPushTarget`), and the `notifications`
@@ -696,7 +763,7 @@ everything after that, which CI automates.
   [Backend setup](#backend-setup) step 8 and step 11), matching this
   project's existing pattern of build-time env vars over a committed
   vendor config file rather than introducing a second, inconsistent
-  mechanism for one library. Registering an Android app in the Firebase
+  mechanism for one library. Registering Android apps in the Firebase
   project is still required either way - this only changes how those
   values reach the app, not whether the registration itself exists.
   `FirebaseOptions.Builder` only hard-requires `applicationId`/`apiKey`
