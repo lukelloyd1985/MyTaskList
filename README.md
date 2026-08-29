@@ -41,7 +41,7 @@ both.
   and write - see [Notes & tradeoffs](#notes--tradeoffs), this is the
   single most user-visible change from the old backend.
 - **Auth**: Appwrite Account, Google sign-in only - via Appwrite's OAuth2
-  browser-redirect session flow (`account.createOAuth2Session` opens a
+  browser-redirect token flow (`account.createOAuth2Token` opens a
   Custom Tab against Appwrite's own hosted Google OAuth endpoint and
   redirects back through an `appwrite-callback-<PROJECT_ID>://` deep
   link), replacing the old Credential-Manager/Google-Identity native ID
@@ -218,20 +218,45 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    reconcile that by hand in Console, since some changes (like narrowing
    a string's size, or changing a column's type) aren't safely automatable
    without risking the existing data anyway.
-5. **Enable the Google OAuth2 provider**: Console → Auth → Settings →
-   **Google**, toggle it on. Appwrite auto-provisions a Web OAuth client
-   for this and shows you the redirect URI to register in
-   [Google Cloud Console](https://console.cloud.google.com) (APIs &
-   Services → Credentials → your OAuth 2.0 Client ID → Authorized
-   redirect URIs) - typically
-   `https://<APPWRITE_ENDPOINT>/v1/account/sessions/oauth2/callback/google/<PROJECT_ID>`.
-   This is simpler than the old Firebase setup: because sign-in now goes
-   through Appwrite's own hosted OAuth endpoint rather than a native
-   Credential-Manager flow on the device, Google never needs the app's
-   own signing-certificate SHA-1/SHA-256 fingerprints registered at all
-   (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
-   keystores themselves are still required - just for Play/APK signing,
-   not for this.
+5. **Enable the Google OAuth2 provider.** Appwrite does **not**
+   auto-provision anything on Google's side for this - you create the
+   Google OAuth client yourself and hand its credentials to Appwrite, in
+   this order (getting the order wrong, or skipping the last step, is
+   exactly what produces Appwrite's "Missing redirect URL" sign-in error
+   and the "To complete set up, add this OAuth2 redirect URI to your
+   Google app configuration" prompt on the provider's settings page):
+   1. [Google Cloud Console](https://console.cloud.google.com) → APIs &
+      Services → **Credentials** → Create credentials → **OAuth client
+      ID** → Application type **Web application**. (If this is the
+      project's first OAuth client, Google makes you configure the
+      **OAuth consent screen** first - the defaults are fine for
+      getting a working client.) Give it any name; for **Authorized
+      redirect URIs**, add a temporary placeholder for now (e.g.
+      `https://localhost/`) since you don't have Appwrite's real one
+      yet. Save, and copy the **Client ID** and **Client secret** it
+      generates.
+   2. Appwrite Console → Auth → Settings → **Google** → paste the Client
+      ID into **App ID** and the Client secret into **App Secret**,
+      toggle the provider on, and save.
+   3. The same Appwrite settings page now shows the real redirect URI to
+      use, next to the "To complete set up..." prompt - copy it exactly
+      as shown (don't hand-construct it; the typical shape is
+      `https://<APPWRITE_ENDPOINT_HOST>/v1/account/sessions/oauth2/callback/google/<PROJECT_ID>`,
+      but copy the literal value Console gives you).
+   4. Back in Google Cloud Console, on the same OAuth client from step
+      1, replace the placeholder in **Authorized redirect URIs** with
+      that real URI, and save. Sign-in should work on the next attempt -
+      Google only redirects back to URIs it has listed exactly, so a
+      mismatch (or the placeholder never being replaced) is what causes
+      the failure you'd otherwise see.
+
+   This is still simpler than the old Firebase setup: because sign-in
+   goes through Appwrite's own hosted OAuth endpoint rather than a
+   native Credential-Manager flow on the device, Google never needs the
+   app's own signing-certificate SHA-1/SHA-256 fingerprints registered
+   anywhere (see [Notes & tradeoffs](#notes--tradeoffs)). The
+   debug/release keystores themselves are still required - just for
+   Play/APK signing, not for this.
 6. **Configure the FCM Provider for Appwrite Messaging**: Console →
    Messaging → **Providers** → Add provider → **FCM** (under Push). Give
    it a name (e.g. `fcm`) and provide the same two values push
