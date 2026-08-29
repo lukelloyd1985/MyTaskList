@@ -30,6 +30,11 @@ ksp = "2.3.10"
 # them, so this project's own minSdk=31 and its typed Map call sites are
 # unaffected either way.
 appwrite = "25.2.0"
+# Credential Manager + Google ID - see LoginScreen.kt. Pinned to the exact
+# versions this app shipped to production with before the OAuth2 migration
+# (verified-working, not guessed).
+credentials = "1.3.0"
+googleid = "1.1.1"
 workManager = "2.10.0"
 coil = "2.7.0"
 coroutines = "1.9.0"
@@ -64,6 +69,10 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
 
 appwrite = { group = "io.appwrite", name = "sdk-for-android", version.ref = "appwrite" }
+
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

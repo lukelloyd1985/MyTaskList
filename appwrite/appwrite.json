@@ -339,7 +339,7 @@
       "name": "maintenance",
       "runtime": "node-22",
       "execute": [
-        "users"
+        "any"
       ],
       "events": [
         "databases.mytasks.collections.lists.documents.*.update"

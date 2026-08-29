@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Listas de tareas compartidas para tu hogar, jardín y todo lo demás</string>
     <string name="continue_with_google">Continuar con Google</string>
-    <string name="error_google_signin_not_configured">El inicio de sesión con Google aún no está configurado; consulta el README, sección Backend setup</string>
     <string name="error_google_signin_failed">Error al iniciar sesión con Google [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Tipo de credencial inesperado de Google: %1$s</string>
     <string name="error_sign_in_failed">Error al iniciar sesión</string>

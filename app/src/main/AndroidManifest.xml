@@ -28,31 +28,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Appwrite OAuth2 browser-redirect callback - see
-             AuthRepository.signInWithGoogle and appwriteCallbackScheme in
-             app/build.gradle.kts. The callback intent-filter must be
-             declared on the SDK's own io.appwrite.views.CallbackActivity,
-             not on an app Activity: that class is what routes the redirect
-             to WebAuthComponent.onCallback(), which is `internal` to the
-             SDK module and unreachable from app code. The SDK's own
-             AndroidManifest.xml doesn't declare this activity itself (no
-             manifest merger registers it automatically), so every
-             consuming app must add this block explicitly - confirmed
-             against github.com/appwrite/sdk-for-android's
-             example/src/main/AndroidManifest.xml and
-             library/.../views/CallbackActivity.kt. Originally (incorrectly)
-             attached to .MainActivity with launchMode="singleTask" instead. -->
-        <activity
-            android:name="io.appwrite.views.CallbackActivity"
-            android:exported="true">
-            <intent-filter android:label="android_web_auth">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="${appwriteCallbackScheme}" />
-            </intent-filter>
-        </activity>
-
         <service
             android:name=".notifications.MyTasksMessagingService"
             android:exported="false">

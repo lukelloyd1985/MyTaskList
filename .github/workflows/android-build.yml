@@ -117,6 +117,10 @@ jobs:
           MYTASKS_FIREBASE_APPLICATION_ID: ${{ secrets.MYTASKS_FIREBASE_APPLICATION_ID }}
           MYTASKS_FIREBASE_API_KEY: ${{ secrets.MYTASKS_FIREBASE_API_KEY }}
           MYTASKS_FIREBASE_SENDER_ID: ${{ secrets.MYTASKS_FIREBASE_SENDER_ID }}
+          # The Google Cloud OAuth 2.0 Web application Client ID Credential
+          # Manager and the maintenance Function's custom-token bridge both
+          # need to agree on - see README "Backend setup" step 6.
+          MYTASKS_GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew assembleDebug --stacktrace
 
       # Builds both the sideloadable APK (for the GitHub Release / direct
@@ -133,6 +137,7 @@ jobs:
           MYTASKS_FIREBASE_APPLICATION_ID: ${{ secrets.MYTASKS_FIREBASE_APPLICATION_ID }}
           MYTASKS_FIREBASE_API_KEY: ${{ secrets.MYTASKS_FIREBASE_API_KEY }}
           MYTASKS_FIREBASE_SENDER_ID: ${{ secrets.MYTASKS_FIREBASE_SENDER_ID }}
+          MYTASKS_GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew assembleRelease bundleRelease --stacktrace
 
       - name: Upload debug APK artifact

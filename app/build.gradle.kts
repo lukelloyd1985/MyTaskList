@@ -77,9 +77,15 @@ android {
         buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
         buildConfigField("String", "APPWRITE_FUNCTION_MAINTENANCE_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID") ?: "maintenance"}\"")
 
-        // Deep link scheme Appwrite's OAuth2 flow redirects back into the
-        // app through - see AndroidManifest.xml and AuthRepository.
-        manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${appwriteProjectId.ifEmpty { "unset" }}"
+        // The Google Cloud OAuth 2.0 Web application Client ID used two
+        // places: Credential Manager's GetGoogleIdOption/
+        // GetSignInWithGoogleOption.setServerClientId() (see LoginScreen.kt)
+        // so the ID token it returns is minted for this client, and the
+        // maintenance Function's GOOGLE_WEB_CLIENT_ID variable, which
+        // verifies that same ID token's audience server-side - both must
+        // reference the identical Client ID. Not a secret (Client IDs are
+        // meant to be embedded in client code), see README "Backend setup".
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${System.getenv("MYTASKS_GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
 
         // Firebase Cloud Messaging is the only Firebase surface this app
         // still uses (see README "Architecture" - Appwrite Messaging now
@@ -224,6 +230,13 @@ dependencies {
     // pin verified in gradle/libs.versions.toml against the SDK's own
     // README/CHANGELOG.
     implementation(libs.appwrite)
+
+    // Credential Manager + Google ID - see LoginScreen.kt for the sign-in
+    // flow these back (native "Sign in with Google" picker; no browser
+    // redirect, no appwrite.io shown to the user at any point).
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     implementation(libs.work.runtime.ktx)
     implementation(libs.coil.compose)

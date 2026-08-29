@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Zdieľané zoznamy úloh pre domácnosť, záhradu a všetko ostatné</string>
     <string name="continue_with_google">Pokračovať cez Google</string>
-    <string name="error_google_signin_not_configured">Prihlásenie cez Google zatiaľ nie je nastavené - pozri README, časť Backend setup</string>
     <string name="error_google_signin_failed">Prihlásenie cez Google zlyhalo [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Neočakávaný typ poverenia od Google: %1$s</string>
     <string name="error_sign_in_failed">Prihlásenie zlyhalo</string>

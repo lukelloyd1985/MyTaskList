@@ -2,7 +2,7 @@
   "name": "maintenance",
   "version": "1.0.0",
   "private": true,
-  "description": "Appwrite Function: two administrative triggers - the caller's own account deletion cascade (HTTP-invoked) and syncing a list's task permissions to its current membership (database event) - merged into one function to fit the Appwrite Cloud free-tier limit of 2 functions per project. Ported from functions/src/accountDeletion.ts's deleteAccount, plus the new syncListPermissions (see its own file comment).",
+  "description": "Appwrite Function: three HTTP/database triggers - Google Sign-In (verifies a Credential Manager ID token and mints an Appwrite custom-token session, bypassing Appwrite's hosted OAuth2 pages entirely), the caller's own account deletion cascade, and syncing a list's task permissions to its current membership - merged into one function to fit the Appwrite Cloud free-tier limit of 2 functions per project. Ported from functions/src/accountDeletion.ts's deleteAccount, plus the new syncListPermissions and googleSignIn (see their own file comments).",
   "engines": {
     "node": ">=22"
   },
@@ -11,7 +11,8 @@
     "build": "node node_modules/typescript/bin/tsc"
   },
   "dependencies": {
-    "node-appwrite": "^28.0.0"
+    "node-appwrite": "^28.0.0",
+    "google-auth-library": "^11.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

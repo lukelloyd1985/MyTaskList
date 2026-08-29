@@ -17,7 +17,6 @@
     <!-- Login -->
     <string name="login_tagline">Sdílené seznamy úkolů pro domácnost, zahradu a všechno ostatní</string>
     <string name="continue_with_google">Pokračovat přes Google</string>
-    <string name="error_google_signin_not_configured">Přihlášení přes Google zatím není nastaveno - viz README, část Backend setup</string>
     <string name="error_google_signin_failed">Přihlášení přes Google se nezdařilo [%1$s]: %2$s</string>
     <string name="error_unexpected_credential_type">Neočekávaný typ přihlašovacích údajů od Google: %1$s</string>
     <string name="error_sign_in_failed">Přihlášení se nezdařilo</string>
