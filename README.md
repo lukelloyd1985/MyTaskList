@@ -326,16 +326,22 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    | API key | Not in Firebase Console at all - only visible in [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) (same underlying project) as the single **"Android key (auto created by Firebase)"** - one key total, shared by both apps you registered above (see this step's intro). This is *not* the "Web API Key" shown in Firebase Console's General tab - that's a different key, generated for the Web platform specifically. |
    | Sender ID (Project number) | Firebase Console → Project settings → General → **Project number** (also shared by both apps) |
 
-   The shared Android key's restriction needs both apps' certificates
-   for FCM to actually work on each: the release signing certificate,
-   and the **stable debug keystore**'s SHA-1 (see
-   [Building the APK](#building-the-apk) → GitHub Actions - the same
-   one step 6.2 registers with Google). Add each Android app's SHA
-   certificate fingerprint under Firebase Console → Project settings →
-   General → **Your apps** → the app → **Add fingerprint** if it wasn't
-   prompted for one when you registered it - without a debug build's
-   fingerprint on file, that build's FCM token requests fail even
-   though the API key value itself is shared and otherwise correct.
+   **Check the shared key's restriction** in
+   [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials) →
+   the Android key → **Application restrictions**. A newly-created
+   Firebase project's key is typically **None** (unrestricted) - if
+   yours shows that, both apps' FCM tokens work with just the API key
+   value itself, and nothing further is needed here. If it instead
+   shows **Android apps** with a restriction list, that list needs both
+   apps' certificates or FCM silently fails for whichever one is
+   missing: the release signing certificate, and the **stable debug
+   keystore**'s SHA-1 (see [Building the APK](#building-the-apk) →
+   GitHub Actions - the same one step 6.2 registers with Google). Add
+   each Android app's SHA certificate fingerprint under Firebase
+   Console → Project settings → General → **Your apps** → the app →
+   **Add fingerprint** (Firebase syncs it into the key's restriction
+   list automatically) if it wasn't prompted for one when you
+   registered it.
 9. **Deploy the two Appwrite Functions** under
    [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
    push both when a task's assignee changes - database event trigger -
@@ -503,17 +509,20 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEY_PASSWORD` | key password |
 
 **A stable debug keystore for CI builds is required for Google Sign-In
-and debug push notifications to work on a CI-built debug APK.**
+to work on a CI-built debug APK**, and for debug push notifications too
+if your Firebase Android API key turns out to be restricted (see below).
 Credential Manager's Google Identity Services flow verifies the calling
 app's signing certificate against the Android OAuth client registered in
 step 6.2 - unless that certificate is registered there,
-`GetGoogleIdOption`/`GetSignInWithGoogleOption` fails. The shared
-Firebase Android API key's restriction (step 8) needs the debug app's
-SHA fingerprint on file the same way - so a mismatched or missing debug
-certificate silently breaks FCM token retrieval too (no crash, no
+`GetGoogleIdOption`/`GetSignInWithGoogleOption` fails, unconditionally.
+The shared Firebase Android API key (step 8) is a separate, *conditional*
+concern: if its **Application restrictions** is set to **Android apps**
+rather than **None**, it needs the debug app's SHA fingerprint on file
+the same way, or FCM token retrieval silently fails (no crash, no
 visible error, just no push - see
-[Notes & tradeoffs](#notes--tradeoffs)). Without a stable keystore,
-`assembleDebug` falls back to AGP's
+[Notes & tradeoffs](#notes--tradeoffs)); check Google Cloud Console →
+Credentials → the Android key to see which applies to your project.
+Without a stable keystore, `assembleDebug` falls back to AGP's
 built-in debug signing, which auto-generates a brand-new random keystore
 on every run (CI runners are a fresh VM each time), so the fingerprint
 registered in Google Cloud Console would only ever match one specific CI
@@ -720,17 +729,22 @@ everything after that, which CI automates.
   by Firebase)" shows up regardless of how many Android apps are
   registered); registering a second Android app adds its package name +
   signing certificate as another entry to that *same* key's Android
-  restrictions, rather than minting a new key. So `app/build.gradle.kts`
-  reads a single shared `MYTASKS_FIREBASE_API_KEY` for both builds, but
-  a debug-specific `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` alongside the
-  release `MYTASKS_FIREBASE_APPLICATION_ID` - App ID is the one value
-  genuinely unique per registered app - see
-  [Backend setup](#backend-setup) step 8. What *does* still need doing
-  per build: each app's SHA certificate fingerprint has to be on file
-  with Firebase (added automatically when you register the app with a
-  fingerprint, or by hand afterward under Project settings → General →
-  the app → **Add fingerprint**) for the shared key's restriction to
-  actually accept that build - miss the debug one and its FCM token
+  restrictions, rather than minting a new key - *if* that key is
+  restricted at all. So `app/build.gradle.kts` reads a single shared
+  `MYTASKS_FIREBASE_API_KEY` for both builds, but a debug-specific
+  `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` alongside the release
+  `MYTASKS_FIREBASE_APPLICATION_ID` - App ID is the one value genuinely
+  unique per registered app - see [Backend setup](#backend-setup) step
+  8. Whether anything further is needed per build depends on the key's
+  **Application restrictions** setting (Google Cloud Console →
+  Credentials → the Android key): a newly-created project's key is
+  typically **None**, in which case the API key value alone is enough
+  for both builds and there's nothing else to do. If it's instead
+  restricted to **Android apps**, each app's SHA certificate fingerprint
+  needs to be on file with Firebase (Project settings → General → the
+  app → **Add fingerprint**, which syncs into the key's restriction list
+  automatically) for the shared key's restriction to accept that
+  build - miss the debug one under a restricted key and its FCM token
   request is silently rejected, caught by
   `AuthViewModel.registerPushTarget`'s `runCatching`, so nothing
   crashes and nothing errors on screen, push notifications on that
