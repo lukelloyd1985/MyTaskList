@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONException
 import org.json.JSONObject
 import java.util.UUID
 import javax.inject.Inject
@@ -105,7 +106,22 @@ class AppwriteAuthRepository @Inject constructor(
             body = requestBody,
             path = "/google-sign-in",
         )
-        val responseBody = JSONObject(execution.responseBody)
+        // A bug inside the Function (an exception outside its own
+        // try/catch blocks, e.g. a scope/permission error on an Appwrite
+        // API call) can leave responseBody empty even though this
+        // createExecution call itself succeeded - parsing that as JSON
+        // throws an opaque "End of input at character 0" from org.json
+        // rather than anything actionable, so it's checked explicitly
+        // first and surfaced with the execution's status for
+        // troubleshooting (see its logs in Appwrite Console).
+        if (execution.responseBody.isBlank()) {
+            error("Google sign-in failed: empty response from the maintenance Function (status=${execution.status}, code=${execution.responseStatusCode}) - check its execution logs in Appwrite Console")
+        }
+        val responseBody = try {
+            JSONObject(execution.responseBody)
+        } catch (e: JSONException) {
+            error("Google sign-in failed: unexpected response from the maintenance Function")
+        }
         if (!responseBody.optBoolean("success", false)) {
             error(responseBody.optString("message", "Google sign-in failed"))
         }
