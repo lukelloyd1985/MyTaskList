@@ -86,7 +86,13 @@ export async function googleSignIn({ req, res, error }: FunctionContext) {
     }
   }
 
-  const token = await users.createToken({ userId: uid });
+  let token;
+  try {
+    token = await users.createToken({ userId: uid });
+  } catch (err) {
+    error(`Failed to mint a custom token for Google sign-in ${uid}: ${err instanceof Error ? err.stack ?? err.message : err}`);
+    return res.json({ success: false, message: "Sign-in failed." }, 500);
+  }
 
   return res.json({
     success: true,
