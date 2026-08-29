@@ -92,18 +92,28 @@ android {
         // owns everything except the on-device FCM token itself). Rather
         // than the google-services Gradle plugin + a committed
         // google-services.json, FirebaseApp is initialized manually in
-        // MyTasksApp.onCreate() from these four values - none of them are
+        // MyTasksApp.onCreate() from these values - none of them are
         // secrets (they're the same non-sensitive identifiers
         // google-services.json would have carried, just supplied directly
         // instead of through a generated file + plugin), so this follows
         // the same BuildConfig-from-env-var pattern as every other config
         // value here rather than introducing a second, inconsistent
         // mechanism for one library. Firebase Console → Project settings →
-        // General → your Android app is where all four come from - see
+        // General → your Android app is where these come from - see
         // README "Backend setup".
+        //
+        // Project ID and Sender ID (project number) are project-level -
+        // identical for every Android app registered in the project,
+        // package name irrelevant - so they live here in defaultConfig,
+        // shared by every build type. App ID and API key are tied to one
+        // specific package-name registration though (Firebase's
+        // auto-created Android API key is restricted to that exact
+        // package name + signing certificate), so they're declared per
+        // build type below instead, each pointing at its own registered
+        // Firebase Android app (release: com.github.lukelloyd1985.mytasks;
+        // debug: the .debug applicationIdSuffix variant) - see the
+        // buildTypes block.
         buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${System.getenv("MYTASKS_FIREBASE_PROJECT_ID") ?: ""}\"")
-        buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID") ?: ""}\"")
-        buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
         buildConfigField("String", "FIREBASE_SENDER_ID", "\"${System.getenv("MYTASKS_FIREBASE_SENDER_ID") ?: ""}\"")
     }
 
@@ -143,6 +153,19 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Own Firebase Android app registration (package name
+            // com.github.lukelloyd1985.mytasks.debug, from
+            // applicationIdSuffix above) - reusing the release app's App
+            // ID/API key here would silently fail FCM token retrieval
+            // under this different package name once the release key's
+            // Android restriction (package name + signing cert) is
+            // enforced, since the API key was minted for the release
+            // package name specifically. That failure is caught by
+            // AuthViewModel.registerPushTarget's runCatching, so it
+            // wouldn't crash - debug builds would just never get push
+            // notifications. See README "Backend setup" step 8.
+            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID_DEBUG") ?: ""}\"")
+            buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY_DEBUG") ?: ""}\"")
         }
         release {
             isMinifyEnabled = true
@@ -157,6 +180,8 @@ android {
                 // testing builds when release-signing secrets aren't configured.
                 signingConfigs.getByName("debug")
             }
+            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID") ?: ""}\"")
+            buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
         }
     }
 
