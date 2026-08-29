@@ -49,10 +49,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // The Appwrite project ID isn't sensitive - like Firebase's
-        // committed google-services.json project ID, it only identifies
-        // the project (no access without a session/API key) and ships
-        // inside the compiled APK regardless of how it's configured here.
+        // The Appwrite project ID isn't sensitive - like the Firebase
+        // project identifiers below, it only identifies the project (no
+        // access without a session/API key) and ships inside the compiled
+        // APK regardless of how it's configured here.
         // So rather than duplicate it in a GitHub secret AND a separate
         // local/CI env var (two places the same value has to be pasted
         // and kept in sync), it's read directly from
@@ -80,6 +80,25 @@ android {
         // Deep link scheme Appwrite's OAuth2 flow redirects back into the
         // app through - see AndroidManifest.xml and AuthRepository.
         manifestPlaceholders["appwriteCallbackScheme"] = "appwrite-callback-${appwriteProjectId.ifEmpty { "unset" }}"
+
+        // Firebase Cloud Messaging is the only Firebase surface this app
+        // still uses (see README "Architecture" - Appwrite Messaging now
+        // owns everything except the on-device FCM token itself). Rather
+        // than the google-services Gradle plugin + a committed
+        // google-services.json, FirebaseApp is initialized manually in
+        // MyTasksApp.onCreate() from these four values - none of them are
+        // secrets (they're the same non-sensitive identifiers
+        // google-services.json would have carried, just supplied directly
+        // instead of through a generated file + plugin), so this follows
+        // the same BuildConfig-from-env-var pattern as every other config
+        // value here rather than introducing a second, inconsistent
+        // mechanism for one library. Firebase Console → Project settings →
+        // General → your Android app is where all four come from - see
+        // README "Backend setup".
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${System.getenv("MYTASKS_FIREBASE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${System.getenv("MYTASKS_FIREBASE_SENDER_ID") ?: ""}\"")
     }
 
     signingConfigs {
