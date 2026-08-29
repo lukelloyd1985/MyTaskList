@@ -11,11 +11,25 @@ androidxHilt = "1.2.0"
 firebaseBom = "33.7.0"
 playPublisher = "4.1.1"
 ksp = "2.3.10"
-# Verified against github.com/appwrite/sdk-for-android's README (Gradle
-# install snippet) and CHANGELOG.md: 27.0.0 is the current latest release,
-# compatible with Appwrite server 1.9.x. The previous pin (6.1.0) was far
-# out of date.
-appwrite = "27.0.0"
+# Pinned to 25.2.0, not the newer 27.x releases, deliberately: 26.0.0's
+# CHANGELOG entry ("Updated: raised compileSdk to 37") is what forces
+# this whole project to compileSdk/targetSdk 37 - but Android API 37 is
+# not actually published as an installable stable SDK platform yet
+# (confirmed against developer.android.com/tools/releases/platforms,
+# whose newest listed stable release is still API 36/Android 16) - so
+# `sdkmanager "platforms;android-37"` in CI fails with "Failed to find
+# package" no matter what cmdline-tools version is used to look for it.
+# 25.2.0 is the release immediately before that bump. Verified
+# byte-identical for every method this app actually calls (createPushTarget/
+# updatePushTarget/deletePushTarget/createOAuth2Token - the four most
+# recently added, so the most likely to have changed) against
+# io.appwrite/services/Account.kt in github.com/appwrite/sdk-for-android at
+# tag 25.2.0. 26.0.0/27.0.0's own CHANGELOG entries (minSdk 21->23,
+# object-parameter typing Any->Map<String, Any?>) are both one-directional
+# tightenings that only matter going forward, not downgrading back past
+# them, so this project's own minSdk=31 and its typed Map call sites are
+# unaffected either way.
+appwrite = "25.2.0"
 workManager = "2.10.0"
 coil = "2.7.0"
 coroutines = "1.9.0"

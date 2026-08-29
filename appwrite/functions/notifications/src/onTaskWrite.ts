@@ -1,4 +1,4 @@
-import { Client, Databases } from "node-appwrite";
+import { Client } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
 import type { FunctionContext } from "./context";
 
@@ -35,8 +35,6 @@ export async function onTaskWrite({ req, res, error }: FunctionContext) {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
     .setKey(req.headers["x-appwrite-key"] ?? "");
 
-  const databases = new Databases(client);
-
   const task = req.bodyJson as TaskDoc | undefined;
   const assigneeId = task?.assigneeId;
 
@@ -45,7 +43,7 @@ export async function onTaskWrite({ req, res, error }: FunctionContext) {
   }
 
   try {
-    await sendToUser(databases, assigneeId, "assigned", task.title);
+    await sendToUser(client, assigneeId, "assigned", task.title);
   } catch (err) {
     error(`Failed to notify assignee ${assigneeId}: ${err instanceof Error ? err.stack ?? err.message : err}`);
   }

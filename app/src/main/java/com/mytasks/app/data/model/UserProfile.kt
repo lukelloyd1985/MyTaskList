@@ -3,8 +3,10 @@ package com.mytasks.app.data.model
 /**
  * Mirrors a document in the `users` collection, doc ID = the Appwrite Auth
  * user's `$id`. Created/merged on every sign-in so other members can be
- * looked up by email when inviting them to a shared list, and so the
- * assignee's FCM tokens are reachable for push notifications.
+ * looked up by email when inviting them to a shared list. Push delivery no
+ * longer reads anything off this profile - device registration lives in
+ * Appwrite Messaging's own Targets (see AuthRepository.registerPushTarget),
+ * not a field here.
  *
  * Appwrite document mapping is done by hand in AppwriteUserRepository. No
  * `lastSignedInAt` field: superseded by Appwrite's `$updatedAt` system
@@ -15,7 +17,6 @@ data class UserProfile(
     val displayName: String = "",
     val email: String = "",
     val photoUrl: String = "",
-    val fcmTokens: List<String> = emptyList(),
     /** ISO 639-1 language code (e.g. "en", "sk", "cs") the app was showing
      *  at last sign-in - refreshed on every sign-in, including any
      *  per-app language override (see res/xml/locales_config.xml), since

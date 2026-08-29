@@ -10,16 +10,19 @@ plugins {
 
 android {
     namespace = "com.mytasks.app"
-    // 37, not 36: this is a hard requirement, not a preference - AGP's
-    // checkDebugAarMetadata enforces it. io.appwrite:sdk-for-android,
-    // androidx.core/core-ktx 1.19.0, androidx.lifecycle *-compose 2.11.0,
-    // and okhttp-android 5.5.0 all declare minCompileSdk = 37 in their AAR
-    // metadata (confirmed via a real build failure, not speculation), so
-    // compiling below 37 fails outright regardless of Play's own minimum.
-    // The earlier CI failure ("Failed to find package 'platforms;android-37'")
-    // was a stale-cmdline-tools problem, not 37 being unreleased - see the
-    // cmdline-tools-version override in android-build.yml.
-    compileSdk = 37
+    // 36, not 37: API 37 isn't published as an installable stable SDK
+    // platform yet (see the `appwrite` version comment in
+    // gradle/libs.versions.toml for how this was actually confirmed, not
+    // assumed) - `sdkmanager "platforms;android-37"` in CI genuinely fails
+    // with "Failed to find package", regardless of cmdline-tools version.
+    // A previous fix here wrongly assumed that error was just a stale
+    // package listing and bumped this to 37 anyway (matching what
+    // io.appwrite:sdk-for-android 26.0.0+ requires via AAR metadata) -
+    // pinning `appwrite` back to 25.2.0 removes that requirement instead,
+    // so 36 compiles cleanly again. 36 already satisfies Play's minimum
+    // targetSdk requirement (36+ from August 31, 2026 - see README
+    // "Publishing to Google Play").
+    compileSdk = 36
 
     defaultConfig {
         // Play-facing identity only - not the same as `namespace` above,
@@ -33,7 +36,7 @@ android {
         // Matches compileSdk above (also satisfies Google Play's minimum
         // requirement to target API 36+ from August 31, 2026 - see README
         // "Publishing to Google Play").
-        targetSdk = 37
+        targetSdk = 36
 
         // Play Store rejects any upload whose versionCode isn't strictly
         // greater than every previous upload's. GITHUB_RUN_NUMBER

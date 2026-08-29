@@ -43,12 +43,18 @@ also need your own Appwrite Cloud project - see
   redirects back through an `appwrite-callback-<PROJECT_ID>://` deep
   link), replacing the old Credential-Manager/Google-Identity native ID
   token flow - see `AuthRepository.kt` and `LoginScreen.kt`.
-- **Notifications**: still delivered over Firebase Cloud Messaging, but
-  now *sent* by Appwrite Functions rather than Firebase Cloud Functions -
-  they call FCM's HTTP v1 API directly using a service-account credential
-  stored as a Function secret, on task assignment and on a 15-minute
-  due-date sweep; `ReminderScheduler.kt` also schedules a local
-  WorkManager reminder on-device as a fallback.
+- **Notifications**: still delivered over Firebase Cloud Messaging as the
+  transport, but sent via **Appwrite Messaging** rather than a direct call
+  to FCM's API. The Android app registers each device as an Appwrite
+  Messaging push **Target** (`AuthRepository.registerPushTarget`, backed
+  by `account.createPushTarget`/`updatePushTarget`), and the
+  `notifications` Appwrite Function just calls `messaging.createPush({
+  users: [uid], ... })` on task assignment and on a 15-minute due-date
+  sweep - Appwrite's own FCM **Provider** (configured once in Console,
+  see [Backend setup](#backend-setup) step 6) handles dispatch, retries,
+  and pruning dead tokens, none of which this app's code does anymore.
+  `ReminderScheduler.kt` also schedules a local WorkManager reminder
+  on-device as a fallback.
 - **Backend**: Appwrite Functions (TypeScript, `node-appwrite`) in
   `/appwrite/functions` handle push notifications, list/task permission
   sync, and account deletion.
@@ -58,8 +64,10 @@ also need your own Appwrite Cloud project - see
 One Appwrite database, `mytasks`, with three collections:
 
 ```
-users/{uid}    displayName, email, photoUrl, fcmTokens[], locale
-               (document ID = the Appwrite Auth user ID)
+users/{uid}    displayName, email, photoUrl, locale
+               (document ID = the Appwrite Auth user ID; push-device
+               registration lives in Appwrite Messaging's own Targets,
+               not a field here)
 lists/{listId} name, icon, colorHex, visibility (PRIVATE|SHARED), ownerId,
                ownerName, memberIds[], members (JSON-encoded string -
                Appwrite has no array-of-objects attribute type)
@@ -159,7 +167,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
 
 1. **Create an Appwrite Cloud project** in the
    [Appwrite Console](https://cloud.appwrite.io). Note its API endpoint
-   (e.g. `https://fra.cloud.appwrite.io/v1`, needed in step 8) and its
+   (e.g. `https://fra.cloud.appwrite.io/v1`, needed in step 9) and its
    project ID (needed in step 2, right below).
 2. **Set the project ID in `appwrite/appwrite.json`**, replacing its
    `"projectId"` placeholder with the real one from step 1.
@@ -173,7 +181,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    `app/build.gradle.kts` read it from here directly.
 3. **No manual Console work needed for the database or tables** -
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
-   step 7 for its one-time CI setup) creates them for you when it runs.
+   step 8 for its one-time CI setup) creates them for you when it runs.
    This wasn't always true: `appwrite push tables all --force` has, on
    **four** separate real runs, planned to delete the `mytasks` database
    outright before creating anything - the first three against an empty
@@ -221,7 +229,21 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    (see [Notes & tradeoffs](#notes--tradeoffs)). The debug/release
    keystores themselves are still required - just for Play/APK signing,
    not for this.
-6. **Deploy the two Appwrite Functions** under
+6. **Configure the FCM Provider for Appwrite Messaging**: Console →
+   Messaging → **Providers** → Add provider → **FCM** (under Push). Give
+   it a name (e.g. `fcm`) and provide the same two values push
+   notifications have always needed - a Firebase service account's JSON
+   key (Firebase Console → Project settings → Service accounts →
+   **Generate new private key** - needs the "Firebase Cloud Messaging
+   API" role) and that service account's Firebase project ID (Firebase
+   Console → Project settings → General → **Project ID** - not the
+   Appwrite project ID from step 1). This is a one-time Console step, not
+   part of `appwrite.json`: the credential lives with the Provider, not
+   as a Function secret - see [Architecture](#architecture)'s
+   Notifications bullet for why (Appwrite Messaging handles FCM dispatch
+   directly; the `notifications` Function only decides what to send and
+   to whom).
+7. **Deploy the two Appwrite Functions** under
    [`appwrite/functions/`](appwrite/functions/): `notifications` (sends a
    push both when a task's assignee changes - database event trigger -
    and on the CRON due-date reminder sweep every 15 minutes) and
@@ -241,11 +263,10 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Push them via [`deploy-appwrite.yml`](#deploying-appwrite-functions)
    (`appwrite push function all --force` - unlike tables, this hasn't
    shown any destructive behavior), or create/deploy each one by hand in
-   the Console. Each needs its environment variables set (Console →
-   Functions → the function → Settings → Variables) - `notifications`
-   needs the FCM service-account JSON and the FCM project ID (both
-   trigger paths send pushes); `maintenance` needs neither.
-7. **Create a server API key** for CI: Console → Overview →
+   the Console. Neither needs any environment variables set - the FCM
+   credential lives with the Provider from step 6, not a Function
+   secret.
+8. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
    **`tables.write`**, **`columns.read`** and **`columns.write`** (the
@@ -258,7 +279,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    (needed by `maintenance`'s cascading Auth-account deletion). This
    becomes the `APPWRITE_API_KEY` secret used by CI - see
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below.
-8. **Set the build-time env vars** the Android app reads (see
+9. **Set the build-time env vars** the Android app reads (see
    `app/build.gradle.kts`). The project ID doesn't need one - it's read
    straight from `appwrite/appwrite.json` (step 2) - and the database/
    table/function IDs below already default to this repo's own fixed
@@ -306,7 +327,7 @@ isn't among them - it's read from `appwrite/appwrite.json`, see
 | Secret | Value |
 | --- | --- |
 | `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
-| `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 7 |
+| `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 8 |
 
 That's the whole setup - a single scoped API key, considerably simpler
 than the old Firebase deploy's Google Cloud service account juggling five
@@ -544,15 +565,31 @@ everything after that, which CI automates.
   data - this script deliberately won't attempt it automatically.
 - **`appwrite push function` needs the `rules.read` scope**, which
   Console's API key scope picker lists under the **Proxy** category, not
-  Functions - easy to miss (see [Backend setup](#backend-setup) step 7).
+  Functions - easy to miss (see [Backend setup](#backend-setup) step 8).
 - **Only 2 Appwrite Functions exist (`notifications`, `maintenance`),
   each serving two triggers**, specifically to fit inside Appwrite
   Cloud's free-tier limit of 2 Functions per project - see
-  [Backend setup](#backend-setup) step 6. This also happened to remove
-  duplicated code: `sendToUser.ts`/`notificationStrings.ts` were
-  byte-identical between the two functions now merged into
-  `notifications`, and `listAll.ts` likewise between the two now merged
-  into `maintenance`.
+  [Backend setup](#backend-setup) step 7. This also happened to remove
+  duplicated code: `listAll.ts` was byte-identical between the two
+  functions now merged into `maintenance`.
+- **Notifications go through Appwrite Messaging, not a direct FCM API
+  call** - the Android app registers each device as a Messaging push
+  Target (`AuthRepository.registerPushTarget`), and the `notifications`
+  Function just calls `messaging.createPush`; Appwrite's own FCM
+  Provider (see [Backend setup](#backend-setup) step 6) handles dispatch
+  and dead-token pruning. This replaced an earlier version that called
+  FCM's HTTP v1 API directly with a service-account credential minted
+  via `google-auth-library` - dropped that dependency (it was part of
+  what caused the TS18028 build failures worked through earlier) along
+  with the hand-rolled token-pruning logic. **Devices that registered
+  under the old `fcmTokens` array won't automatically get a Messaging
+  Target** - `MainActivity`'s `LaunchedEffect(user)` re-registers on
+  every app start for anyone already signed in, so this self-heals the
+  next time each existing install is opened; nothing needs a forced
+  re-login. The now-unused `fcmTokens` column on an already-deployed
+  `users` table is harmless dead data - `bootstrap-tables.mjs` never
+  drops columns, so it's left in place; safe to remove by hand in
+  Console if you want it gone.
 - `res/drawable/ic_provider_google.xml` is Google's official "G" identity
   mark (sourced from Google's own FirebaseUI-Android library), matching
   their [Sign in with Google branding guidelines](https://developers.google.com/identity/branding-guidelines).

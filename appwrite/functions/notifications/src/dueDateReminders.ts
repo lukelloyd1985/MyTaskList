@@ -67,7 +67,7 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
 
         if (task.assigneeId) {
           try {
-            await sendToUser(databases, task.assigneeId, "dueSoon", task.title);
+            await sendToUser(client, task.assigneeId, "dueSoon", task.title);
           } catch (err) {
             error(`Failed to send due-date reminder for task ${task.$id}: ${err instanceof Error ? err.stack ?? err.message : err}`);
           }
