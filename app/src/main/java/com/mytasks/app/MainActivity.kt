@@ -45,6 +45,13 @@ private fun MyTasksRoot(authViewModel: AuthViewModel = hiltViewModel()) {
     }
 
     val user by authViewModel.currentUser.collectAsStateWithLifecycle()
+
+    LaunchedEffect(user) {
+        if (user != null) {
+            authViewModel.registerPushTarget()
+        }
+    }
+
     if (user == null) {
         LoginScreen(authViewModel)
     } else {

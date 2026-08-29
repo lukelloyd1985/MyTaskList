@@ -16,7 +16,6 @@ interface UserRepository {
     suspend fun upsertProfile(user: AppUser)
     suspend fun findByEmail(email: String): UserProfile?
     suspend fun getById(uid: String): UserProfile?
-    suspend fun addFcmToken(uid: String, token: String)
 }
 
 @Singleton
@@ -51,7 +50,7 @@ class AppwriteUserRepository @Inject constructor(
                 databaseId = databaseId,
                 collectionId = usersId,
                 documentId = user.uid,
-                data = fields + mapOf("fcmTokens" to emptyList<String>()),
+                data = fields,
                 permissions = listOf(
                     Permission.read(Role.users()),
                     Permission.update(Role.user(user.uid)),
@@ -72,18 +71,6 @@ class AppwriteUserRepository @Inject constructor(
 
     override suspend fun getById(uid: String): UserProfile? = getDocumentOrNull(uid)?.toUserProfile()
 
-    override suspend fun addFcmToken(uid: String, token: String) {
-        val document = getDocumentOrNull(uid) ?: return
-        val current = document.toUserProfile()
-        if (token in current.fcmTokens) return
-        databases.updateDocument(
-            databaseId = databaseId,
-            collectionId = usersId,
-            documentId = uid,
-            data = mapOf("fcmTokens" to (current.fcmTokens + token)),
-        )
-    }
-
     private suspend fun getDocumentOrNull(uid: String): Document<Map<String, Any>>? = try {
         databases.getDocument(databaseId, usersId, uid)
     } catch (e: AppwriteException) {
@@ -98,7 +85,6 @@ private fun Document<Map<String, Any>>.toUserProfile(): UserProfile {
         displayName = fields["displayName"] as? String ?: "",
         email = fields["email"] as? String ?: "",
         photoUrl = fields["photoUrl"] as? String ?: "",
-        fcmTokens = (fields["fcmTokens"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
         locale = fields["locale"] as? String ?: "",
     )
 }

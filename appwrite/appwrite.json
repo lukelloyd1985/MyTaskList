@@ -45,14 +45,6 @@
           "default": null
         },
         {
-          "key": "fcmTokens",
-          "type": "string",
-          "required": false,
-          "array": true,
-          "size": 512,
-          "default": null
-        },
-        {
           "key": "locale",
           "type": "string",
           "required": false,
@@ -333,8 +325,7 @@
       "scopes": [
         "databases.read",
         "databases.write",
-        "users.read",
-        "users.write"
+        "messages.write"
       ],
       "schedule": "*/15 * * * *",
       "timeout": 60,
@@ -356,7 +347,6 @@
       "scopes": [
         "databases.read",
         "databases.write",
-        "users.read",
         "users.write"
       ],
       "schedule": "",

@@ -46,7 +46,6 @@ class AuthViewModel @Inject constructor(
             try {
                 val user = authRepository.signInWithGoogle(activity)
                 userRepository.upsertProfile(user)
-                registerFcmToken(user.uid)
                 _uiState.value = AuthUiState(isLoading = false)
             } catch (t: Throwable) {
                 _uiState.value = AuthUiState(
@@ -65,10 +64,17 @@ class AuthViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
-    private suspend fun registerFcmToken(uid: String) {
+    /** Registers this device's current FCM token as an Appwrite Messaging
+     *  push Target. Called reactively from MainActivity whenever
+     *  [currentUser] becomes non-null - covers both a fresh interactive
+     *  sign-in and an app restart into an already-valid session, since
+     *  FCM's onNewToken callback (see MyTasksMessagingService) only fires
+     *  on token rotation, not on every app start. Best-effort: a failure
+     *  here must never affect sign-in or navigation. */
+    suspend fun registerPushTarget() {
         runCatching {
             val token = FirebaseMessaging.getInstance().token.await()
-            userRepository.addFcmToken(uid, token)
+            authRepository.registerPushTarget(token)
         }
     }
 }

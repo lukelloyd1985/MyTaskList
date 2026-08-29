@@ -8,26 +8,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.mytasks.app.data.remote.AuthRepository
-import com.mytasks.app.data.remote.UserRepository
 
 /**
  * Receives pushes sent server-side (task assignment + due-date pushes for
  * lists the recipient isn't currently viewing) and registers this device's
- * FCM token so those server functions know where to deliver them. FCM stays
- * the push transport post-migration; only the "who's signed in" lookup
- * below moved off Firebase Auth.
+ * FCM token as an Appwrite Messaging push Target (see
+ * AuthRepository.registerPushTarget) so the `notifications` Appwrite
+ * Function can reach it. FCM stays the transport; delivery itself -
+ * including dead-token pruning - is handled by Appwrite's Messaging
+ * service and its FCM Provider, not by this app.
  */
 @AndroidEntryPoint
 class MyTasksMessagingService : FirebaseMessagingService() {
 
     @Inject lateinit var authRepository: AuthRepository
-    @Inject lateinit var userRepository: UserRepository
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        val uid = authRepository.currentUser?.uid ?: return
+        if (authRepository.currentUser == null) return
         CoroutineScope(Dispatchers.IO).launch {
-            runCatching { userRepository.addFcmToken(uid, token) }
+            runCatching { authRepository.registerPushTarget(token) }
         }
     }
 
