@@ -186,14 +186,19 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Dashboard → **Add Platform** → **Android**, app name of your choice,
    package name `com.github.lukelloyd1985.mytasks` (this repo's
    `applicationId` - see `app/build.gradle.kts`, must match exactly).
-   Skip this and every Appwrite Account/session call from the app -
-   sign-in included - fails, because Appwrite only trusts redirect/
-   callback URLs whose hostname is in the project's registered platform
-   list; an unregistered app gets the same "Missing redirect URL" error
-   as a genuinely misconfigured Google OAuth client (see step 6 below),
-   even with that side fully correct. This is a separate requirement
-   from step 6's Google Cloud Console redirect URI - both are needed,
-   neither substitutes for the other.
+   **Add a second Platform entry the same way for
+   `com.github.lukelloyd1985.mytasks.debug`** - the debug build type
+   appends `applicationIdSuffix = ".debug"`, so a debug build (`./gradlew
+   assembleDebug`, the CI debug APK, or any local testing) genuinely
+   runs under that different package name, not the base one above. Skip
+   either registration and every Appwrite Account/session call from a
+   build using that package name - sign-in included - fails, because
+   Appwrite only trusts redirect/callback URLs whose hostname is in the
+   project's registered platform list; an unregistered app gets the
+   same "Missing redirect URL" error as a genuinely misconfigured Google
+   OAuth client (see step 6 below), even with that side fully correct.
+   This is a separate requirement from step 6's Google Cloud Console
+   redirect URI - both are needed, neither substitutes for the other.
 4. **No manual Console work needed for the database or tables** -
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
    step 10 for its one-time CI setup) creates them for you when it runs.
@@ -647,7 +652,12 @@ everything after that, which CI automates.
   (see [Backend setup](#backend-setup) step 3) and the Google Cloud
   Console redirect URI (step 6) are required; neither substitutes for
   the other, and the error message alone doesn't say which one is
-  missing.
+  missing. Register **both** the release package name
+  (`com.github.lukelloyd1985.mytasks`) and the debug one
+  (`com.github.lukelloyd1985.mytasks.debug`, from the debug build
+  type's `applicationIdSuffix`) as separate Platforms - a build using
+  either package name only works if that exact package name has its
+  own registration.
 - **Notifications go through Appwrite Messaging, not a direct FCM API
   call** - the Android app registers each device as a Messaging push
   Target (`AuthRepository.registerPushTarget`), and the `notifications`
