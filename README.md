@@ -241,10 +241,17 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    Push them via [`deploy-appwrite.yml`](#deploying-appwrite-functions)
    (`appwrite push function all --force` - unlike tables, this hasn't
    shown any destructive behavior), or create/deploy each one by hand in
-   the Console. Each needs its environment variables set (Console →
-   Functions → the function → Settings → Variables) - `notifications`
-   needs the FCM service-account JSON and the FCM project ID (both
-   trigger paths send pushes); `maintenance` needs neither.
+   the Console. `notifications` needs two environment variables set
+   (Console → Functions → **notifications** → Settings → Variables) -
+   both trigger paths send pushes, so both are required or every send
+   throws:
+
+   | Variable | Value |
+   | --- | --- |
+   | `FCM_SERVICE_ACCOUNT_JSON` | The full JSON key for a Firebase service account with the "Firebase Cloud Messaging API" role - Firebase Console → Project settings → Service accounts → **Generate new private key**. Paste the whole file's contents as this variable's value. |
+   | `FCM_PROJECT_ID` | The Firebase project ID that service account belongs to (Firebase Console → Project settings → General → **Project ID**) - not the Appwrite project ID from step 1. |
+
+   `maintenance` needs neither - it never sends a push.
 7. **Create a server API key** for CI: Console → Overview →
    Integrations → **API Keys** → Create API key, scoped to
    **`databases.read`** and **`databases.write`**, **`tables.read`** and
