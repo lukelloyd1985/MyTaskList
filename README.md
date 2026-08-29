@@ -527,8 +527,29 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | `MYTASKS_KEY_PASSWORD` | key password |
 
 **A stable debug keystore for CI builds is required for Google Sign-In
-to work on a CI-built debug APK**, and for debug push notifications too
-if your Firebase Android API key turns out to be restricted (see below).
+to work on a CI-built debug APK - and on a CI-built release APK too, if
+you haven't set the `MYTASKS_KEYSTORE_*` secrets above.** That's not a
+typo: the debug keystore is also `assembleRelease`'s own fallback
+signing config when the release-signing secrets aren't set (see
+android-build.yml's "Decode debug keystore" step, which runs on both
+triggers precisely because of this), so an unstable/missing debug
+keystore breaks sign-in on an unsigned-for-store release build exactly
+the same way it breaks a debug build - same random-certificate-every-run
+problem, just reached via the other fallback path. Concretely:
+- **Set the `MYTASKS_KEYSTORE_*` secrets** → the release APK gets its
+  own real signing certificate → register *that* certificate's SHA-1
+  (`keytool -list -v -keystore release.keystore -alias mytasks` against
+  the keystore you generated above) as its own entry under the Android
+  OAuth client from step 6.2, same package name
+  (`com.github.lukelloyd1985.mytasks`).
+- **Skip them** (e.g. for early testing) → the release build falls back
+  to the debug keystore below, so *that* keystore's SHA-1 is what needs
+  registering under the same Android OAuth client entry instead - and
+  it only stays stable across runs if `MYTASKS_DEBUG_KEYSTORE_*` is also
+  set, same as for debug builds.
+
+A stable debug keystore also matters for debug push notifications, if
+your Firebase Android API key turns out to be restricted (see below).
 Credential Manager's Google Identity Services flow verifies the calling
 app's signing certificate against the Android OAuth client registered in
 step 6.2 - unless that certificate is registered there,
@@ -738,6 +759,22 @@ everything after that, which CI automates.
   is registered everywhere it needs to be. A related but distinct split
   applies to the Firebase Android app registration (step 8) - see the
   next bullet - though there it's *App ID only*, not everything.
+- **A CI-built release APK needs the stable debug keystore too, unless
+  `MYTASKS_KEYSTORE_*` is set** - a real bug this project hit, not just
+  a missing setup step: `android-build.yml`'s "Decode debug keystore"
+  step originally only ran on `workflow_dispatch`, but that same debug
+  keystore is also `assembleRelease`'s own fallback signing config when
+  release-signing secrets aren't set - so a `release`-triggered build
+  with no release-signing secrets configured got AGP's auto-generated,
+  brand-new-every-run debug keystore instead (the decode step that would
+  have made it stable never ran for that trigger), failing Google
+  Sign-In's account-reauth check
+  (`TYPE_USER_CANCELED`/"Account reauth failed", **and no Appwrite
+  Function execution at all** - the failure is entirely client-side, at
+  the Credential Manager layer, before any network call to the
+  `maintenance` Function) on every single release build, never
+  consistently. Fixed by running that step on `release` too - see
+  [Building the APK](#building-the-apk).
 - **Debug and release builds each need their own registered Firebase
   Android app and App ID, but share one API key** - unlike the
   Appwrite Platform and Google OAuth Android client above, getting this

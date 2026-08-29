@@ -86,9 +86,21 @@ jobs:
       # twice - Google Sign-In's account-reauth check can never trust an
       # unregistered, ever-changing certificate. Decoding a stable keystore
       # here (see README) makes every CI debug build carry the same
-      # signature, so its SHA-1 can be registered in Firebase once.
+      # signature, so its SHA-1 can be registered once.
+      #
+      # Runs on `release` too, not just `workflow_dispatch`: this same
+      # debug keystore is also app/build.gradle.kts's fallback signing
+      # config for `assembleRelease` itself when MYTASKS_KEYSTORE_BASE64
+      # isn't set (see the release signingConfig block below) - without
+      # this step also running there, that fallback silently degraded to
+      # AGP's auto-generated, brand-new-every-run keystore on a release
+      # build too, defeating the whole point (a real bug this project hit:
+      # a release-triggered build with no release-signing secrets
+      # configured got a different, unregistered certificate on every
+      # release, failing Google Sign-In's account-reauth check exactly
+      # like an unconfigured debug build used to).
       - name: Decode debug keystore
-        if: ${{ github.event_name == 'workflow_dispatch' && env.HAS_DEBUG_KEYSTORE_SECRET == 'true' }}
+        if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'release') && env.HAS_DEBUG_KEYSTORE_SECRET == 'true' }}
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_BASE64 }}
         run: |
