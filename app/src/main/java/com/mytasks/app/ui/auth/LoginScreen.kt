@@ -113,6 +113,17 @@ private suspend fun signInWithGoogle(
     snackbarHostState: SnackbarHostState,
 ) {
     val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+    if (webClientId.isBlank()) {
+        // MYTASKS_GOOGLE_WEB_CLIENT_ID wasn't set at build time (see README
+        // "Backend setup" step 6/11) - GetGoogleIdOption.Builder().build()
+        // throws IllegalArgumentException on a blank server client ID,
+        // uncaught by the GetCredentialException catch below, so this must
+        // be checked before constructing it rather than relying on that
+        // catch.
+        Log.e(TAG, "GOOGLE_WEB_CLIENT_ID is blank - Google sign-in is not configured for this build")
+        snackbarHostState.showSnackbar(context.getString(R.string.error_sign_in_failed))
+        return
+    }
     val credentialManager = CredentialManager.create(context)
 
     // GetGoogleIdOption's bottom-sheet flow only offers accounts Android
