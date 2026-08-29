@@ -111,9 +111,11 @@ class AppwriteAuthRepository @Inject constructor(
         // enum, not a raw String - verified against
         // io.appwrite/services/Account.kt in github.com/appwrite/sdk-for-android
         // (both createOAuth2Session/createOAuth2Token still exist there as of
-        // SDK 27.0.0 and share this signature; on Android both already
-        // complete the session locally via the WebAuthComponent redirect
-        // callback, so no separate createSession() exchange call is needed).
+        // SDK 25.2.0, this project's pinned version - see gradle/libs.versions.toml
+        // for why it's pinned below the SDK's current latest - and share this
+        // signature; on Android both already complete the session locally via
+        // the WebAuthComponent redirect callback, so no separate createSession()
+        // exchange call is needed).
         val componentActivity = activity as ComponentActivity
         account.createOAuth2Token(
             activity = componentActivity,
@@ -186,7 +188,7 @@ class AppwriteAuthRepository @Inject constructor(
 
     // createPushTarget/updatePushTarget/deletePushTarget signatures
     // verified against io.appwrite.services.Account in
-    // github.com/appwrite/sdk-for-android at tag 27.0.0 (matching this
+    // github.com/appwrite/sdk-for-android at tag 25.2.0 (matching this
     // project's pinned SDK version) - not exercised against a live call
     // in this sandbox, which has no network path to a real Appwrite
     // project.
