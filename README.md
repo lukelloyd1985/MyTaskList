@@ -269,7 +269,11 @@ entry to that table to match the new `values-<language code>/strings.xml`.
       the old OAuth2 browser-redirect flow, Credential Manager runs
       natively on-device, so Google does need to recognize the calling
       app's own certificate - see
-      [Notes & tradeoffs](#notes--tradeoffs).
+      [Notes & tradeoffs](#notes--tradeoffs). One more Android OAuth
+      client (same package name, a third SHA-1) gets created later,
+      after the first Play Store upload - see
+      [Publishing to Google Play](#publishing-to-google-play) step 5's
+      note on Play App Signing.
    3. Use the **Web application** Client ID from step 1 (not either
       Android client ID from step 2 - those exist only to satisfy
       Google's cert check, Credential Manager never sends them
@@ -647,6 +651,33 @@ everything after that, which CI automates.
    *Create new release*, upload it, add release notes, and roll it out.
    Add yourself (and any other testers) as an internal tester so you can
    install it.
+
+   **This first upload also enrolls the app in Play App Signing** (Google's
+   own signing key, mandatory for a new app) - which means an APK
+   installed *from the Play Store* is signed with a **different**
+   certificate than the AAB you just uploaded (the "upload key" -
+   `MYTASKS_KEYSTORE_*`'s key, or the debug-keystore fallback - see
+   [Building the APK](#building-the-apk)). Google Sign-In's account-reauth
+   check cares which certificate actually signed the APK on the device, so
+   a Play-installed copy needs its own SHA-1 registered too, or it fails
+   the same `TYPE_USER_CANCELED`/"Account reauth failed" way a build
+   signed with an unregistered certificate always does. Get it from Play
+   Console's **App signing** page (Play Console has renamed/relocated
+   this over time - currently under **Setup → App integrity**, look for
+   **App signing key certificate**) → SHA-1. A Google Cloud Android OAuth
+   client holds exactly **one** SHA-1 each - there's no "add another
+   fingerprint" on an existing client - so this means **creating a
+   separate Android OAuth client** (Create credentials → OAuth client ID
+   → Android) with the *same* package name
+   (`com.github.lukelloyd1985.mytasks`) as the one from
+   [Backend setup](#backend-setup) step 6.2, but this new SHA-1. Google's
+   server-side check matches against every registered (package name,
+   SHA-1) pair across all your project's Android OAuth clients, so
+   multiple clients sharing one package name is the normal way to cover
+   more than one valid signing certificate for it - not a workaround.
+   Keep the original upload-key client too, rather than replacing it: a
+   directly-sideloaded GitHub Release APK is still signed with the upload
+   key and needs that entry to keep working.
 
 ### 2. Let CI handle every release after that
 
