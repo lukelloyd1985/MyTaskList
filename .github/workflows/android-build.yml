@@ -112,15 +112,14 @@ jobs:
           # No committed google-services.json - FirebaseApp is initialized
           # manually from these values instead - see README "Backend setup"
           # for where each comes from and MyTasksApp.kt for how they're
-          # used. Project ID/Sender ID are project-level and shared with
-          # the release build below; App ID/API key are debug-suffixed
-          # because they come from a separate Firebase Android app
-          # registered for this build's own .debug package name (see
-          # app/build.gradle.kts's buildTypes block for why the release
-          # app's values can't just be reused here).
+          # used. Project ID/API key/Sender ID are project-level and
+          # shared with the release build below (Firebase's Android API
+          # key is per-project, not per-app - see app/build.gradle.kts);
+          # only App ID is debug-suffixed, since it's the one value that's
+          # unique per registered Firebase Android app.
           MYTASKS_FIREBASE_PROJECT_ID: ${{ secrets.MYTASKS_FIREBASE_PROJECT_ID }}
+          MYTASKS_FIREBASE_API_KEY: ${{ secrets.MYTASKS_FIREBASE_API_KEY }}
           MYTASKS_FIREBASE_APPLICATION_ID_DEBUG: ${{ secrets.MYTASKS_FIREBASE_APPLICATION_ID_DEBUG }}
-          MYTASKS_FIREBASE_API_KEY_DEBUG: ${{ secrets.MYTASKS_FIREBASE_API_KEY_DEBUG }}
           MYTASKS_FIREBASE_SENDER_ID: ${{ secrets.MYTASKS_FIREBASE_SENDER_ID }}
           # The Google Cloud OAuth 2.0 Web application Client ID Credential
           # Manager and the maintenance Function's custom-token bridge both

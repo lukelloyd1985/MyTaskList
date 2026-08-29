@@ -102,18 +102,22 @@ android {
         // General → your Android app is where these come from - see
         // README "Backend setup".
         //
-        // Project ID and Sender ID (project number) are project-level -
-        // identical for every Android app registered in the project,
-        // package name irrelevant - so they live here in defaultConfig,
-        // shared by every build type. App ID and API key are tied to one
-        // specific package-name registration though (Firebase's
-        // auto-created Android API key is restricted to that exact
-        // package name + signing certificate), so they're declared per
-        // build type below instead, each pointing at its own registered
-        // Firebase Android app (release: com.github.lukelloyd1985.mytasks;
+        // Project ID, API key, and Sender ID are project-level - Firebase
+        // auto-creates a single Android API key per *project*, not per
+        // app: registering a second Android app (e.g. the debug package
+        // name below) adds that app's package name + SHA-1 as another
+        // entry to the *same* key's Android restrictions in Google Cloud
+        // Console, rather than minting a separate key (confirmed against
+        // a real project - Google Cloud Console → Credentials shows one
+        // "Android key (auto created by Firebase)" regardless of how many
+        // Android apps are registered). So these three live here in
+        // defaultConfig, shared by every build type. App ID is the one
+        // exception - unique per registered app - so it's declared per
+        // build type below instead (release: com.github.lukelloyd1985.mytasks;
         // debug: the .debug applicationIdSuffix variant) - see the
         // buildTypes block.
         buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${System.getenv("MYTASKS_FIREBASE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
         buildConfigField("String", "FIREBASE_SENDER_ID", "\"${System.getenv("MYTASKS_FIREBASE_SENDER_ID") ?: ""}\"")
     }
 
@@ -155,17 +159,13 @@ android {
             versionNameSuffix = "-debug"
             // Own Firebase Android app registration (package name
             // com.github.lukelloyd1985.mytasks.debug, from
-            // applicationIdSuffix above) - reusing the release app's App
-            // ID/API key here would silently fail FCM token retrieval
-            // under this different package name once the release key's
-            // Android restriction (package name + signing cert) is
-            // enforced, since the API key was minted for the release
-            // package name specifically. That failure is caught by
-            // AuthViewModel.registerPushTarget's runCatching, so it
-            // wouldn't crash - debug builds would just never get push
-            // notifications. See README "Backend setup" step 8.
+            // applicationIdSuffix above) - App ID is unique per registered
+            // app, so reusing the release app's App ID here would report
+            // this build under the wrong app in Firebase Console/Crashlytics
+            // (the shared API key above still works for both, see its own
+            // comment - only App ID needs to differ). See README "Backend
+            // setup" step 8.
             buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID_DEBUG") ?: ""}\"")
-            buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY_DEBUG") ?: ""}\"")
         }
         release {
             isMinifyEnabled = true
@@ -181,7 +181,6 @@ android {
                 signingConfigs.getByName("debug")
             }
             buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID") ?: ""}\"")
-            buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
         }
     }
 
