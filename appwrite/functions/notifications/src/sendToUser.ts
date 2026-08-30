@@ -1,4 +1,4 @@
-import { Client, Databases, Messaging, ID } from "node-appwrite";
+import { Client, TablesDB, Messaging, ID } from "node-appwrite";
 import { NOTIFICATION_STRINGS, resolveLocale } from "./notificationStrings";
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
@@ -34,10 +34,10 @@ export async function sendToUser(
   kind: NotificationKind,
   taskTitle?: string,
 ): Promise<void> {
-  const databases = new Databases(client);
+  const tablesDB = new TablesDB(client);
   const messaging = new Messaging(client);
 
-  const user = (await databases.getDocument(DATABASE_ID, USERS_COLLECTION_ID, uid)) as UserDoc;
+  const user = (await tablesDB.getRow({ databaseId: DATABASE_ID, tableId: USERS_COLLECTION_ID, rowId: uid })) as UserDoc;
   const strings = NOTIFICATION_STRINGS[resolveLocale(user.locale)][kind];
   const title = strings.title;
   const body = taskTitle && taskTitle.length > 0 ? taskTitle : strings.untitled;

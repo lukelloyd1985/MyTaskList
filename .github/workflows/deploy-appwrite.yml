@@ -102,15 +102,26 @@ name: Deploy Appwrite (Functions)
 #
 # A Function's own `scopes` array (appwrite.json - governs its dynamic
 # per-execution API key, a separate scope surface from the CI server API
-# key's Console scope picker above) needs "documents.read"/
+# key's Console scope picker above) originally needed "documents.read"/
 # "documents.write" for any Databases.listDocuments/getDocument/
 # updateDocument/deleteDocument call to work - "databases.read"/
-# "databases.write" alone are NOT sufficient despite matching names in
+# "databases.write" alone were NOT sufficient despite matching names in
 # the Console's own API-key scope picker; a real run failed with
 # `missing scopes (["documents.read"])` from inside dueDateReminders'
-# very first listDocuments call. Both functions' scopes now declare all
-# four - the databases.* pair kept alongside rather than replaced, in
-# case it covers something else not yet exercised by a real run.
+# very first listDocuments call. Console's own scope picker separately
+# flagged "documents.*" itself as deprecated, in favor of "documentsdb.*".
+#
+# Rather than keep the deprecated "documents.*"/"databases.*" scopes
+# around indefinitely, both functions' server-side code (appwrite/
+# functions/**/src/*.ts) was migrated off the legacy node-appwrite
+# `Databases` (Collections/Documents API) service entirely, onto
+# `TablesDB` (Tables/Rows API) - listDocuments/getDocument/updateDocument/
+# deleteDocument/createDocument calls became listRows/getRow/updateRow/
+# deleteRow/createRow, and `Models.Document` became `Models.Row`
+# throughout. Both functions' `scopes` arrays now declare only
+# "documentsdb.read"/"documentsdb.write" (plus their own unrelated
+# messages.write/users.write) - the old "databases.*"/"documents.*"
+# tokens are gone, not just added-alongside.
 on:
   workflow_dispatch:
 
