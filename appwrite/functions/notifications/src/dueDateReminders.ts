@@ -12,12 +12,14 @@ interface TaskDoc extends Models.Row {
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
 const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
 
-/** Sweeps the (now flat) tasks table for tasks due within the next 15
- *  minutes that haven't been reminded about yet. A per-list on-device
- *  WorkManager reminder (see ReminderScheduler.kt) also fires locally as a
- *  fallback for the currently signed-in device; this is what reaches every
- *  other device / the assignee when they aren't the one who set the
- *  reminder.
+/** Sweeps the (now flat) tasks table for tasks due within the next day
+ *  that haven't been reminded about yet - the CRON schedule keeps running
+ *  every 15 minutes (see appwrite.json), so a task is caught within about
+ *  15 minutes of crossing the 24-hour-out mark, not just as it's about to
+ *  become due. A per-list on-device WorkManager reminder (see
+ *  ReminderScheduler.kt) also fires locally a day ahead as a fallback for
+ *  the currently signed-in device; this is what reaches every other
+ *  device / the assignee when they aren't the one who set the reminder.
  *
  *  Ported from functions/src/notifications.ts's dueDateReminders(). The
  *  original needed a Firestore collection-group query across every list's
@@ -33,7 +35,7 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
 
   const tablesDB = new TablesDB(client);
 
-  const windowEnd = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const windowEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   const dueTasks = await tablesDB.listRows<TaskDoc>({
     databaseId: DATABASE_ID,

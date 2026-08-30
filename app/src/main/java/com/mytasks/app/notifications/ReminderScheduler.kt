@@ -11,7 +11,7 @@ import javax.inject.Singleton
 import com.mytasks.app.data.model.TaskItem
 
 /** How long before the due time the on-device reminder fires. */
-private const val REMINDER_LEAD_MINUTES = 30L
+private const val REMINDER_LEAD_DAYS = 1L
 
 @Singleton
 class ReminderScheduler @Inject constructor(
@@ -27,7 +27,7 @@ class ReminderScheduler @Inject constructor(
             return
         }
 
-        val reminderAt = dueAt.time - TimeUnit.MINUTES.toMillis(REMINDER_LEAD_MINUTES)
+        val reminderAt = dueAt.time - TimeUnit.DAYS.toMillis(REMINDER_LEAD_DAYS)
         val fireAt = if (reminderAt > System.currentTimeMillis()) reminderAt else dueAt.time
         val delayMillis = fireAt - System.currentTimeMillis()
         if (delayMillis <= 0) {
