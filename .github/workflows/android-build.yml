@@ -1,8 +1,20 @@
 name: Android Build
 
 on:
-  # Run on demand from the Actions tab to get a debug APK for manual testing.
+  # Run on demand from the Actions tab to get a debug or release APK for
+  # manual testing - build_type picks which. Never builds the AAB or runs
+  # the Play publish steps either way; those stay scoped to an actual
+  # published GitHub Release below, since they publish to Play Console.
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: APK variant to build
+        required: true
+        default: debug
+        type: choice
+        options:
+          - debug
+          - release
   # Run automatically whenever a GitHub Release is published, attaching the
   # signed (if signing secrets are configured) release APK to it.
   release:
@@ -70,10 +82,10 @@ jobs:
       # Without a signing secret, release builds fall back to the debug
       # keystore (see app/build.gradle.kts) so a testable APK is always
       # produced - this just upgrades it to a properly signed release build
-      # when the secrets are present. Only relevant on an actual release
-      # (workflow_dispatch only builds/uploads the debug APK).
+      # when the secrets are present. Relevant for an actual release, and
+      # for a manually-triggered release-variant build (build_type: release).
       - name: Decode release keystore
-        if: ${{ github.event_name == 'release' && env.HAS_KEYSTORE_SECRET == 'true' }}
+        if: ${{ (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.build_type == 'release')) && env.HAS_KEYSTORE_SECRET == 'true' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.MYTASKS_KEYSTORE_BASE64 }}
         run: |
@@ -99,7 +111,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'debug' }}
         env:
           MYTASKS_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_DEBUG_KEYSTORE_PASSWORD }}
           MYTASKS_DEBUG_KEY_ALIAS: ${{ secrets.MYTASKS_DEBUG_KEY_ALIAS }}
@@ -127,10 +139,29 @@ jobs:
           MYTASKS_GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew assembleDebug --stacktrace
 
-      # Builds both the sideloadable APK (for the GitHub Release / direct
-      # install) and the App Bundle Google Play requires for a Play Store
-      # upload, from the same signed, compiled sources.
-      - name: Build release APK + AAB
+      # Builds the sideloadable release APK - for an actual GitHub Release,
+      # or a manually-triggered release-variant build (build_type: release).
+      # Never the AAB here - see "Build release AAB" below for why that
+      # stays scoped to an actual Release only.
+      - name: Build release APK
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.build_type == 'release') }}
+        env:
+          MYTASKS_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_KEYSTORE_PASSWORD }}
+          MYTASKS_KEY_ALIAS: ${{ secrets.MYTASKS_KEY_ALIAS }}
+          MYTASKS_KEY_PASSWORD: ${{ secrets.MYTASKS_KEY_PASSWORD }}
+          MYTASKS_APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          MYTASKS_FIREBASE_PROJECT_ID: ${{ secrets.MYTASKS_FIREBASE_PROJECT_ID }}
+          MYTASKS_FIREBASE_APPLICATION_ID: ${{ secrets.MYTASKS_FIREBASE_APPLICATION_ID }}
+          MYTASKS_FIREBASE_API_KEY: ${{ secrets.MYTASKS_FIREBASE_API_KEY }}
+          MYTASKS_FIREBASE_SENDER_ID: ${{ secrets.MYTASKS_FIREBASE_SENDER_ID }}
+          MYTASKS_GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      # The App Bundle Google Play requires for a Play Store upload - only
+      # meaningful for an actual published Release (see the Play publish
+      # steps below), never for a manual build_type: release run, which
+      # exists purely for sideloadable-APK testing.
+      - name: Build release AAB
         if: ${{ github.event_name == 'release' }}
         env:
           MYTASKS_KEYSTORE_PASSWORD: ${{ secrets.MYTASKS_KEYSTORE_PASSWORD }}
@@ -142,10 +173,10 @@ jobs:
           MYTASKS_FIREBASE_API_KEY: ${{ secrets.MYTASKS_FIREBASE_API_KEY }}
           MYTASKS_FIREBASE_SENDER_ID: ${{ secrets.MYTASKS_FIREBASE_SENDER_ID }}
           MYTASKS_GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew assembleRelease bundleRelease --stacktrace
+        run: ./gradlew bundleRelease --stacktrace
 
       - name: Upload debug APK artifact
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'debug' }}
         uses: actions/upload-artifact@v7
         with:
           name: mytasks-debug-apk
@@ -153,7 +184,7 @@ jobs:
           retention-days: 30
 
       - name: Upload release APK artifact
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.build_type == 'release') }}
         uses: actions/upload-artifact@v7
         with:
           name: mytasks-release-apk

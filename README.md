@@ -501,17 +501,20 @@ produces an installable APK even before you've set up a keystore.
 [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml):
 
 - **Run it manually** any time from the repo's **Actions** tab → *Android
-  Build* → **Run workflow**. It builds a debug APK and attaches it to the
-  workflow run as a downloadable artifact - handy for giving testers a
-  build without cutting a release.
+  Build* → **Run workflow**, choosing a **build_type**: `debug` (the
+  default) or `release`. Either way it builds just the one APK and
+  attaches it to the workflow run as a downloadable artifact - handy for
+  giving testers a build, or for testing a real release-signed APK,
+  without cutting an actual release. A manual `release`-variant run still
+  never touches the AAB or the Play publish steps below - those stay
+  scoped to an actual published Release, since they publish to Play
+  Console.
 - **Publishing a GitHub Release** automatically builds a release APK *and*
   an Android App Bundle (`.aab`, what Google Play requires), attaches both
   to that release (and to the workflow run as artifacts), and - if the
   `PLAY_SERVICE_ACCOUNT_JSON` secret is set - uploads the AAB to Google
   Play's internal testing track. See
-  [Publishing to Google Play](#publishing-to-google-play) below. None of
-  the release-signing/AAB/Play-publish steps run for manual
-  `workflow_dispatch` runs, only for this trigger.
+  [Publishing to Google Play](#publishing-to-google-play) below.
 
 To get a properly **signed** release build (instead of the debug-keystore
 fallback), generate a keystore and add these repository secrets
