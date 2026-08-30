@@ -323,8 +323,8 @@
         "databases.mytasks.collections.tasks.documents.*.update"
       ],
       "scopes": [
-        "documentsdb.read",
-        "documentsdb.write",
+        "rows.read",
+        "rows.write",
         "messages.write"
       ],
       "schedule": "*/15 * * * *",
@@ -345,8 +345,8 @@
         "databases.mytasks.collections.lists.documents.*.update"
       ],
       "scopes": [
-        "documentsdb.read",
-        "documentsdb.write",
+        "rows.read",
+        "rows.write",
         "users.write"
       ],
       "schedule": "",
