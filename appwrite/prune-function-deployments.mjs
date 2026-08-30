@@ -24,7 +24,12 @@
 // Idempotent - safe to run on every deploy:
 //   1. Sets deploymentRetention (see RETENTION_DAYS below) on every
 //      function declared in appwrite.json, so Appwrite's own retention
-//      sweep keeps pruning automatically going forward.
+//      sweep keeps pruning automatically going forward. Functions.update()
+//      is a full replace, not a partial patch - confirmed by a real run
+//      that wiped scopes/schedule/etc. back to empty because an earlier
+//      version of this script only passed name+deploymentRetention - so
+//      every other field is read back from functions.get() and restated
+//      verbatim in the update() call below, or it would get clobbered.
 //   2. Also explicitly deletes any already-existing non-active
 //      deployment older than that window right now, rather than waiting
 //      on Appwrite's own sweep to work through the backlog that piled up
@@ -94,9 +99,36 @@ for (const fn of config.functions) {
   const current = await functions.get(fn.$id);
 
   if (current.deploymentRetention !== RETENTION_DAYS) {
+    // update() is a full replace, not a partial patch - a real deploy
+    // run confirmed this the hard way: calling it with only
+    // functionId/name/deploymentRetention wiped every other field
+    // `appwrite push function` had just set moments earlier in the same
+    // run, including scopes and schedule. So every other field has to be
+    // read back from `current` and restated here verbatim - this is the
+    // only way to change deploymentRetention without clobbering
+    // everything else.
     await functions.update({
       functionId: fn.$id,
       name: current.name,
+      runtime: current.runtime,
+      execute: current.execute,
+      events: current.events,
+      schedule: current.schedule,
+      timeout: current.timeout,
+      enabled: current.enabled,
+      logging: current.logging,
+      entrypoint: current.entrypoint,
+      commands: current.commands,
+      scopes: current.scopes,
+      installationId: current.installationId,
+      providerRepositoryId: current.providerRepositoryId,
+      providerBranch: current.providerBranch,
+      providerSilentMode: current.providerSilentMode,
+      providerRootDirectory: current.providerRootDirectory,
+      providerBranches: current.providerBranches,
+      providerPaths: current.providerPaths,
+      buildSpecification: current.buildSpecification,
+      runtimeSpecification: current.runtimeSpecification,
       deploymentRetention: RETENTION_DAYS,
     });
     console.log(`"${fn.$id}": set deploymentRetention to ${RETENTION_DAYS} days`);
