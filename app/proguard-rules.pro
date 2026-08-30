@@ -23,3 +23,23 @@
 -keep class com.google.android.gms.auth.api.identity.** { *; }
 -dontwarn androidx.credentials.**
 -dontwarn com.google.android.libraries.identity.googleid.**
+
+# Appwrite SDK - confirmed root cause of a real reported bug: the app
+# crashed immediately after sign-in on the release build only, never on
+# the unminified debug build, with an identical Realtime channel
+# subscription running in both. Traced into the SDK's own source
+# (io.appwrite.services.Realtime, sdk-for-android at the pinned 25.2.0
+# tag): every REST model (Session, User, Execution, etc.) is built
+# manually via `map["key"] as Type` in each model's own from(map)
+# factory - already R8-safe by construction, which is exactly why
+# sign-in and every other REST call work fine on release. But
+# Realtime's WebSocket error handler is the one place that deserializes
+# straight through Gson reflection onto a typed class instead
+# (`message.data?.jsonCast<AppwriteException>()`), and io.appwrite.**
+# had zero keep-rule coverage - so AppwriteException's fields could get
+# renamed by R8, breaking Gson's field-name-based matching against the
+# server's JSON only in this one path. Kept broadly (not just
+# AppwriteException) since this is the only Gson-reflection call site
+# audited so far, not necessarily the only one in the SDK.
+-keep class io.appwrite.** { *; }
+-dontwarn io.appwrite.**
