@@ -35,6 +35,13 @@ class MyTasksMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         val title = message.notification?.title ?: message.data["title"] ?: return
         val body = message.notification?.body ?: message.data["body"].orEmpty()
-        NotificationHelper.show(applicationContext, notificationId = message.messageId.hashCode(), title = title, body = body)
+        NotificationHelper.show(
+            applicationContext,
+            notificationId = message.messageId.hashCode(),
+            title = title,
+            body = body,
+            listId = message.data["listId"],
+            taskId = message.data["taskId"],
+        )
     }
 }

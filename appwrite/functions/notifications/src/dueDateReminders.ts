@@ -3,6 +3,7 @@ import { sendToUser } from "./sendToUser";
 import type { FunctionContext } from "./context";
 
 interface TaskDoc extends Models.Row {
+  listId: string;
   title?: string;
   assigneeId?: string;
   completed?: boolean;
@@ -70,7 +71,7 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
 
         if (task.assigneeId) {
           try {
-            await sendToUser(client, task.assigneeId, "dueSoon", task.title);
+            await sendToUser(client, task.assigneeId, "dueSoon", task.title, task.listId, task.$id);
           } catch (err) {
             error(`Failed to send due-date reminder for task ${task.$id}: ${err instanceof Error ? err.stack ?? err.message : err}`);
           }

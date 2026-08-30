@@ -4,6 +4,7 @@ import type { FunctionContext } from "./context";
 
 interface TaskDoc {
   $id: string;
+  listId: string;
   title?: string;
   assigneeId?: string;
 }
@@ -43,7 +44,7 @@ export async function onTaskWrite({ req, res, error }: FunctionContext) {
   }
 
   try {
-    await sendToUser(client, assigneeId, "assigned", task.title);
+    await sendToUser(client, assigneeId, "assigned", task.title, task.listId, task.$id);
   } catch (err) {
     error(`Failed to notify assignee ${assigneeId}: ${err instanceof Error ? err.stack ?? err.message : err}`);
   }

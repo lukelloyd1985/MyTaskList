@@ -18,9 +18,14 @@
         android:theme="@style/Theme.MyTasks"
         tools:targetApi="35">
 
+        <!-- singleTask so a notification tap while the app is already
+             running (see NotificationHelper.show's PendingIntent) is
+             delivered to the existing instance via onNewIntent, instead
+             of launching a second MainActivity on top of it. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.MyTasks">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
