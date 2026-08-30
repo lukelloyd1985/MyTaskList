@@ -37,6 +37,7 @@ class ReminderScheduler @Inject constructor(
 
         val data = Data.Builder()
             .putString(DueDateReminderWorker.KEY_TASK_ID, task.id)
+            .putString(DueDateReminderWorker.KEY_LIST_ID, task.listId)
             .putString(DueDateReminderWorker.KEY_TITLE, task.title)
             .putString(DueDateReminderWorker.KEY_ASSIGNEE_ID, task.assigneeId)
             .build()

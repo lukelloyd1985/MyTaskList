@@ -27,12 +27,19 @@ interface UserDoc {
  *  service-account credential minted via google-auth-library - switched
  *  to Appwrite Messaging to drop that dependency (it was part of what
  *  caused the TS18028 build failures worked through earlier) and the
- *  hand-rolled dead-token-pruning logic in favor of Appwrite's own. */
+ *  hand-rolled dead-token-pruning logic in favor of Appwrite's own.
+ *
+ *  `listId`/`taskId` ride along as the push's `data` payload so tapping
+ *  the notification can open the app straight to that list/task instead
+ *  of just the app's default screen - see MyTasksMessagingService.kt,
+ *  which reads them back off the FCM RemoteMessage. */
 export async function sendToUser(
   client: Client,
   uid: string,
   kind: NotificationKind,
-  taskTitle?: string,
+  taskTitle: string | undefined,
+  listId: string,
+  taskId: string,
 ): Promise<void> {
   const tablesDB = new TablesDB(client);
   const messaging = new Messaging(client);
@@ -47,5 +54,6 @@ export async function sendToUser(
     users: [uid],
     title,
     body,
+    data: { listId, taskId },
   });
 }

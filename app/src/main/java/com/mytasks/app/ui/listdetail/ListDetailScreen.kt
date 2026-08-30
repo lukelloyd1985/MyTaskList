@@ -48,12 +48,29 @@ import kotlin.math.roundToInt
 fun ListDetailScreen(
     onBack: () -> Unit,
     onOpenSettings: (String) -> Unit,
+    initialTaskId: String? = null,
     viewModel: ListDetailViewModel = hiltViewModel(),
 ) {
     val list by viewModel.list.collectAsStateWithLifecycle()
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     var editingTask by remember { mutableStateOf<TaskItem?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    // Opens initialTaskId's editor sheet as soon as it shows up in the
+    // loaded tasks (arriving from a notification tap - see
+    // MyTasksNavHost's deep-link handling). Only ever fires once: without
+    // consumedInitialDeepLink, a later Realtime refresh of `tasks` would
+    // reopen the sheet right after the user dismisses it.
+    var consumedInitialDeepLink by remember { mutableStateOf(false) }
+
+    LaunchedEffect(tasks) {
+        if (!consumedInitialDeepLink && initialTaskId != null) {
+            tasks.find { it.id == initialTaskId }?.let { task ->
+                editingTask = task
+                showEditor = true
+                consumedInitialDeepLink = true
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

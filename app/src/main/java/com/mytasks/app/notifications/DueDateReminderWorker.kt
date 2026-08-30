@@ -25,6 +25,7 @@ class DueDateReminderWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val taskId = inputData.getString(KEY_TASK_ID) ?: return Result.failure()
+        val listId = inputData.getString(KEY_LIST_ID) ?: return Result.failure()
         val title = inputData.getString(KEY_TITLE) ?: return Result.failure()
         val assigneeId = inputData.getString(KEY_ASSIGNEE_ID)
 
@@ -39,12 +40,15 @@ class DueDateReminderWorker @AssistedInject constructor(
             notificationId = taskId.hashCode(),
             title = applicationContext.getString(R.string.notification_task_due_soon),
             body = title,
+            listId = listId,
+            taskId = taskId,
         )
         return Result.success()
     }
 
     companion object {
         const val KEY_TASK_ID = "task_id"
+        const val KEY_LIST_ID = "list_id"
         const val KEY_TITLE = "title"
         const val KEY_ASSIGNEE_ID = "assignee_id"
     }
