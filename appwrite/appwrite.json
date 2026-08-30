@@ -325,6 +325,8 @@
       "scopes": [
         "databases.read",
         "databases.write",
+        "documents.read",
+        "documents.write",
         "messages.write"
       ],
       "schedule": "*/15 * * * *",
@@ -347,6 +349,8 @@
       "scopes": [
         "databases.read",
         "databases.write",
+        "documents.read",
+        "documents.write",
         "users.write"
       ],
       "schedule": "",
