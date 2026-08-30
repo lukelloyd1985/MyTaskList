@@ -109,19 +109,30 @@ name: Deploy Appwrite (Functions)
 # the Console's own API-key scope picker; a real run failed with
 # `missing scopes (["documents.read"])` from inside dueDateReminders'
 # very first listDocuments call. Console's own scope picker separately
-# flagged "documents.*" itself as deprecated, in favor of "documentsdb.*".
+# flagged "documents.*" itself as deprecated.
 #
-# Rather than keep the deprecated "documents.*"/"databases.*" scopes
-# around indefinitely, both functions' server-side code (appwrite/
-# functions/**/src/*.ts) was migrated off the legacy node-appwrite
-# `Databases` (Collections/Documents API) service entirely, onto
-# `TablesDB` (Tables/Rows API) - listDocuments/getDocument/updateDocument/
-# deleteDocument/createDocument calls became listRows/getRow/updateRow/
-# deleteRow/createRow, and `Models.Document` became `Models.Row`
-# throughout. Both functions' `scopes` arrays now declare only
-# "documentsdb.read"/"documentsdb.write" (plus their own unrelated
-# messages.write/users.write) - the old "databases.*"/"documents.*"
-# tokens are gone, not just added-alongside.
+# Both functions' server-side code (appwrite/functions/**/src/*.ts) was
+# migrated off the legacy node-appwrite `Databases` (Collections/
+# Documents API) service entirely, onto `TablesDB` (Tables/Rows API) -
+# listDocuments/getDocument/updateDocument/deleteDocument/createDocument
+# calls became listRows/getRow/updateRow/deleteRow/createRow, and
+# `Models.Document` became `Models.Row` throughout.
+#
+# First guess at the replacement scope was "documentsdb.read"/
+# "documentsdb.write" - WRONG. That string doesn't appear anywhere in
+# node-appwrite's own ProjectKeyScopes enum (the authoritative list);
+# "documentsdb" is a real Appwrite term, but for a database *product/
+# engine type* ("tablesdb"/"documentsdb"/"vectorsdb" - see
+# DatabaseType), not a permission scope. Setting it was silently
+# accepted by `appwrite push function`/Functions.update() (no
+# validation error) but granted nothing, so every TablesDB.getRow call
+# still failed live with `missing scopes (["rows.read","documents.read"])`
+# - which is the actual answer, straight from ProjectKeyScopes:
+# "rows.read"/"rows.write" is the direct successor of "documents.read"/
+# "documents.write" for row-level CRUD (same relationship "tables.*"
+# has to the old "collections.*", and "columns.*" to "attributes.*").
+# Both functions' `scopes` arrays now declare "rows.read"/"rows.write"
+# (plus their own unrelated messages.write/users.write).
 on:
   workflow_dispatch:
 
