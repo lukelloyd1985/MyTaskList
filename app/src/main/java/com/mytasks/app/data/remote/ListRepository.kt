@@ -1,13 +1,16 @@
 package com.mytasks.app.data.remote
 
+import io.appwrite.Channel
 import io.appwrite.ID
 import io.appwrite.Permission
 import io.appwrite.Query
 import io.appwrite.Role
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.models.Document
+import io.appwrite.row
 import io.appwrite.services.Databases
 import io.appwrite.services.Realtime
+import io.appwrite.table
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
@@ -59,8 +62,22 @@ class AppwriteListRepository @Inject constructor(
             }
         }
         refresh()
-        val channel = "databases.$databaseId.collections.$listsId.documents"
-        val subscription = realtime.subscribe(channel) { launch { refresh() } }
+        // Channel namespace matters: this project's data lives in Tables
+        // (see appwrite/bootstrap-tables.mjs, appwrite.json's "tables"
+        // schema), not the legacy Collections API - Appwrite's Realtime
+        // routes tablesdb.{db}.tables.{id}.rows channels separately from
+        // the old databases.{db}.collections.{id}.documents ones, and only
+        // the former actually exists for table-backed data. A previous
+        // hand-rolled "databases...collections...documents" channel string
+        // here caused the server to reject the subscription with a
+        // confusing "Invalid query method" error, thrown uncaught on
+        // Realtime's own WebSocket callback thread (see io.appwrite.
+        // services.Realtime's AppwriteWebSocketListener.handleResponseError)
+        // - crashing the app immediately after the first successful sign-in,
+        // since that's when this subscription first starts. Built via the
+        // SDK's type-safe Channel builder now instead of a raw string, to
+        // rule out this whole class of typo.
+        val subscription = realtime.subscribe(Channel.tablesdb(databaseId).table(listsId).row()) { launch { refresh() } }
         awaitClose { subscription.close() }
     }
 
@@ -73,8 +90,7 @@ class AppwriteListRepository @Inject constructor(
             }
         }
         refresh()
-        val channel = "databases.$databaseId.collections.$listsId.documents.$listId"
-        val subscription = realtime.subscribe(channel) { launch { refresh() } }
+        val subscription = realtime.subscribe(Channel.tablesdb(databaseId).table(listsId).row(listId)) { launch { refresh() } }
         awaitClose { subscription.close() }
     }
 
