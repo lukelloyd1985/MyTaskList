@@ -43,3 +43,16 @@
 # audited so far, not necessarily the only one in the SDK.
 -keep class io.appwrite.** { *; }
 -dontwarn io.appwrite.**
+
+# WorkManager (ReminderScheduler.kt's local due-date reminder fallback -
+# see README "Architecture") - confirmed root cause of a real reported
+# crash: NoSuchMethodException on androidx.work.impl.WorkDatabase_Impl's
+# constructor, reflectively instantiated by WorkManager's own internals
+# (Room-backed persistence for scheduled work) the first time work is
+# actually scheduled - happens on opening a list detail screen, which is
+# where a task's due-date reminder first gets scheduled. WorkManager
+# ships its own consumer ProGuard rules meant to cover this
+# automatically, but that evidently isn't taking effect in this build -
+# kept explicitly instead of relying on it.
+-keep class androidx.work.impl.** { *; }
+-dontwarn androidx.work.**
