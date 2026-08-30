@@ -1,6 +1,9 @@
 package com.mytasks.app
 
 import android.app.Application
+import android.content.Intent
+import android.os.Process
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
@@ -8,6 +11,7 @@ import com.google.firebase.FirebaseOptions
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import com.mytasks.app.notifications.NotificationHelper
+import kotlin.system.exitProcess
 
 @HiltAndroidApp
 class MyTasksApp : Application(), Configuration.Provider {
@@ -16,8 +20,32 @@ class MyTasksApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        installCrashHandler()
         initFirebase()
         NotificationHelper.createChannel(this)
+    }
+
+    // See CrashReportActivity's own comment for why this exists. Falls
+    // through to the platform's own default handler (which shows the
+    // usual "App keeps stopping" dialog) if launching the crash screen
+    // itself fails for any reason, rather than risking a silent hang.
+    private fun installCrashHandler() {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val stackTrace = Log.getStackTraceString(throwable)
+                startActivity(
+                    Intent(this, CrashReportActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        putExtra(CrashReportActivity.EXTRA_STACK_TRACE, stackTrace)
+                    },
+                )
+                Process.killProcess(Process.myPid())
+                exitProcess(10)
+            } catch (t: Throwable) {
+                defaultHandler?.uncaughtException(thread, throwable)
+            }
+        }
     }
 
     // No google-services.json/plugin - see the BuildConfig fields' own

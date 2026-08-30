@@ -28,6 +28,12 @@
             </intent-filter>
         </activity>
 
+        <!-- See CrashReportActivity's own comment - a temporary
+             on-device diagnostic screen, not a permanent UI surface. -->
+        <activity
+            android:name=".CrashReportActivity"
+            android:exported="false" />
+
         <service
             android:name=".notifications.MyTasksMessagingService"
             android:exported="false">
