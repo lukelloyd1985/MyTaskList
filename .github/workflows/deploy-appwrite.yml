@@ -108,9 +108,16 @@ name: Deploy Appwrite (Functions)
 # "databases.write" alone are NOT sufficient despite matching names in
 # the Console's own API-key scope picker; a real run failed with
 # `missing scopes (["documents.read"])` from inside dueDateReminders'
-# very first listDocuments call. Both functions' scopes now declare all
-# four - the databases.* pair kept alongside rather than replaced, in
-# case it covers something else not yet exercised by a real run.
+# very first listDocuments call.
+#
+# Console's own scope picker separately flags "documents.*" itself as
+# deprecated, in favor of "documentsdb.*" (per a live check of Console's
+# UI, not independently verified against docs from this sandbox). Since
+# "documents.*" is still the scope the runtime actually enforced above,
+# deprecated evidently doesn't mean broken yet - so both functions'
+# scopes now declare all six (databases.*, documents.*, documentsdb.*),
+# added incrementally rather than replaced, so a still-relevant older
+# scope token never gets pulled out from under a working setup.
 on:
   workflow_dispatch:
 

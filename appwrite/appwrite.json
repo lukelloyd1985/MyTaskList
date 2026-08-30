@@ -327,6 +327,8 @@
         "databases.write",
         "documents.read",
         "documents.write",
+        "documentsdb.read",
+        "documentsdb.write",
         "messages.write"
       ],
       "schedule": "*/15 * * * *",
@@ -351,6 +353,8 @@
         "databases.write",
         "documents.read",
         "documents.write",
+        "documentsdb.read",
+        "documentsdb.write",
         "users.write"
       ],
       "schedule": "",
