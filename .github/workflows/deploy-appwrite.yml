@@ -99,6 +99,18 @@ name: Deploy Appwrite (Functions)
 # this time by copying each function's directory alone to an empty
 # location and building from there - the same isolation `push` actually
 # gives it.
+#
+# A Function's own `scopes` array (appwrite.json - governs its dynamic
+# per-execution API key, a separate scope surface from the CI server API
+# key's Console scope picker above) needs "documents.read"/
+# "documents.write" for any Databases.listDocuments/getDocument/
+# updateDocument/deleteDocument call to work - "databases.read"/
+# "databases.write" alone are NOT sufficient despite matching names in
+# the Console's own API-key scope picker; a real run failed with
+# `missing scopes (["documents.read"])` from inside dueDateReminders'
+# very first listDocuments call. Both functions' scopes now declare all
+# four - the databases.* pair kept alongside rather than replaced, in
+# case it covers something else not yet exercised by a real run.
 on:
   workflow_dispatch:
 
