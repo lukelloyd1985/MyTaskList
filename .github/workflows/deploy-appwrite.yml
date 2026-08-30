@@ -202,9 +202,24 @@ jobs:
 
       # Only functions go through `appwrite push` - see the top-of-file
       # WARNING for why `appwrite push tables` is not run here at all.
+      #
+      # `appwrite push function` exits 0 even when one function's
+      # deployment fails and another's succeeds - a real run logged
+      # "Deployed 1 of 2 functions in 604.7s. 1 failed." and the workflow
+      # still went green. The CLI's own exit code can't be trusted for
+      # this, so the step greps its output for a nonzero "N failed" count
+      # and fails the step explicitly if it finds one - `set -o pipefail`
+      # also catches a real nonzero exit from `appwrite` itself, which
+      # `tee` would otherwise swallow.
       - name: Push functions
         working-directory: appwrite
-        run: appwrite push function all --force
+        run: |
+          set -o pipefail
+          appwrite push function all --force 2>&1 | tee /tmp/push-functions.log
+          if grep -qE '[1-9][0-9]* failed' /tmp/push-functions.log; then
+            echo "::error::appwrite push function reported one or more failed deployments - see log above."
+            exit 1
+          fi
 
       # `appwrite push function` only syncs a Function's code and
       # appwrite.json-declared config (entrypoint, scopes, events, etc.) -
