@@ -1,12 +1,15 @@
 package com.mytasks.app.data.remote
 
+import io.appwrite.Channel
 import io.appwrite.ID
 import io.appwrite.Permission
 import io.appwrite.Query
 import io.appwrite.Role
 import io.appwrite.models.Document
+import io.appwrite.row
 import io.appwrite.services.Databases
 import io.appwrite.services.Realtime
+import io.appwrite.table
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
@@ -94,11 +97,17 @@ class AppwriteTaskRepository @Inject constructor(
             }
         }
         refresh()
-        // Realtime subscribes at collection granularity, not with
-        // arbitrary query filters, so every `tasks` collection event is
-        // filtered down to this list here before triggering a refetch.
-        val channel = "databases.$databaseId.collections.$tasksId.documents"
-        val subscription = realtime.subscribe(channel) { response ->
+        // Realtime subscribes at table granularity, not with arbitrary
+        // query filters, so every `tasks` table event is filtered down to
+        // this list here before triggering a refetch.
+        //
+        // Channel namespace matters: this project's data lives in Tables
+        // (see appwrite/bootstrap-tables.mjs, appwrite.json's "tables"
+        // schema), not the legacy Collections API - see ListRepository's
+        // matching comment for the crash this caused when this channel
+        // was still hand-rolled as the old
+        // "databases...collections...documents" string.
+        val subscription = realtime.subscribe(Channel.tablesdb(databaseId).table(tasksId).row()) { response ->
             @Suppress("UNCHECKED_CAST")
             val payload = response.payload as? Map<String, Any?>
             val eventListId = payload?.get("listId") as? String
