@@ -1,5 +1,5 @@
-import { Client, Databases, Users, Query, Permission, Role, Models } from "node-appwrite";
-import { listAllDocuments } from "./listAll";
+import { Client, TablesDB, Users, Query, Permission, Role, Models } from "node-appwrite";
+import { listAllRows } from "./listAll";
 import type { FunctionContext } from "./context";
 
 interface ListMemberData {
@@ -9,7 +9,7 @@ interface ListMemberData {
   photoUrl?: string;
 }
 
-interface ListDoc extends Models.Document {
+interface ListDoc extends Models.Row {
   ownerId: string;
   ownerName?: string;
   visibility: "PRIVATE" | "SHARED";
@@ -17,7 +17,7 @@ interface ListDoc extends Models.Document {
   members?: string; // JSON-encoded ListMemberData[] - Appwrite has no array-of-objects attribute
 }
 
-interface TaskDoc extends Models.Document {
+interface TaskDoc extends Models.Row {
   listId: string;
   assigneeId?: string;
 }
@@ -39,8 +39,8 @@ function parseMembers(json: string | undefined): ListMemberData[] {
 
 /** Owner gets full read/update/delete; every other member gets read-only -
  *  mirrors the `lists` permission model. Rebuilt wholesale because
- *  Appwrite's per-document permission array isn't incrementally patchable,
- *  it's replaced entirely on every updateDocument() call. */
+ *  Appwrite's per-row permission array isn't incrementally patchable,
+ *  it's replaced entirely on every updateRow() call. */
 function buildListPermissions(ownerId: string, memberIds: string[]): string[] {
   const permissions = [
     Permission.read(Role.user(ownerId)),
@@ -54,26 +54,32 @@ function buildListPermissions(ownerId: string, memberIds: string[]): string[] {
   return permissions;
 }
 
-async function unassignTasks(databases: Databases, listId: string, uid: string) {
-  const tasks = await listAllDocuments<TaskDoc>(databases, DATABASE_ID, TASKS_COLLECTION_ID, [
+async function unassignTasks(tablesDB: TablesDB, listId: string, uid: string) {
+  const tasks = await listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
     Query.equal("listId", listId),
     Query.equal("assigneeId", uid),
   ]);
   await Promise.all(
     tasks.map((task) =>
-      databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {
-        assigneeId: "",
-        assigneeName: "",
+      tablesDB.updateRow({
+        databaseId: DATABASE_ID,
+        tableId: TASKS_COLLECTION_ID,
+        rowId: task.$id,
+        data: { assigneeId: "", assigneeName: "" },
       }),
     ),
   );
 }
 
-async function deleteAllTasksForList(databases: Databases, listId: string) {
-  const tasks = await listAllDocuments<TaskDoc>(databases, DATABASE_ID, TASKS_COLLECTION_ID, [
+async function deleteAllTasksForList(tablesDB: TablesDB, listId: string) {
+  const tasks = await listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
     Query.equal("listId", listId),
   ]);
-  await Promise.all(tasks.map((task) => databases.deleteDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id)));
+  await Promise.all(
+    tasks.map((task) =>
+      tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: TASKS_COLLECTION_ID, rowId: task.$id }),
+    ),
+  );
 }
 
 /**
@@ -106,12 +112,12 @@ export async function deleteAccount({ req, res, log, error }: FunctionContext) {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
     .setKey(req.headers["x-appwrite-key"] ?? "");
 
-  const databases = new Databases(client);
+  const tablesDB = new TablesDB(client);
   const users = new Users(client);
 
   const [ownedLists, memberLists] = await Promise.all([
-    listAllDocuments<ListDoc>(databases, DATABASE_ID, LISTS_COLLECTION_ID, [Query.equal("ownerId", uid)]),
-    listAllDocuments<ListDoc>(databases, DATABASE_ID, LISTS_COLLECTION_ID, [Query.contains("memberIds", uid)]),
+    listAllRows<ListDoc>(tablesDB, DATABASE_ID, LISTS_COLLECTION_ID, [Query.equal("ownerId", uid)]),
+    listAllRows<ListDoc>(tablesDB, DATABASE_ID, LISTS_COLLECTION_ID, [Query.contains("memberIds", uid)]),
   ]);
 
   for (const list of ownedLists) {
@@ -127,31 +133,31 @@ export async function deleteAccount({ req, res, log, error }: FunctionContext) {
       const newOwner = members.find((m) => m.uid === newOwnerId);
       const remainingMembers = members.filter((m) => m.uid !== uid);
 
-      await databases.updateDocument(
-        DATABASE_ID,
-        LISTS_COLLECTION_ID,
-        list.$id,
-        {
+      await tablesDB.updateRow({
+        databaseId: DATABASE_ID,
+        tableId: LISTS_COLLECTION_ID,
+        rowId: list.$id,
+        data: {
           ownerId: newOwnerId,
           ownerName: newOwner?.displayName ?? "",
           memberIds: remainingMemberIds,
           members: JSON.stringify(remainingMembers),
         },
-        buildListPermissions(newOwnerId, remainingMemberIds),
-      );
+        permissions: buildListPermissions(newOwnerId, remainingMemberIds),
+      });
       // This update also fires the maintenance function's
       // syncListPermissions handler (it watches lists documents.*.update),
       // which fans the new owner/member set out to every task under this
       // list - we don't need to touch task permissions here ourselves.
-      await unassignTasks(databases, list.$id, uid);
+      await unassignTasks(tablesDB, list.$id, uid);
     } else {
       // Private, or shared with no one left to hand it to - nothing of
       // this list needs to survive the account it belongs to. Appwrite
       // has no recursive-delete primitive like Firestore's
       // recursiveDelete(), so tasks are deleted explicitly before the
       // list itself.
-      await deleteAllTasksForList(databases, list.$id);
-      await databases.deleteDocument(DATABASE_ID, LISTS_COLLECTION_ID, list.$id);
+      await deleteAllTasksForList(tablesDB, list.$id);
+      await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: LISTS_COLLECTION_ID, rowId: list.$id });
     }
   }
 
@@ -161,20 +167,20 @@ export async function deleteAccount({ req, res, log, error }: FunctionContext) {
     const memberIds = (list.memberIds ?? []).filter((id) => id !== uid);
     const members = parseMembers(list.members).filter((m) => m.uid !== uid);
 
-    await databases.updateDocument(
-      DATABASE_ID,
-      LISTS_COLLECTION_ID,
-      list.$id,
-      {
+    await tablesDB.updateRow({
+      databaseId: DATABASE_ID,
+      tableId: LISTS_COLLECTION_ID,
+      rowId: list.$id,
+      data: {
         memberIds,
         members: JSON.stringify(members),
       },
-      buildListPermissions(list.ownerId, memberIds),
-    );
-    await unassignTasks(databases, list.$id, uid);
+      permissions: buildListPermissions(list.ownerId, memberIds),
+    });
+    await unassignTasks(tablesDB, list.$id, uid);
   }
 
-  await databases.deleteDocument(DATABASE_ID, USERS_COLLECTION_ID, uid);
+  await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: USERS_COLLECTION_ID, rowId: uid });
 
   try {
     await users.delete(uid);

@@ -1,13 +1,13 @@
-import { Client, Databases, Query, Permission, Role, Models } from "node-appwrite";
-import { listAllDocuments } from "./listAll";
+import { Client, TablesDB, Query, Permission, Role, Models } from "node-appwrite";
+import { listAllRows } from "./listAll";
 import type { FunctionContext } from "./context";
 
-interface ListDoc extends Models.Document {
+interface ListDoc extends Models.Row {
   ownerId: string;
   memberIds?: string[];
 }
 
-interface TaskDoc extends Models.Document {
+interface TaskDoc extends Models.Row {
   listId: string;
 }
 
@@ -30,11 +30,11 @@ function buildTaskPermissions(ownerId: string, memberIds: string[]): string[] {
 
 /**
  * NEW function - not a port of any Firebase code. It exists because
- * Appwrite permissions are static ACLs stored on each document, not a
+ * Appwrite permissions are static ACLs stored on each row, not a
  * live rule evaluation against a parent document the way Firestore's
  * security rules were (the old firestore.rules `parentList()` lookup
  * re-checked list membership on every single task read/write). Appwrite
- * has nothing equivalent for documents in a different, flat collection,
+ * has nothing equivalent for rows in a different, flat table,
  * so whenever a list's ownerId/memberIds change, every task under that
  * list has to have its permissions explicitly recomputed and pushed here
  * - otherwise a removed member would silently keep access to that list's
@@ -55,12 +55,12 @@ export async function syncListPermissions({ req, res, error }: FunctionContext) 
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
     .setKey(req.headers["x-appwrite-key"] ?? "");
 
-  const databases = new Databases(client);
+  const tablesDB = new TablesDB(client);
 
   const memberIds = list.memberIds ?? [];
   const permissions = buildTaskPermissions(list.ownerId, memberIds);
 
-  const tasks = await listAllDocuments<TaskDoc>(databases, DATABASE_ID, TASKS_COLLECTION_ID, [
+  const tasks = await listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
     Query.equal("listId", list.$id),
   ]);
 
@@ -76,7 +76,15 @@ export async function syncListPermissions({ req, res, error }: FunctionContext) 
     // updates - an accepted small atomicity gap, not a data-corruption
     // risk.
     await Promise.all(
-      tasks.map((task) => databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {}, permissions)),
+      tasks.map((task) =>
+        tablesDB.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TASKS_COLLECTION_ID,
+          rowId: task.$id,
+          data: {},
+          permissions,
+        }),
+      ),
     );
   } catch (err) {
     error(

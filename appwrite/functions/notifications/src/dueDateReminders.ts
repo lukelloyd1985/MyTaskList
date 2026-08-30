@@ -1,8 +1,8 @@
-import { Client, Databases, Query, Models } from "node-appwrite";
+import { Client, TablesDB, Query, Models } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
 import type { FunctionContext } from "./context";
 
-interface TaskDoc extends Models.Document {
+interface TaskDoc extends Models.Row {
   title?: string;
   assigneeId?: string;
   completed?: boolean;
@@ -11,7 +11,7 @@ interface TaskDoc extends Models.Document {
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
 const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
 
-/** Sweeps the (now flat) tasks collection for tasks due within the next 15
+/** Sweeps the (now flat) tasks table for tasks due within the next 15
  *  minutes that haven't been reminded about yet. A per-list on-device
  *  WorkManager reminder (see ReminderScheduler.kt) also fires locally as a
  *  fallback for the currently signed-in device; this is what reaches every
@@ -20,7 +20,7 @@ const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
  *
  *  Ported from functions/src/notifications.ts's dueDateReminders(). The
  *  original needed a Firestore collection-group query across every list's
- *  tasks subcollection; since `tasks` is now a single flat collection with
+ *  tasks subcollection; since `tasks` is now a single flat table with
  *  a `listId` field, this is just one ordinary query.
  *
  *  Triggered by the CRON schedule - see main.ts's trigger dispatch. */
@@ -30,22 +30,22 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID ?? "")
     .setKey(req.headers["x-appwrite-key"] ?? "");
 
-  const databases = new Databases(client);
+  const tablesDB = new TablesDB(client);
 
   const windowEnd = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-  const dueTasks = await databases.listDocuments<TaskDoc>(
-    DATABASE_ID,
-    TASKS_COLLECTION_ID,
-    [
+  const dueTasks = await tablesDB.listRows<TaskDoc>({
+    databaseId: DATABASE_ID,
+    tableId: TASKS_COLLECTION_ID,
+    queries: [
       Query.equal("notify", true),
       Query.equal("reminderSent", false),
       Query.lessThanEqual("dueAt", windowEnd),
       Query.limit(100),
     ],
-  );
+  });
 
-  if (dueTasks.documents.length === 0) {
+  if (dueTasks.rows.length === 0) {
     return res.json({ success: true, processed: 0 });
   }
 
@@ -56,11 +56,14 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
   // interrupted), the worst case is the same task's reminder being sent
   // twice on the next sweep - never data corruption or a lost reminder.
   await Promise.all(
-    dueTasks.documents.map(async (task) => {
+    dueTasks.rows.map(async (task) => {
       try {
         if (task.completed) {
-          await databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {
-            reminderSent: true,
+          await tablesDB.updateRow({
+            databaseId: DATABASE_ID,
+            tableId: TASKS_COLLECTION_ID,
+            rowId: task.$id,
+            data: { reminderSent: true },
           });
           return;
         }
@@ -73,8 +76,11 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
           }
         }
 
-        await databases.updateDocument(DATABASE_ID, TASKS_COLLECTION_ID, task.$id, {
-          reminderSent: true,
+        await tablesDB.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TASKS_COLLECTION_ID,
+          rowId: task.$id,
+          data: { reminderSent: true },
         });
       } catch (err) {
         error(`Failed to process due-date reminder for task ${task.$id}: ${err instanceof Error ? err.stack ?? err.message : err}`);
@@ -82,5 +88,5 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
     }),
   );
 
-  return res.json({ success: true, processed: dueTasks.documents.length });
+  return res.json({ success: true, processed: dueTasks.rows.length });
 }
