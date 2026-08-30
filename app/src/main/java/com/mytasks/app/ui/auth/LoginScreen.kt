@@ -107,6 +107,20 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
     }
 }
 
+// GetCredentialException's own .message is often just a generic summary
+// ("[16] Account reauth failed") - the actually-useful detail (e.g. a
+// wrapped ApiException's status code/message from Play Services) lives
+// in .cause, which the error snackbar previously discarded entirely. On
+// a device with no adb access, this is the only way to see it without a
+// logcat capture.
+private fun detailMessage(e: GetCredentialException): String {
+    val cause = e.cause
+    return when {
+        cause != null -> "${e.message ?: e.type} (cause: $cause)"
+        else -> e.message ?: "cancelled"
+    }
+}
+
 private suspend fun signInWithGoogle(
     context: Context,
     viewModel: AuthViewModel,
@@ -152,15 +166,15 @@ private suspend fun signInWithGoogle(
             Log.i(TAG, "Fallback GetSignInWithGoogleOption flow returned a credential")
             handleGoogleCredential(context, response.credential, viewModel, snackbarHostState)
         } catch (e2: GetCredentialException) {
-            Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message}", e2)
+            Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message} cause=${e2.cause}", e2)
             snackbarHostState.showSnackbar(
-                context.getString(R.string.error_google_signin_failed, e2.type, e2.message ?: "cancelled"),
+                context.getString(R.string.error_google_signin_failed, e2.type, detailMessage(e2)),
             )
         }
     } catch (e: GetCredentialException) {
-        Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message}", e)
+        Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message} cause=${e.cause}", e)
         snackbarHostState.showSnackbar(
-            context.getString(R.string.error_google_signin_failed, e.type, e.message ?: "cancelled"),
+            context.getString(R.string.error_google_signin_failed, e.type, detailMessage(e)),
         )
     }
 }
