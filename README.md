@@ -455,6 +455,19 @@ manual Console click on every fresh setup). It never runs on its own - a
 Functions deploy going out on every push felt like too much blast radius
 for something this easy to trigger on demand instead.
 
+Every run also uploads a brand-new deployment for each Function and
+activates it - `appwrite push function` never deletes the ones it
+replaces, and a Function's `deploymentRetention` setting (how many days
+Appwrite keeps non-active deployments before auto-deleting them) defaults
+to 0, meaning keep forever. Left alone, every manual redeploy leaves one
+more inactive deployment sitting in Console permanently. The workflow's
+last step, `prune-function-deployments.mjs`, closes that gap the same way
+`set-function-variables.mjs` closes the environment-variable one: it sets
+`deploymentRetention` (7 days) on both Functions via the API directly
+(also not something `appwrite push function` manages), and explicitly
+deletes any already-existing non-active deployment older than that
+window - never touching whichever deployment is currently active.
+
 It does **not** push the database/tables - `appwrite push tables` has
 repeatedly planned to delete the `mytasks` database outright (see
 [Backend setup](#backend-setup) step 4 and `deploy-appwrite.yml`'s

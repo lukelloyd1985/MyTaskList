@@ -212,3 +212,16 @@ jobs:
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
         run: npm run set-function-variables
+
+      # `appwrite push function` uploads a new deployment and activates it
+      # on every run, but never deletes the ones it replaces - left alone,
+      # every manual redeploy leaves one more inactive deployment sitting
+      # in Console forever (Appwrite's own deploymentRetention setting
+      # defaults to 0 = keep everything). See prune-function-deployments.mjs's
+      # own header comment.
+      - name: Prune old Function deployments
+        working-directory: appwrite
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: npm run prune-function-deployments
