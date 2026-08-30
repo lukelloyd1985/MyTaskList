@@ -463,7 +463,7 @@ to 0, meaning keep forever. Left alone, every manual redeploy leaves one
 more inactive deployment sitting in Console permanently. The workflow's
 last step, `prune-function-deployments.mjs`, closes that gap the same way
 `set-function-variables.mjs` closes the environment-variable one: it sets
-`deploymentRetention` (7 days) on both Functions via the API directly
+`deploymentRetention` (1 day) on both Functions via the API directly
 (also not something `appwrite push function` manages), and explicitly
 deletes any already-existing non-active deployment older than that
 window - never touching whichever deployment is currently active.

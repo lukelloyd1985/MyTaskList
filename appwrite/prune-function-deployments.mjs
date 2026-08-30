@@ -56,7 +56,7 @@ if (!endpoint || !apiKey) {
 // How many days of non-active deployment history to keep around (e.g. to
 // roll back to a recent build). Adjust freely - this is the only knob a
 // future change to the retention window needs to touch.
-const RETENTION_DAYS = 7;
+const RETENTION_DAYS = 1;
 
 const client = new Client()
   .setEndpoint(endpoint)
