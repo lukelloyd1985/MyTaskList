@@ -9,7 +9,7 @@ interface TaskDoc extends Models.Row {
   completed?: boolean;
 }
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasklist";
 const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
 
 /** Sweeps the (now flat) tasks table for tasks due within the next day

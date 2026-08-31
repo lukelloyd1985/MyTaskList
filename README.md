@@ -1,4 +1,4 @@
-# MyTasks
+# My Task List
 
 A modern Android app (Kotlin + Jetpack Compose + Material 3) for managing
 shared task lists - Short term, Long term, Garden, House, or anything else
@@ -22,7 +22,7 @@ Firebase Cloud Messaging is still the push transport (see
 [Architecture](#architecture) below; sign-in and data no longer touch
 Firebase at all) - but there's no committed `google-services.json` or
 google-services Gradle plugin: `FirebaseApp` is initialized manually from
-four non-secret build-time values instead (see `MyTasksApp.kt` and
+four non-secret build-time values instead (see `MyTaskListApp.kt` and
 [Backend setup](#backend-setup)). To build and run against real sign-in,
 data, and push, you'll need your own Appwrite Cloud project and a Firebase
 project registered for FCM - see [Backend setup](#backend-setup) below for
@@ -32,7 +32,7 @@ both.
 
 - **UI**: Jetpack Compose, Material 3, single-Activity + Navigation Compose.
 - **DI**: Hilt.
-- **Data**: Appwrite Databases - one database (`mytasks`) with three
+- **Data**: Appwrite Databases - one database (`mytasklist`) with three
   collections, schema below. Appwrite has no subcollections, so
   `lists/{listId}/tasks/{taskId}` becomes a flat `tasks` collection scoped
   by a `listId` field instead of a Firestore-style nested path. There is
@@ -70,7 +70,7 @@ both.
 
 ### Appwrite schema
 
-One Appwrite database, `mytasks`, with three collections:
+One Appwrite database, `mytasklist`, with three collections:
 
 ```
 users/{uid}    displayName, email, photoUrl, locale
@@ -122,14 +122,14 @@ directory per language: [`sk`](app/src/main/res/values-sk/strings.xml)
 [`it`](app/src/main/res/values-it/strings.xml) (Italian), and
 [`ru`](app/src/main/res/values-ru/strings.xml) (Russian). Android picks
 whichever matches the device's language automatically, falling back to
-English. The app name itself (`app_name` = "MyTasks") is intentionally
+English. The app name itself (`app_name` = "My Task List") is intentionally
 left untranslated in every locale, as a brand name.
 
 `AndroidManifest.xml` also declares
 [`res/xml/locales_config.xml`](app/src/main/res/xml/locales_config.xml)
 (the languages above), so on Android 13+ people can also override the
 app's language independently of the device's, from Settings → Apps →
-MyTasks → Language.
+My Task List → Language.
 
 To add another language:
 
@@ -190,10 +190,10 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    `app/build.gradle.kts` read it from here directly.
 3. **Register the Android app as a Platform**: Console → project
    Dashboard → **Add Platform** → **Android**, app name of your choice,
-   package name `com.github.lukelloyd1985.mytasks` (this repo's
+   package name `com.github.lukelloyd1985.mytasklist` (this repo's
    `applicationId` - see `app/build.gradle.kts`, must match exactly).
    **Add a second Platform entry the same way for
-   `com.github.lukelloyd1985.mytasks.debug`** - the debug build type
+   `com.github.lukelloyd1985.mytasklist.debug`** - the debug build type
    appends `applicationIdSuffix = ".debug"`, so a debug build (`./gradlew
    assembleDebug`, the CI debug APK, or any local testing) genuinely
    runs under that different package name, not the base one above. Skip
@@ -206,7 +206,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    [`deploy-appwrite.yml`](.github/workflows/deploy-appwrite.yml) (see
    step 10 for its one-time CI setup) creates them for you when it runs.
    This wasn't always true: `appwrite push tables all --force` has, on
-   **four** separate real runs, planned to delete the `mytasks` database
+   **four** separate real runs, planned to delete the `mytasklist` database
    outright before creating anything - the first three against an empty
    database (ruling out two real, separately-fixed schema bugs along the
    way: each table's `documentSecurity` should have been `rowSecurity`,
@@ -261,8 +261,8 @@ entry to that table to match the new `values-<language code>/strings.xml`.
       same OAuth client: Google Cloud Console → the OAuth client from
       step 1 → it also needs an **Android** OAuth client (Create
       credentials → OAuth client ID → Application type **Android**)
-      with this repo's package name (`com.github.lukelloyd1985.mytasks`,
-      and a second one for `com.github.lukelloyd1985.mytasks.debug` -
+      with this repo's package name (`com.github.lukelloyd1985.mytasklist`,
+      and a second one for `com.github.lukelloyd1985.mytasklist.debug` -
       see step 3's Platform registration for why both) and that build's
       signing-certificate **SHA-1** fingerprint (`./gradlew
       signingReport` prints both the debug and release ones). Unlike
@@ -277,7 +277,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    3. Use the **Web application** Client ID from step 1 (not either
       Android client ID from step 2 - those exist only to satisfy
       Google's cert check, Credential Manager never sends them
-      anywhere) as both `MYTASKS_GOOGLE_WEB_CLIENT_ID` (step 11) and the
+      anywhere) as both `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` (step 11) and the
       `maintenance` Function's `GOOGLE_WEB_CLIENT_ID` variable (step 9) -
       it's what makes the ID token's `aud` claim match what
       `googleSignIn.ts` verifies server-side.
@@ -300,10 +300,10 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    package name this repo actually ships, so the app itself can obtain
    FCM tokens under either one: Firebase Console → Project settings →
    General → **Your apps** → Add app → **Android**, using this repo's
-   release `applicationId` (`com.github.lukelloyd1985.mytasks` - see
+   release `applicationId` (`com.github.lukelloyd1985.mytasklist` - see
    `app/build.gradle.kts`; the package name has to match exactly or the
    registration won't apply to this app). **Repeat Add app a second time**
-   for `com.github.lukelloyd1985.mytasks.debug` (the debug build type's
+   for `com.github.lukelloyd1985.mytasklist.debug` (the debug build type's
    `applicationIdSuffix`). Two separate registrations are needed - each
    app gets its own **App ID**, which Firebase/Crashlytics use to
    identify which app a given build belongs to - but they share
@@ -325,8 +325,8 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    | Value | Where to find it |
    | --- | --- |
    | Project ID | Firebase Console → Project settings → General → **Project ID** (same value as step 7; shared by both apps - no duplicate needed) |
-   | App ID (release) | Firebase Console → Project settings → General → **Your apps** → the `com.github.lukelloyd1985.mytasks` Android app → **App ID** |
-   | App ID (debug) | Same, for the `com.github.lukelloyd1985.mytasks.debug` Android app |
+   | App ID (release) | Firebase Console → Project settings → General → **Your apps** → the `com.github.lukelloyd1985.mytasklist` Android app → **App ID** |
+   | App ID (debug) | Same, for the `com.github.lukelloyd1985.mytasklist.debug` Android app |
    | API key | Not in Firebase Console at all - only visible in [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) (same underlying project) as the single **"Android key (auto created by Firebase)"** - one key total, shared by both apps you registered above (see this step's intro). This is *not* the "Web API Key" shown in Firebase Console's General tab - that's a different key, generated for the Web platform specifically. |
    | Sender ID (Project number) | Firebase Console → Project settings → General → **Project number** (also shared by both apps) |
 
@@ -375,7 +375,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    verify the audience of every Google ID token it's handed) - CI sets
    this automatically on every deploy run (see
    `set-function-variables.mjs`, step 11's
-   `MYTASKS_GOOGLE_WEB_CLIENT_ID` secret, and
+   `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` secret, and
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below),
    so there's nothing to click in Console for a standard CI-driven
    setup. Only needed by hand if deploying via Console instead of CI:
@@ -411,32 +411,32 @@ entry to that table to match the new `values-<language code>/strings.xml`.
     Firebase values and the Google Web Client ID below from repository
     secrets it already expects (Settings → Secrets and variables →
     Actions) - create those with the values from step 8's table and step
-    6. Note that `MYTASKS_FIREBASE_APPLICATION_ID` and
-    `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` are genuinely different
+    6. Note that `MYTASKLIST_FIREBASE_APPLICATION_ID` and
+    `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` are genuinely different
     values (one per Firebase app registration, per step 8) - not the
-    same secret duplicated under two names; `MYTASKS_FIREBASE_API_KEY`
+    same secret duplicated under two names; `MYTASKLIST_FIREBASE_API_KEY`
     has no `_DEBUG` counterpart, since that one's shared. For a local
     build, export whichever set you need as shell env vars yourself
     before running Gradle (`assembleDebug` reads the `_DEBUG` App ID,
     `assembleRelease`/`bundleRelease` the non-suffixed one; both read the
-    same `MYTASKS_FIREBASE_API_KEY` - see `app/build.gradle.kts`'s
+    same `MYTASKLIST_FIREBASE_API_KEY` - see `app/build.gradle.kts`'s
     `buildTypes` block):
 
     | Env var | Value |
     | --- | --- |
-    | `MYTASKS_APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
-    | `MYTASKS_FIREBASE_PROJECT_ID` | Project ID from step 8's table |
-    | `MYTASKS_FIREBASE_API_KEY` | API key from step 8's table (shared by both apps) |
-    | `MYTASKS_FIREBASE_APPLICATION_ID` | App ID (release) from step 8's table |
-    | `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` | App ID (debug) from step 8's table |
-    | `MYTASKS_FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
-    | `MYTASKS_GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
+    | `MYTASKLIST_APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
+    | `MYTASKLIST_FIREBASE_PROJECT_ID` | Project ID from step 8's table |
+    | `MYTASKLIST_FIREBASE_API_KEY` | API key from step 8's table (shared by both apps) |
+    | `MYTASKLIST_FIREBASE_APPLICATION_ID` | App ID (release) from step 8's table |
+    | `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` | App ID (debug) from step 8's table |
+    | `MYTASKLIST_FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
+    | `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
 
-    The rest (`MYTASKS_APPWRITE_DATABASE_ID`,
-    `MYTASKS_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
-    `MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
+    The rest (`MYTASKLIST_APPWRITE_DATABASE_ID`,
+    `MYTASKLIST_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
+    `MYTASKLIST_APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
     a contributor customizing those IDs away from this repo's defaults
-    (`mytasks`/`users`/`lists`/`tasks`/`maintenance`) - not something
+    (`mytasklist`/`users`/`lists`/`tasks`/`maintenance`) - not something
     you need to set for a standard setup.
 
 ## Deploying Appwrite Functions
@@ -469,7 +469,7 @@ deletes any already-existing non-active deployment older than that
 window - never touching whichever deployment is currently active.
 
 It does **not** push the database/tables - `appwrite push tables` has
-repeatedly planned to delete the `mytasks` database outright (see
+repeatedly planned to delete the `mytasklist` database outright (see
 [Backend setup](#backend-setup) step 4 and `deploy-appwrite.yml`'s
 top-of-file comment for the full trail), so it's dropped from this
 workflow entirely. `bootstrap-tables.mjs` (also run by this workflow) is
@@ -484,7 +484,7 @@ variables → Actions); the project ID isn't among them - it's read from
 | --- | --- |
 | `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
 | `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 10 |
-| `MYTASKS_GOOGLE_WEB_CLIENT_ID` | The same secret [Backend setup](#backend-setup) step 11 has the Android build read - reused here rather than duplicated under a second name, since it's the identical Client ID value both sides need to agree on (see step 6.3) |
+| `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` | The same secret [Backend setup](#backend-setup) step 11 has the Android build read - reused here rather than duplicated under a second name, since it's the identical Client ID value both sides need to agree on (see step 6.3) |
 
 That's nearly the whole setup - one scoped API key plus one shared Client ID secret, considerably simpler
 than the old Firebase deploy's Google Cloud service account juggling five
@@ -534,17 +534,17 @@ fallback), generate a keystore and add these repository secrets
 (Settings → Secrets and variables → Actions):
 
 ```
-keytool -genkey -v -keystore release.keystore -alias mytasks \
+keytool -genkey -v -keystore release.keystore -alias mytasklist \
   -keyalg RSA -keysize 2048 -validity 10000
 base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 ```
 
 | Secret | Value |
 | --- | --- |
-| `MYTASKS_KEYSTORE_BASE64` | base64-encoded keystore file |
-| `MYTASKS_KEYSTORE_PASSWORD` | keystore password |
-| `MYTASKS_KEY_ALIAS` | key alias (e.g. `mytasks`) |
-| `MYTASKS_KEY_PASSWORD` | key password |
+| `MYTASKLIST_KEYSTORE_BASE64` | base64-encoded keystore file |
+| `MYTASKLIST_KEYSTORE_PASSWORD` | keystore password |
+| `MYTASKLIST_KEY_ALIAS` | key alias (e.g. `mytasklist`) |
+| `MYTASKLIST_KEY_PASSWORD` | key password |
 
 **A stable debug keystore for CI builds is required for Google Sign-In
 to work on a CI-built debug APK**, and for debug push notifications too
@@ -572,17 +572,17 @@ already on the device). Generate one the same way and add it as its own
 set of secrets:
 
 ```
-keytool -genkeypair -v -keystore debug.keystore -alias mytasksdebug \
+keytool -genkeypair -v -keystore debug.keystore -alias mytasklistdebug \
   -keyalg RSA -keysize 2048 -validity 10000
 base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
 ```
 
 | Secret | Value |
 | --- | --- |
-| `MYTASKS_DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
-| `MYTASKS_DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
-| `MYTASKS_DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasksdebug`) |
-| `MYTASKS_DEBUG_KEY_PASSWORD` | debug key password |
+| `MYTASKLIST_DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
+| `MYTASKLIST_DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
+| `MYTASKLIST_DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasklistdebug`) |
+| `MYTASKLIST_DEBUG_KEY_PASSWORD` | debug key password |
 
 No further registration step is needed - unlike the old Firebase setup,
 there's no per-certificate step to complete afterwards.
@@ -612,7 +612,7 @@ everything after that, which CI automates.
 2. **Create the app** in [Play Console](https://play.google.com/console):
    *Create app* → name it, set default language, "App" (not game), and
    Free. The package name is fixed at creation to whatever you tell it -
-   use `com.github.lukelloyd1985.mytasks` to match `applicationId` in
+   use `com.github.lukelloyd1985.mytasklist` to match `applicationId` in
    `app/build.gradle.kts`. Whatever default language you pick here must
    match the locale directory under `app/src/main/play/listings/` (and
    `default-language.txt`) - the Play Developer API rejects listing/image
@@ -672,7 +672,7 @@ everything after that, which CI automates.
    own signing key, mandatory for a new app) - which means an APK
    installed *from the Play Store* is signed with a **different**
    certificate than the AAB you just uploaded (the "upload key" -
-   `MYTASKS_KEYSTORE_*`'s key, or the debug-keystore fallback - see
+   `MYTASKLIST_KEYSTORE_*`'s key, or the debug-keystore fallback - see
    [Building the APK](#building-the-apk)). Google Sign-In's account-reauth
    check cares which certificate actually signed the APK on the device, so
    a Play-installed copy needs its own SHA-1 registered too, or it fails
@@ -685,7 +685,7 @@ everything after that, which CI automates.
    fingerprint" on an existing client - so this means **creating a
    separate Android OAuth client** (Create credentials → OAuth client ID
    → Android) with the *same* package name
-   (`com.github.lukelloyd1985.mytasks`) as the one from
+   (`com.github.lukelloyd1985.mytasklist`) as the one from
    [Backend setup](#backend-setup) step 6.2, but this new SHA-1. Google's
    server-side check matches against every registered (package name,
    SHA-1) pair across all your project's Android OAuth clients, so
@@ -703,14 +703,14 @@ everything after that, which CI automates.
    (any project - it doesn't need to be one already linked to this app),
    go to **APIs & Services → Library**, search for "Google Play Android
    Developer API", and enable it. Then **IAM & Admin → Service Accounts →
-   Create Service Account** (any name, e.g. `mytasks-ci-publisher`) - it
+   Create Service Account** (any name, e.g. `mytasklist-ci-publisher`) - it
    doesn't need any Google Cloud IAM roles for this. Open it → **Keys →
    Add Key → Create new key → JSON** to download the key file whose
    contents become the `PLAY_SERVICE_ACCOUNT_JSON` secret below.
 2. Back in Play Console, go to **Users and permissions → Invite new
    user**, and invite the service account by pasting its email address
    (the `client_email` field in the JSON key you just downloaded, looks
-   like `mytasks-ci-publisher@<project>.iam.gserviceaccount.com`) exactly
+   like `mytasklist-ci-publisher@<project>.iam.gserviceaccount.com`) exactly
    as if inviting a person. Under **App permissions**, add this app and
    grant it **both** **Release management** permissions (needed for
    `publishReleaseBundle`) **and** **Store listing / "Manage store
@@ -741,7 +741,7 @@ everything after that, which CI automates.
 
 ## Notes & tradeoffs
 
-- **`appwrite push tables all --force` can delete the `mytasks` database
+- **`appwrite push tables all --force` can delete the `mytasklist` database
   outright** - confirmed on four separate real runs, including one
   against a database that already held all 3 correctly-created tables,
   which rules out "only happens when empty". See
@@ -778,8 +778,8 @@ everything after that, which CI automates.
   app package name + signing certificate may obtain a Google ID token
   in the first place. A build failing either one fails sign-in, but at
   a different point in the flow, with a different error. Register
-  **both** the release package name (`com.github.lukelloyd1985.mytasks`)
-  and the debug one (`com.github.lukelloyd1985.mytasks.debug`, from the
+  **both** the release package name (`com.github.lukelloyd1985.mytasklist`)
+  and the debug one (`com.github.lukelloyd1985.mytasklist.debug`, from the
   debug build type's `applicationIdSuffix`) with **both** systems - a
   build using either package name only works if that exact package name
   is registered everywhere it needs to be. A related but distinct split
@@ -796,9 +796,9 @@ everything after that, which CI automates.
   signing certificate as another entry to that *same* key's Android
   restrictions, rather than minting a new key - *if* that key is
   restricted at all. So `app/build.gradle.kts` reads a single shared
-  `MYTASKS_FIREBASE_API_KEY` for both builds, but a debug-specific
-  `MYTASKS_FIREBASE_APPLICATION_ID_DEBUG` alongside the release
-  `MYTASKS_FIREBASE_APPLICATION_ID` - App ID is the one value genuinely
+  `MYTASKLIST_FIREBASE_API_KEY` for both builds, but a debug-specific
+  `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` alongside the release
+  `MYTASKLIST_FIREBASE_APPLICATION_ID` - App ID is the one value genuinely
   unique per registered app - see [Backend setup](#backend-setup) step
   8. Whether anything further is needed per build depends on the key's
   **Application restrictions** setting (Google Cloud Console →
@@ -838,7 +838,7 @@ everything after that, which CI automates.
   plugin** - `FirebaseApp` (still needed client-side so
   `FirebaseMessaging.getInstance().token` can mint an FCM token at all,
   independent of the Messaging switch above) is initialized manually in
-  `MyTasksApp.onCreate()` from four `BuildConfig` values (see
+  `MyTaskListApp.onCreate()` from four `BuildConfig` values (see
   [Backend setup](#backend-setup) step 8 and step 11), matching this
   project's existing pattern of build-time env vars over a committed
   vendor config file rather than introducing a second, inconsistent
@@ -929,8 +929,8 @@ everything after that, which CI automates.
 
   | | SHA-1 | SHA-256 |
   | --- | --- | --- |
-  | Release (`com.github.lukelloyd1985.mytasks`) | `A6:67:C7:D5:4E:64:D4:07:B5:73:7A:B5:B8:AB:F3:13:EE:31:6E:32` | `47:16:E1:45:79:53:83:09:4C:C5:0C:21:EB:12:93:C8:6D:1A:A7:AA:7C:72:D0:D9:D6:67:41:CE:7B:49:17:07` |
-  | Debug/CI (`com.github.lukelloyd1985.mytasks.debug`) | `19:A0:D9:D0:05:9F:66:77:2B:6D:15:62:2C:AA:F1:A7:7A:78:C7:4E` | `FE:5C:69:1A:72:27:44:3D:A6:7C:CC:50:1F:47:7F:6E:22:4F:ED:2D:54:E4:E8:D5:84:A5:0D:F2:9D:47:03:96` |
+  | Release (`com.github.lukelloyd1985.mytasklist`) | `A6:67:C7:D5:4E:64:D4:07:B5:73:7A:B5:B8:AB:F3:13:EE:31:6E:32` | `47:16:E1:45:79:53:83:09:4C:C5:0C:21:EB:12:93:C8:6D:1A:A7:AA:7C:72:D0:D9:D6:67:41:CE:7B:49:17:07` |
+  | Debug/CI (`com.github.lukelloyd1985.mytasklist.debug`) | `19:A0:D9:D0:05:9F:66:77:2B:6D:15:62:2C:AA:F1:A7:7A:78:C7:4E` | `FE:5C:69:1A:72:27:44:3D:A6:7C:CC:50:1F:47:7F:6E:22:4F:ED:2D:54:E4:E8:D5:84:A5:0D:F2:9D:47:03:96` |
 
   This doesn't cover Play App Signing's fingerprint - that one is
   generated by Google itself once the first release reaches Play

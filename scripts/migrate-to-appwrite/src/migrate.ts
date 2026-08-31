@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** One-time migration of MyTasks production data from Firestore (named
+/** One-time migration of My Task List production data from Firestore (named
  *  database "mytasks") to Appwrite Cloud. See scripts/migrate-to-appwrite/README.md
  *  for the full write-up; this file is the orchestration entry point.
  *
@@ -208,7 +208,7 @@ async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const config = loadConfig({ dryRun });
 
-  console.log(`MyTasks Firestore -> Appwrite migration${dryRun ? " (DRY RUN - no writes will be made)" : ""}`);
+  console.log(`My Task List Firestore -> Appwrite migration${dryRun ? " (DRY RUN - no writes will be made)" : ""}`);
   console.log(`Source: Firestore database "${config.firestoreDatabaseId}"`);
   console.log(
     `Target: Appwrite database "${config.appwriteDatabaseId}" @ ${dryRun ? "(not connected in dry-run)" : config.appwriteEndpoint}`,

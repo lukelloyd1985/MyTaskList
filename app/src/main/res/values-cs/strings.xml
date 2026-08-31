@@ -85,7 +85,7 @@
     <string name="dialog_delete_list_title">Odstranit tento seznam?</string>
     <string name="dialog_delete_list_body">Všechny úkoly v seznamu „%1$s“ budou trvale odstraněny pro všechny.</string>
     <string name="error_delete_list_failed">Seznam se nepodařilo odstranit</string>
-    <string name="error_invite_no_user_found">Uživatel MyTasks s adresou %1$s nebyl nalezen. Nejdřív se musí alespoň jednou přihlásit.</string>
+    <string name="error_invite_no_user_found">Uživatel My Task List s adresou %1$s nebyl nalezen. Nejdřív se musí alespoň jednou přihlásit.</string>
 
     <!-- Profile -->
     <string name="profile_title">Profil</string>

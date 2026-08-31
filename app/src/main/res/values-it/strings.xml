@@ -84,7 +84,7 @@
     <string name="dialog_delete_list_title">Eliminare questa lista?</string>
     <string name="dialog_delete_list_body">Tutte le attività in «%1$s» verranno eliminate definitivamente per tutti.</string>
     <string name="error_delete_list_failed">Impossibile eliminare la lista</string>
-    <string name="error_invite_no_user_found">Nessun utente MyTasks trovato per %1$s. Deve prima accedere almeno una volta.</string>
+    <string name="error_invite_no_user_found">Nessun utente My Task List trovato per %1$s. Deve prima accedere almeno una volta.</string>
 
     <!-- Profile -->
     <string name="profile_title">Profilo</string>

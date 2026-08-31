@@ -1,10 +1,10 @@
 {
   "projectId": "6a908cc500040c850f13",
-  "projectName": "MyTasks",
+  "projectName": "My Task List",
   "databases": [
     {
-      "$id": "mytasks",
-      "name": "MyTasks",
+      "$id": "mytasklist",
+      "name": "My Task List",
       "enabled": true
     }
   ],
@@ -15,7 +15,7 @@
         "create(\"users\")",
         "read(\"users\")"
       ],
-      "databaseId": "mytasks",
+      "databaseId": "mytasklist",
       "name": "users",
       "enabled": true,
       "rowSecurity": true,
@@ -68,7 +68,7 @@
       "$permissions": [
         "create(\"users\")"
       ],
-      "databaseId": "mytasks",
+      "databaseId": "mytasklist",
       "name": "lists",
       "enabled": true,
       "rowSecurity": true,
@@ -153,7 +153,7 @@
       "$permissions": [
         "create(\"users\")"
       ],
-      "databaseId": "mytasks",
+      "databaseId": "mytasklist",
       "name": "tasks",
       "enabled": true,
       "rowSecurity": true,
@@ -320,7 +320,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.mytasks.collections.tasks.documents.*.update"
+        "databases.mytasklist.collections.tasks.documents.*.update"
       ],
       "scopes": [
         "rows.read",
@@ -342,7 +342,7 @@
         "any"
       ],
       "events": [
-        "databases.mytasks.collections.lists.documents.*.update"
+        "databases.mytasklist.collections.lists.documents.*.update"
       ],
       "scopes": [
         "rows.read",

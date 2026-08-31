@@ -1,5 +1,5 @@
 {
-  "name": "mytasks-appwrite-tooling",
+  "name": "mytasklist-appwrite-tooling",
   "private": true,
   "type": "module",
   "description": "One-off scripts for provisioning the Appwrite project (see bootstrap-tables.mjs, set-function-variables.mjs, prune-function-deployments.mjs) - separate from appwrite/functions/*, which each have their own independent package.json as required for individual Appwrite Function deployment.",

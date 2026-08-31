@@ -1,9 +1,9 @@
-MyTasks trasforma liste di attività sparse in liste condivise che tutta la tua famiglia può vedere e aggiornare insieme.
+My Task List trasforma liste di attività sparse in liste condivise che tutta la tua famiglia può vedere e aggiornare insieme.
 
 Crea liste separate per qualsiasi cosa tu debba organizzare - un progetto del weekend, le commissioni settimanali, il giardino, la manutenzione della casa, un trasloco - e tieni ciascuna privata oppure condividila con le persone che ci lavorano insieme a te. Invita qualcuno via e-mail e vedrà ogni modifica nel momento in cui la fai.
 
 Aggiungi a un'attività un titolo, una descrizione, una scadenza, una priorità e una persona assegnata, poi ricevi una notifica di promemoria man mano che la scadenza si avvicina, così non ti sfugge nulla. Trascina le attività nell'ordine che preferisci. Spuntale, modificale o eliminale - tutti in una lista condivisa restano sincronizzati automaticamente, anche se la modifica è stata fatta offline.
 
-Per usare MyTasks è necessario l'accesso con Google: è così che l'app ti identifica nelle tue liste condivise e collega le tue attività al tuo account, senza una password separata da creare o ricordare. Ti servirà un account Google per accedere.
+Per usare My Task List è necessario l'accesso con Google: è così che l'app ti identifica nelle tue liste condivise e collega le tue attività al tuo account, senza una password separata da creare o ricordare. Ti servirà un account Google per accedere.
 
-MyTasks non contiene pubblicità né tracker di terze parti, e non vende i tuoi dati. Puoi eliminare il tuo account e tutti i suoi dati in qualsiasi momento, dall'app o dal web - consulta l'informativa sulla privacy per i dettagli.
+My Task List non contiene pubblicità né tracker di terze parti, e non vende i tuoi dati. Puoi eliminare il tuo account e tutti i suoi dati in qualsiasi momento, dall'app o dal web - consulta l'informativa sulla privacy per i dettagli.

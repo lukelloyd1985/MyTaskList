@@ -4,7 +4,7 @@
 // `appwrite push tables` entirely.
 //
 // WHY THIS EXISTS: `appwrite push tables all --force` has, on four
-// separate real runs, planned to DELETE the `mytasks` database outright -
+// separate real runs, planned to DELETE the `mytasklist` database outright -
 // including once against a database that already held a fully correct,
 // non-empty schema, which rules out every theory tried (empty database,
 // ID mismatch, two real schema bugs already fixed). This looks like
