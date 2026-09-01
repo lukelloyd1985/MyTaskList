@@ -117,12 +117,20 @@ android {
 
     signingConfigs {
         create("release") {
+            // Store and key password are always the same value: keytool
+            // defaults to PKCS12 keystores now, which don't support a
+            // separate per-key password (keytool silently ignores -keypass
+            // and reuses the store password) - so there's only one
+            // password secret to configure, not two. The alias isn't a
+            // secret either (see README "Building the APK") - it's fixed
+            // and already public there, so it's hardcoded rather than
+            // read from an env var.
             val keystorePath = System.getenv("KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                keyAlias = "mytasklist"
+                keyPassword = System.getenv("KEYSTORE_PASSWORD")
             }
         }
         // GitHub Actions runners are a fresh VM every run, so with no
@@ -141,8 +149,8 @@ android {
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("DEBUG_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("DEBUG_KEY_ALIAS")
-                keyPassword = System.getenv("DEBUG_KEY_PASSWORD")
+                keyAlias = "mytasklistdebug"
+                keyPassword = System.getenv("DEBUG_KEYSTORE_PASSWORD")
             }
         }
     }

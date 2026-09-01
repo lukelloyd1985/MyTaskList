@@ -114,8 +114,6 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'debug' }}
         env:
           DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
-          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
-          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
           # Reuses the same APPWRITE_ENDPOINT secret deploy-appwrite.yml
           # already has, rather than requiring a second, differently-named
           # one for the same value - see app/build.gradle.kts for the env
@@ -147,8 +145,6 @@ jobs:
         if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.build_type == 'release') }}
         env:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_APPLICATION_ID: ${{ secrets.FIREBASE_APPLICATION_ID }}
@@ -165,8 +161,6 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         env:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_APPLICATION_ID: ${{ secrets.FIREBASE_APPLICATION_ID }}
@@ -215,20 +209,19 @@ jobs:
       #
       # Every `run:` step is a fresh ./gradlew process, so
       # signingConfigs.release in app/build.gradle.kts re-reads its env
-      # vars from scratch here - without these three (even though the AAB
-      # was already built in the previous step), storePassword/keyAlias/
-      # keyPassword all resolve to null while storeFile still resolves
-      # (KEYSTORE_PATH persists job-wide via $GITHUB_ENV, unlike
-      # these, which are step-scoped). That input change makes Gradle
-      # re-run signReleaseBundle right here with a null password, which
-      # fails with a message-less NullPointerException from bundletool.
+      # vars from scratch here - without this (even though the AAB was
+      # already built in the previous step), storePassword/keyPassword
+      # both resolve to null while storeFile still resolves (KEYSTORE_PATH
+      # persists job-wide via $GITHUB_ENV, unlike this, which is
+      # step-scoped) and keyAlias is hardcoded so it's unaffected. That
+      # input change makes Gradle re-run signReleaseBundle right here with
+      # a null password, which fails with a message-less
+      # NullPointerException from bundletool.
       - name: Publish to Google Play (internal track)
         if: ${{ github.event_name == 'release' && env.HAS_PLAY_SERVICE_ACCOUNT_SECRET == 'true' }}
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew publishReleaseBundle --stacktrace
 
       # Publishes the store listing text and graphics committed under
