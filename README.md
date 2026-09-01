@@ -541,10 +541,10 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 
 | Secret | Value |
 | --- | --- |
-| `KEYSTORE_BASE64` | base64-encoded keystore file |
-| `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_ALIAS` | key alias (e.g. `mytasklist`) |
-| `KEY_PASSWORD` | key password |
+| `RELEASE_KEYSTORE_BASE64` | base64-encoded keystore file |
+| `RELEASE_KEYSTORE_PASSWORD` | keystore password |
+| `RELEASE_KEY_ALIAS` | key alias (e.g. `mytasklist`) |
+| `RELEASE_KEY_PASSWORD` | key password |
 
 **A stable debug keystore for CI builds is required for Google Sign-In
 to work on a CI-built debug APK**, and for debug push notifications too
@@ -672,7 +672,7 @@ everything after that, which CI automates.
    own signing key, mandatory for a new app) - which means an APK
    installed *from the Play Store* is signed with a **different**
    certificate than the AAB you just uploaded (the "upload key" -
-   `KEYSTORE_*`'s key, or the debug-keystore fallback - see
+   `RELEASE_KEYSTORE_*`'s key, or the debug-keystore fallback - see
    [Building the APK](#building-the-apk)). Google Sign-In's account-reauth
    check cares which certificate actually signed the APK on the device, so
    a Play-installed copy needs its own SHA-1 registered too, or it fails
