@@ -128,7 +128,7 @@ private suspend fun signInWithGoogle(
 ) {
     val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
     if (webClientId.isBlank()) {
-        // MYTASKLIST_GOOGLE_WEB_CLIENT_ID wasn't set at build time (see README
+        // GOOGLE_WEB_CLIENT_ID wasn't set at build time (see README
         // "Backend setup" step 6/11) - GetGoogleIdOption.Builder().build()
         // throws IllegalArgumentException on a blank server client ID,
         // uncaught by the GetCredentialException catch below, so this must
