@@ -607,7 +607,7 @@ everything after that, which CI automates.
    [`.github/workflows/pages.yml`](.github/workflows/pages.yml) is a
    custom deployment that only runs when `docs/` actually changes). Both
    pages are served from the same deployment, at
-   `https://<your-github-username>.github.io/MyTasks/privacy.html` and
+   `https://<your-github-username>.github.io/MyTaskList/privacy.html` and
    `.../delete-account.html`.
 2. **Create the app** in [Play Console](https://play.google.com/console):
    *Create app* → name it, set default language, "App" (not game), and
