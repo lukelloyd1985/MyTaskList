@@ -117,12 +117,12 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+            val keystorePath = System.getenv("KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
             }
         }
         // GitHub Actions runners are a fresh VM every run, so with no
@@ -165,7 +165,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+            val keystorePath = System.getenv("KEYSTORE_PATH")
             signingConfig = if (!keystorePath.isNullOrBlank()) {
                 signingConfigs.getByName("release")
             } else {
