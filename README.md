@@ -530,8 +530,11 @@ produces an installable APK even before you've set up a keystore.
   [Publishing to Google Play](#publishing-to-google-play) below.
 
 To get a properly **signed** release build (instead of the debug-keystore
-fallback), generate a keystore and add these repository secrets
-(Settings → Secrets and variables → Actions):
+fallback), generate a keystore **using exactly this alias** - it's
+hardcoded in `app/build.gradle.kts`'s `signingConfigs.release`, not
+read from a secret, since it isn't sensitive (it's public right here)
+- and add these repository secrets (Settings → Secrets and variables →
+Actions):
 
 ```
 keytool -genkey -v -keystore release.keystore -alias mytasklist \
@@ -542,9 +545,13 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 | Secret | Value |
 | --- | --- |
 | `RELEASE_KEYSTORE_BASE64` | base64-encoded keystore file |
-| `RELEASE_KEYSTORE_PASSWORD` | keystore password |
-| `RELEASE_KEY_ALIAS` | key alias (e.g. `mytasklist`) |
-| `RELEASE_KEY_PASSWORD` | key password |
+| `RELEASE_KEYSTORE_PASSWORD` | keystore password - also used as the key password (see below) |
+
+Only one password secret, not two: `keytool` defaults to PKCS12
+keystores now, which don't support a separate per-key password (it
+silently ignores `-keypass` and reuses the store password for every
+key), so `signingConfigs.release` reads `RELEASE_KEYSTORE_PASSWORD` for
+both `storePassword` and `keyPassword`.
 
 **A stable debug keystore for CI builds is required for Google Sign-In
 to work on a CI-built debug APK**, and for debug push notifications too
@@ -568,8 +575,9 @@ run. It's also worth setting up for the same reason even ignoring
 sign-in: it lets repeat CI debug builds install *over* each other on a
 test device rather than requiring an uninstall first (Android refuses to
 install an update signed with a different certificate than what's
-already on the device). Generate one the same way and add it as its own
-set of secrets:
+already on the device). Generate one the same way, again using exactly
+this alias (hardcoded in `signingConfigs.debug` the same way as the
+release one above), and add it as its own set of secrets:
 
 ```
 keytool -genkeypair -v -keystore debug.keystore -alias mytasklistdebug \
@@ -580,9 +588,7 @@ base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
 | Secret | Value |
 | --- | --- |
 | `DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
-| `DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
-| `DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasklistdebug`) |
-| `DEBUG_KEY_PASSWORD` | debug key password |
+| `DEBUG_KEYSTORE_PASSWORD` | debug keystore password - also used as the debug key password, same reason as above |
 
 No further registration step is needed - unlike the old Firebase setup,
 there's no per-certificate step to complete afterwards.
