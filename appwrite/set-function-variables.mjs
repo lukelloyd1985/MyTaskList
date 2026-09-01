@@ -21,7 +21,7 @@
 // Requires APPWRITE_ENDPOINT, APPWRITE_API_KEY (the same ones
 // bootstrap-tables.mjs and deploy-appwrite.yml already use) and
 // GOOGLE_WEB_CLIENT_ID (the same Google Cloud OAuth 2.0 Web application
-// Client ID value as the Android app's MYTASKLIST_GOOGLE_WEB_CLIENT_ID
+// Client ID value as the Android app's GOOGLE_WEB_CLIENT_ID
 // build env var - see README "Backend setup" step 6). The project ID
 // comes from appwrite.json, matching bootstrap-tables.mjs - nothing is
 // duplicated here.

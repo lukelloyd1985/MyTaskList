@@ -277,7 +277,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    3. Use the **Web application** Client ID from step 1 (not either
       Android client ID from step 2 - those exist only to satisfy
       Google's cert check, Credential Manager never sends them
-      anywhere) as both `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` (step 11) and the
+      anywhere) as both `GOOGLE_WEB_CLIENT_ID` (step 11) and the
       `maintenance` Function's `GOOGLE_WEB_CLIENT_ID` variable (step 9) -
       it's what makes the ID token's `aud` claim match what
       `googleSignIn.ts` verifies server-side.
@@ -375,7 +375,7 @@ entry to that table to match the new `values-<language code>/strings.xml`.
    verify the audience of every Google ID token it's handed) - CI sets
    this automatically on every deploy run (see
    `set-function-variables.mjs`, step 11's
-   `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` secret, and
+   `GOOGLE_WEB_CLIENT_ID` secret, and
    [Deploying Appwrite Functions](#deploying-appwrite-functions) below),
    so there's nothing to click in Console for a standard CI-driven
    setup. Only needed by hand if deploying via Console instead of CI:
@@ -411,30 +411,30 @@ entry to that table to match the new `values-<language code>/strings.xml`.
     Firebase values and the Google Web Client ID below from repository
     secrets it already expects (Settings → Secrets and variables →
     Actions) - create those with the values from step 8's table and step
-    6. Note that `MYTASKLIST_FIREBASE_APPLICATION_ID` and
-    `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` are genuinely different
+    6. Note that `FIREBASE_APPLICATION_ID` and
+    `FIREBASE_APPLICATION_ID_DEBUG` are genuinely different
     values (one per Firebase app registration, per step 8) - not the
-    same secret duplicated under two names; `MYTASKLIST_FIREBASE_API_KEY`
+    same secret duplicated under two names; `FIREBASE_API_KEY`
     has no `_DEBUG` counterpart, since that one's shared. For a local
     build, export whichever set you need as shell env vars yourself
     before running Gradle (`assembleDebug` reads the `_DEBUG` App ID,
     `assembleRelease`/`bundleRelease` the non-suffixed one; both read the
-    same `MYTASKLIST_FIREBASE_API_KEY` - see `app/build.gradle.kts`'s
+    same `FIREBASE_API_KEY` - see `app/build.gradle.kts`'s
     `buildTypes` block):
 
     | Env var | Value |
     | --- | --- |
-    | `MYTASKLIST_APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
-    | `MYTASKLIST_FIREBASE_PROJECT_ID` | Project ID from step 8's table |
-    | `MYTASKLIST_FIREBASE_API_KEY` | API key from step 8's table (shared by both apps) |
-    | `MYTASKLIST_FIREBASE_APPLICATION_ID` | App ID (release) from step 8's table |
-    | `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` | App ID (debug) from step 8's table |
-    | `MYTASKLIST_FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
-    | `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
+    | `APPWRITE_ENDPOINT` | Appwrite endpoint from step 1 |
+    | `FIREBASE_PROJECT_ID` | Project ID from step 8's table |
+    | `FIREBASE_API_KEY` | API key from step 8's table (shared by both apps) |
+    | `FIREBASE_APPLICATION_ID` | App ID (release) from step 8's table |
+    | `FIREBASE_APPLICATION_ID_DEBUG` | App ID (debug) from step 8's table |
+    | `FIREBASE_SENDER_ID` | Sender ID (project number) from step 8's table |
+    | `GOOGLE_WEB_CLIENT_ID` | Web application Client ID from step 6 |
 
-    The rest (`MYTASKLIST_APPWRITE_DATABASE_ID`,
-    `MYTASKLIST_APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
-    `MYTASKLIST_APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
+    The rest (`APPWRITE_DATABASE_ID`,
+    `APPWRITE_COLLECTION_USERS_ID`/`_LISTS_ID`/`_TASKS_ID`,
+    `APPWRITE_FUNCTION_MAINTENANCE_ID`) are override knobs for
     a contributor customizing those IDs away from this repo's defaults
     (`mytasklist`/`users`/`lists`/`tasks`/`maintenance`) - not something
     you need to set for a standard setup.
@@ -484,7 +484,7 @@ variables → Actions); the project ID isn't among them - it's read from
 | --- | --- |
 | `APPWRITE_ENDPOINT` | Your project's API endpoint, e.g. `https://fra.cloud.appwrite.io/v1` |
 | `APPWRITE_API_KEY` | The server API key from [Backend setup](#backend-setup) step 10 |
-| `MYTASKLIST_GOOGLE_WEB_CLIENT_ID` | The same secret [Backend setup](#backend-setup) step 11 has the Android build read - reused here rather than duplicated under a second name, since it's the identical Client ID value both sides need to agree on (see step 6.3) |
+| `GOOGLE_WEB_CLIENT_ID` | The same secret [Backend setup](#backend-setup) step 11 has the Android build read - reused here rather than duplicated under a second name, since it's the identical Client ID value both sides need to agree on (see step 6.3) |
 
 That's nearly the whole setup - one scoped API key plus one shared Client ID secret, considerably simpler
 than the old Firebase deploy's Google Cloud service account juggling five
@@ -541,10 +541,10 @@ base64 -i release.keystore | pbcopy   # or base64 -w0 on Linux
 
 | Secret | Value |
 | --- | --- |
-| `MYTASKLIST_KEYSTORE_BASE64` | base64-encoded keystore file |
-| `MYTASKLIST_KEYSTORE_PASSWORD` | keystore password |
-| `MYTASKLIST_KEY_ALIAS` | key alias (e.g. `mytasklist`) |
-| `MYTASKLIST_KEY_PASSWORD` | key password |
+| `RELEASE_KEYSTORE_BASE64` | base64-encoded keystore file |
+| `RELEASE_KEYSTORE_PASSWORD` | keystore password |
+| `RELEASE_KEY_ALIAS` | key alias (e.g. `mytasklist`) |
+| `RELEASE_KEY_PASSWORD` | key password |
 
 **A stable debug keystore for CI builds is required for Google Sign-In
 to work on a CI-built debug APK**, and for debug push notifications too
@@ -579,10 +579,10 @@ base64 -i debug.keystore | pbcopy   # or base64 -w0 on Linux
 
 | Secret | Value |
 | --- | --- |
-| `MYTASKLIST_DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
-| `MYTASKLIST_DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
-| `MYTASKLIST_DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasklistdebug`) |
-| `MYTASKLIST_DEBUG_KEY_PASSWORD` | debug key password |
+| `DEBUG_KEYSTORE_BASE64` | base64-encoded debug keystore file |
+| `DEBUG_KEYSTORE_PASSWORD` | debug keystore password |
+| `DEBUG_KEY_ALIAS` | debug key alias (e.g. `mytasklistdebug`) |
+| `DEBUG_KEY_PASSWORD` | debug key password |
 
 No further registration step is needed - unlike the old Firebase setup,
 there's no per-certificate step to complete afterwards.
@@ -672,7 +672,7 @@ everything after that, which CI automates.
    own signing key, mandatory for a new app) - which means an APK
    installed *from the Play Store* is signed with a **different**
    certificate than the AAB you just uploaded (the "upload key" -
-   `MYTASKLIST_KEYSTORE_*`'s key, or the debug-keystore fallback - see
+   `RELEASE_KEYSTORE_*`'s key, or the debug-keystore fallback - see
    [Building the APK](#building-the-apk)). Google Sign-In's account-reauth
    check cares which certificate actually signed the APK on the device, so
    a Play-installed copy needs its own SHA-1 registered too, or it fails
@@ -796,9 +796,9 @@ everything after that, which CI automates.
   signing certificate as another entry to that *same* key's Android
   restrictions, rather than minting a new key - *if* that key is
   restricted at all. So `app/build.gradle.kts` reads a single shared
-  `MYTASKLIST_FIREBASE_API_KEY` for both builds, but a debug-specific
-  `MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG` alongside the release
-  `MYTASKLIST_FIREBASE_APPLICATION_ID` - App ID is the one value genuinely
+  `FIREBASE_API_KEY` for both builds, but a debug-specific
+  `FIREBASE_APPLICATION_ID_DEBUG` alongside the release
+  `FIREBASE_APPLICATION_ID` - App ID is the one value genuinely
   unique per registered app - see [Backend setup](#backend-setup) step
   8. Whether anything further is needed per build depends on the key's
   **Application restrictions** setting (Google Cloud Console →
