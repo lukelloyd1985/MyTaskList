@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.mytasks.app"
+    namespace = "com.github.lukelloyd1985.mytasklist"
     // 36, not 37: API 37 isn't published as an installable stable SDK
     // platform yet (see the `appwrite` version comment in
     // gradle/libs.versions.toml for how this was actually confirmed, not
@@ -25,13 +25,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // Play-facing identity only - not the same as `namespace` above,
-        // which stays com.mytasks.app for the Kotlin source package/R
-        // class. com.mytasks.app was already taken on Play Store, so the
-        // app's actual Play/OS identity lives under this repository's
-        // GitHub namespace instead. See README "Publishing to Google
-        // Play" for the Firebase re-registration this requires.
-        applicationId = "com.github.lukelloyd1985.mytasks"
+        applicationId = "com.github.lukelloyd1985.mytasklist"
         minSdk = 31 // Android 12
         // Matches compileSdk above (also satisfies Google Play's minimum
         // requirement to target API 36+ from August 31, 2026 - see README
@@ -69,13 +63,13 @@ android {
         // appwrite/appwrite.json's own $id fields - env-var overrides
         // exist only for a contributor customizing them, not because
         // they're expected to vary per-environment like the project ID.
-        buildConfigField("String", "APPWRITE_ENDPOINT", "\"${System.getenv("MYTASKS_APPWRITE_ENDPOINT") ?: "https://cloud.appwrite.io/v1"}\"")
+        buildConfigField("String", "APPWRITE_ENDPOINT", "\"${System.getenv("MYTASKLIST_APPWRITE_ENDPOINT") ?: "https://cloud.appwrite.io/v1"}\"")
         buildConfigField("String", "APPWRITE_PROJECT_ID", "\"$appwriteProjectId\"")
-        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${System.getenv("MYTASKS_APPWRITE_DATABASE_ID") ?: "mytasks"}\"")
-        buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
-        buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
-        buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKS_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
-        buildConfigField("String", "APPWRITE_FUNCTION_MAINTENANCE_ID", "\"${System.getenv("MYTASKS_APPWRITE_FUNCTION_MAINTENANCE_ID") ?: "maintenance"}\"")
+        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${System.getenv("MYTASKLIST_APPWRITE_DATABASE_ID") ?: "mytasklist"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_USERS_ID", "\"${System.getenv("MYTASKLIST_APPWRITE_COLLECTION_USERS_ID") ?: "users"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_LISTS_ID", "\"${System.getenv("MYTASKLIST_APPWRITE_COLLECTION_LISTS_ID") ?: "lists"}\"")
+        buildConfigField("String", "APPWRITE_COLLECTION_TASKS_ID", "\"${System.getenv("MYTASKLIST_APPWRITE_COLLECTION_TASKS_ID") ?: "tasks"}\"")
+        buildConfigField("String", "APPWRITE_FUNCTION_MAINTENANCE_ID", "\"${System.getenv("MYTASKLIST_APPWRITE_FUNCTION_MAINTENANCE_ID") ?: "maintenance"}\"")
 
         // The Google Cloud OAuth 2.0 Web application Client ID used two
         // places: Credential Manager's GetGoogleIdOption/
@@ -85,14 +79,14 @@ android {
         // verifies that same ID token's audience server-side - both must
         // reference the identical Client ID. Not a secret (Client IDs are
         // meant to be embedded in client code), see README "Backend setup".
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${System.getenv("MYTASKS_GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${System.getenv("MYTASKLIST_GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
 
         // Firebase Cloud Messaging is the only Firebase surface this app
         // still uses (see README "Architecture" - Appwrite Messaging now
         // owns everything except the on-device FCM token itself). Rather
         // than the google-services Gradle plugin + a committed
         // google-services.json, FirebaseApp is initialized manually in
-        // MyTasksApp.onCreate() from these values - none of them are
+        // MyTaskListApp.onCreate() from these values - none of them are
         // secrets (they're the same non-sensitive identifiers
         // google-services.json would have carried, just supplied directly
         // instead of through a generated file + plugin), so this follows
@@ -113,22 +107,22 @@ android {
         // Android apps are registered). So these three live here in
         // defaultConfig, shared by every build type. App ID is the one
         // exception - unique per registered app - so it's declared per
-        // build type below instead (release: com.github.lukelloyd1985.mytasks;
+        // build type below instead (release: com.github.lukelloyd1985.mytasklist;
         // debug: the .debug applicationIdSuffix variant) - see the
         // buildTypes block.
-        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${System.getenv("MYTASKS_FIREBASE_PROJECT_ID") ?: ""}\"")
-        buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKS_FIREBASE_API_KEY") ?: ""}\"")
-        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${System.getenv("MYTASKS_FIREBASE_SENDER_ID") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${System.getenv("MYTASKLIST_FIREBASE_PROJECT_ID") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${System.getenv("MYTASKLIST_FIREBASE_API_KEY") ?: ""}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${System.getenv("MYTASKLIST_FIREBASE_SENDER_ID") ?: ""}\"")
     }
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("MYTASKS_KEYSTORE_PATH")
+            val keystorePath = System.getenv("MYTASKLIST_KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("MYTASKS_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("MYTASKS_KEY_ALIAS")
-                keyPassword = System.getenv("MYTASKS_KEY_PASSWORD")
+                storePassword = System.getenv("MYTASKLIST_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MYTASKLIST_KEY_ALIAS")
+                keyPassword = System.getenv("MYTASKLIST_KEY_PASSWORD")
             }
         }
         // GitHub Actions runners are a fresh VM every run, so with no
@@ -143,12 +137,12 @@ android {
         // Firebase once - fixes this. Falls back to AGP's default debug
         // signing (unaffected) for local builds where this isn't set.
         getByName("debug") {
-            val keystorePath = System.getenv("MYTASKS_DEBUG_KEYSTORE_PATH")
+            val keystorePath = System.getenv("MYTASKLIST_DEBUG_KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("MYTASKS_DEBUG_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("MYTASKS_DEBUG_KEY_ALIAS")
-                keyPassword = System.getenv("MYTASKS_DEBUG_KEY_PASSWORD")
+                storePassword = System.getenv("MYTASKLIST_DEBUG_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MYTASKLIST_DEBUG_KEY_ALIAS")
+                keyPassword = System.getenv("MYTASKLIST_DEBUG_KEY_PASSWORD")
             }
         }
     }
@@ -158,20 +152,20 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             // Own Firebase Android app registration (package name
-            // com.github.lukelloyd1985.mytasks.debug, from
+            // com.github.lukelloyd1985.mytasklist.debug, from
             // applicationIdSuffix above) - App ID is unique per registered
             // app, so reusing the release app's App ID here would report
             // this build under the wrong app in Firebase Console/Crashlytics
             // (the shared API key above still works for both, see its own
             // comment - only App ID needs to differ). See README "Backend
             // setup" step 8.
-            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID_DEBUG") ?: ""}\"")
+            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKLIST_FIREBASE_APPLICATION_ID_DEBUG") ?: ""}\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            val keystorePath = System.getenv("MYTASKS_KEYSTORE_PATH")
+            val keystorePath = System.getenv("MYTASKLIST_KEYSTORE_PATH")
             signingConfig = if (!keystorePath.isNullOrBlank()) {
                 signingConfigs.getByName("release")
             } else {
@@ -180,7 +174,7 @@ android {
                 // testing builds when release-signing secrets aren't configured.
                 signingConfigs.getByName("debug")
             }
-            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKS_FIREBASE_APPLICATION_ID") ?: ""}\"")
+            buildConfigField("String", "FIREBASE_APPLICATION_ID", "\"${System.getenv("MYTASKLIST_FIREBASE_APPLICATION_ID") ?: ""}\"")
         }
     }
 

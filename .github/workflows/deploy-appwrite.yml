@@ -22,7 +22,7 @@ name: Deploy Appwrite (Functions)
 # verb change, via "No tables found" against the old key names).
 #
 # WARNING - `appwrite push tables all --force` has now planned to DELETE
-# the `mytasks` database outright on FOUR separate real runs, including
+# the `mytasklist` database outright on FOUR separate real runs, including
 # one where the database already held 3 correctly-created tables with a
 # fully correct schema - which rules out every earlier theory (empty
 # database, ID mismatch, the two genuine schema bugs already fixed along
@@ -228,7 +228,7 @@ jobs:
       # GOOGLE_WEB_CLIENT_ID has to be set by hand in Console after every
       # fresh project setup - see set-function-variables.mjs's own header
       # comment. Idempotent - safe to run on every deploy. Reuses the same
-      # MYTASKS_GOOGLE_WEB_CLIENT_ID secret android-build.yml already
+      # MYTASKLIST_GOOGLE_WEB_CLIENT_ID secret android-build.yml already
       # passes to the Android build (same literal Client ID value both
       # sides need to agree on - see README "Backend setup" step 6.3).
       - name: Set maintenance Function variables
@@ -236,7 +236,7 @@ jobs:
         env:
           APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKS_GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.MYTASKLIST_GOOGLE_WEB_CLIENT_ID }}
         run: npm run set-function-variables
 
       # `appwrite push function` uploads a new deployment and activates it

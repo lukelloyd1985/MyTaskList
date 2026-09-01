@@ -84,7 +84,7 @@
     <string name="dialog_delete_list_title">Supprimer cette liste ?</string>
     <string name="dialog_delete_list_body">Toutes les tâches de « %1$s » seront définitivement supprimées pour tout le monde.</string>
     <string name="error_delete_list_failed">Impossible de supprimer la liste</string>
-    <string name="error_invite_no_user_found">Aucun utilisateur MyTasks trouvé pour %1$s. Cette personne doit d\'abord se connecter au moins une fois.</string>
+    <string name="error_invite_no_user_found">Aucun utilisateur My Task List trouvé pour %1$s. Cette personne doit d\'abord se connecter au moins une fois.</string>
 
     <!-- Profile -->
     <string name="profile_title">Profil</string>

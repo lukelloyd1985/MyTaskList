@@ -22,7 +22,7 @@ interface TaskDoc extends Models.Row {
   assigneeId?: string;
 }
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasklist";
 const USERS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_USERS_ID ?? "users";
 const LISTS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_LISTS_ID ?? "lists";
 const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";

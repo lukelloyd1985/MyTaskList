@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MyTasks"
+rootProject.name = "My Task List"
 include(":app")

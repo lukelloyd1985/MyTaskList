@@ -1,8 +1,8 @@
 {
-  "name": "mytasks-migrate-to-appwrite",
+  "name": "mytasklist-migrate-to-appwrite",
   "version": "1.0.0",
   "private": true,
-  "description": "One-time migration of MyTasks production data from Firestore (database \"mytasks\") to Appwrite Cloud.",
+  "description": "One-time migration of My Task List production data from Firestore (database \"mytasks\") to Appwrite Cloud.",
   "engines": {
     "node": ">=18"
   },

@@ -84,7 +84,7 @@
     <string name="dialog_delete_list_title">Diese Liste löschen?</string>
     <string name="dialog_delete_list_body">Alle Aufgaben in „%1$s“ werden für alle dauerhaft gelöscht.</string>
     <string name="error_delete_list_failed">Liste konnte nicht gelöscht werden</string>
-    <string name="error_invite_no_user_found">Kein MyTasks-Nutzer für %1$s gefunden. Diese Person muss sich zuerst mindestens einmal anmelden.</string>
+    <string name="error_invite_no_user_found">Kein My Task List-Nutzer für %1$s gefunden. Diese Person muss sich zuerst mindestens einmal anmelden.</string>
 
     <!-- Profile -->
     <string name="profile_title">Profil</string>

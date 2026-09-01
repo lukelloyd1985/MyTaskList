@@ -1,9 +1,9 @@
-MyTasks turns scattered to-do lists into shared lists your whole household can see and update together.
+My Task List turns scattered to-do lists into shared lists your whole household can see and update together.
 
 Create separate lists for anything you organise - a weekend project, weekly errands, the garden, home maintenance, a house move - and keep each one private or share it with the people working on it with you. Invite someone by email and they see every change the moment you make it.
 
 Give a task a title, description, due date, priority, and assignee, then get a reminder notification as the due date approaches so nothing gets missed. Drag tasks into whatever order makes sense to you. Tick things off, edit them, or delete them - everyone on a shared list stays in sync automatically, even if you were offline when the change happened.
 
-Google Sign-In is required to use MyTasks: it's how the app identifies you on your shared lists and keeps your tasks tied to your account, with no separate password to create or remember. You'll need a Google account to sign in.
+Google Sign-In is required to use My Task List: it's how the app identifies you on your shared lists and keeps your tasks tied to your account, with no separate password to create or remember. You'll need a Google account to sign in.
 
-MyTasks has no ads and no third-party trackers, and doesn't sell your data. You can delete your account and all of its data at any time, from inside the app or from the web - see the privacy policy for details.
+My Task List has no ads and no third-party trackers, and doesn't sell your data. You can delete your account and all of its data at any time, from inside the app or from the web - see the privacy policy for details.

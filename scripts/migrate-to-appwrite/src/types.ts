@@ -1,6 +1,6 @@
 /** Shared shapes for the Firestore -> Appwrite migration.
  *
- * Firestore source shapes mirror app/src/main/java/com/mytasks/app/data/model/
+ * Firestore source shapes mirror app/src/main/java/com/github/lukelloyd1985/mytasklist/data/model/
  * {UserProfile,TaskList,TaskItem}.kt exactly. Appwrite target shapes mirror
  * the finalized schema described in scripts/migrate-to-appwrite/README.md.
  */

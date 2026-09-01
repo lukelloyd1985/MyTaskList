@@ -1,7 +1,7 @@
 import { Client, TablesDB, Messaging, ID } from "node-appwrite";
 import { NOTIFICATION_STRINGS, resolveLocale } from "./notificationStrings";
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasklist";
 const USERS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_USERS_ID ?? "users";
 
 export type NotificationKind = "assigned" | "dueSoon";
@@ -31,7 +31,7 @@ interface UserDoc {
  *
  *  `listId`/`taskId` ride along as the push's `data` payload so tapping
  *  the notification can open the app straight to that list/task instead
- *  of just the app's default screen - see MyTasksMessagingService.kt,
+ *  of just the app's default screen - see MyTaskListMessagingService.kt,
  *  which reads them back off the FCM RemoteMessage. */
 export async function sendToUser(
   client: Client,

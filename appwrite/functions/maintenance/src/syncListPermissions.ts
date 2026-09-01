@@ -11,7 +11,7 @@ interface TaskDoc extends Models.Row {
   listId: string;
 }
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasks";
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasklist";
 const TASKS_COLLECTION_ID = process.env.APPWRITE_COLLECTION_TASKS_ID ?? "tasks";
 
 /** Every current owner + member of the list gets full read/update/delete

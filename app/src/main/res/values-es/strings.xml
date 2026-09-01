@@ -84,7 +84,7 @@
     <string name="dialog_delete_list_title">¿Eliminar esta lista?</string>
     <string name="dialog_delete_list_body">Todas las tareas de «%1$s» se eliminarán permanentemente para todos.</string>
     <string name="error_delete_list_failed">No se pudo eliminar la lista</string>
-    <string name="error_invite_no_user_found">No se encontró ningún usuario de MyTasks para %1$s. Esa persona debe iniciar sesión al menos una vez primero.</string>
+    <string name="error_invite_no_user_found">No se encontró ningún usuario de My Task List para %1$s. Esa persona debe iniciar sesión al menos una vez primero.</string>
 
     <!-- Profile -->
     <string name="profile_title">Perfil</string>

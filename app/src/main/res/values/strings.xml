@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MyTasks</string>
+    <string name="app_name">My Task List</string>
 
     <string name="notification_channel_tasks_id">tasks_channel</string>
     <string name="notification_channel_tasks_name">Task reminders</string>
@@ -86,7 +86,7 @@
     <string name="dialog_delete_list_title">Delete this list?</string>
     <string name="dialog_delete_list_body">All tasks in \"%1$s\" will be permanently deleted for everyone.</string>
     <string name="error_delete_list_failed">Couldn\'t delete list</string>
-    <string name="error_invite_no_user_found">No MyTasks user found for %1$s. They need to sign in at least once first.</string>
+    <string name="error_invite_no_user_found">No My Task List user found for %1$s. They need to sign in at least once first.</string>
 
     <!-- Profile -->
     <string name="profile_title">Profile</string>

@@ -1,9 +1,9 @@
-MyTasks mení roztrúsené zoznamy úloh na zdieľané zoznamy, ktoré vidí a upravuje celá vaša domácnosť.
+My Task List mení roztrúsené zoznamy úloh na zdieľané zoznamy, ktoré vidí a upravuje celá vaša domácnosť.
 
 Vytvorte si samostatné zoznamy na čokoľvek, čo si potrebujete zorganizovať - víkendový projekt, týždenné pochôdzky, záhradu, údržbu domu, sťahovanie - a každý z nich majte súkromný, alebo ho zdieľajte s ľuďmi, ktorí na ňom pracujú spolu s vami. Pozvite niekoho e-mailom a uvidí každú zmenu hneď, ako ju urobíte.
 
 Úlohe pridajte názov, popis, termín, prioritu a osobu, ktorej ju priradíte, a keď sa termín blíži, dostanete pripomienku, aby vám nič neuniklo. Úlohy si potiahnutím zoraďte podľa potreby. Odškrtávajte ich, upravujte alebo mažte - všetci na zdieľanom zozname zostávajú automaticky synchronizovaní, aj keď ste zmenu urobili offline.
 
-Na používanie MyTasks je potrebné prihlásenie cez Google: takto vás aplikácia identifikuje vo vašich zdieľaných zoznamoch a viaže vaše úlohy k vášmu účtu, bez samostatného hesla, ktoré by ste si museli vytvárať alebo pamätať. Na prihlásenie budete potrebovať účet Google.
+Na používanie My Task List je potrebné prihlásenie cez Google: takto vás aplikácia identifikuje vo vašich zdieľaných zoznamoch a viaže vaše úlohy k vášmu účtu, bez samostatného hesla, ktoré by ste si museli vytvárať alebo pamätať. Na prihlásenie budete potrebovať účet Google.
 
-MyTasks neobsahuje reklamy ani sledovanie tretími stranami a nepredáva vaše údaje. Svoj účet a všetky jeho údaje môžete kedykoľvek odstrániť, priamo v aplikácii alebo cez web - podrobnosti nájdete v zásadách ochrany osobných údajov.
+My Task List neobsahuje reklamy ani sledovanie tretími stranami a nepredáva vaše údaje. Svoj účet a všetky jeho údaje môžete kedykoľvek odstrániť, priamo v aplikácii alebo cez web - podrobnosti nájdete v zásadách ochrany osobných údajov.

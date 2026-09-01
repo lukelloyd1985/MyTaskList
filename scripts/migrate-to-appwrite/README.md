@@ -1,6 +1,6 @@
 # migrate-to-appwrite
 
-One-time script that migrates MyTasks production data from Firestore
+One-time script that migrates My Task List production data from Firestore
 (named database `mytasks`) to Appwrite Cloud, as part of the
 Firebase -> Appwrite backend migration. Read side uses `firebase-admin`;
 write side uses `node-appwrite`.
@@ -70,7 +70,7 @@ load `.env` itself:
 | `APPWRITE_ENDPOINT` | no | Defaults to `https://cloud.appwrite.io/v1`. |
 | `APPWRITE_PROJECT_ID` | yes (unless `--dry-run`) | Target Appwrite project. |
 | `APPWRITE_API_KEY` | yes (unless `--dry-run`) | Needs Databases (read/write) and Users (read/write) scopes. |
-| `APPWRITE_DATABASE_ID` | no | Defaults to `mytasks`. |
+| `APPWRITE_DATABASE_ID` | no | Defaults to `mytasklist`. |
 | `APPWRITE_COLLECTION_USERS_ID` | no | Defaults to `users`. |
 | `APPWRITE_COLLECTION_LISTS_ID` | no | Defaults to `lists`. |
 | `APPWRITE_COLLECTION_TASKS_ID` | no | Defaults to `tasks`. |

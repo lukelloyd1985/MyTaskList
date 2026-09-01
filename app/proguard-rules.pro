@@ -1,8 +1,8 @@
 # Firebase / Firestore model classes are (de)serialized via reflection.
--keepclassmembers class com.mytasks.app.data.model.** {
+-keepclassmembers class com.github.lukelloyd1985.mytasklist.data.model.** {
     *;
 }
--keep class com.mytasks.app.data.model.** { *; }
+-keep class com.github.lukelloyd1985.mytasklist.data.model.** { *; }
 
 # Credential Manager + Google Identity Services (Sign in with Google) -
 # see LoginScreen.kt/AuthRepository.kt. Working hypothesis for a real

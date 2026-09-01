@@ -86,7 +86,7 @@
     <string name="dialog_delete_list_title">Удалить этот список?</string>
     <string name="dialog_delete_list_body">Все задачи в списке «%1$s» будут безвозвратно удалены для всех.</string>
     <string name="error_delete_list_failed">Не удалось удалить список</string>
-    <string name="error_invite_no_user_found">Пользователь MyTasks с адресом %1$s не найден. Сначала этому человеку нужно хотя бы раз войти в приложение.</string>
+    <string name="error_invite_no_user_found">Пользователь My Task List с адресом %1$s не найден. Сначала этому человеку нужно хотя бы раз войти в приложение.</string>
 
     <!-- Profile -->
     <string name="profile_title">Профиль</string>

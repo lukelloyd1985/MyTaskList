@@ -1,9 +1,9 @@
-MyTasks transforme des listes de tâches éparpillées en listes partagées que toute votre famille peut consulter et mettre à jour ensemble.
+My Task List transforme des listes de tâches éparpillées en listes partagées que toute votre famille peut consulter et mettre à jour ensemble.
 
 Créez des listes distinctes pour tout ce que vous devez organiser - un projet du week-end, les courses de la semaine, le jardin, l'entretien de la maison, un déménagement - et gardez chacune privée ou partagez-la avec les personnes qui y travaillent avec vous. Invitez quelqu'un par e-mail et il verra chaque modification dès que vous la faites.
 
 Donnez à une tâche un titre, une description, une échéance, une priorité et une personne assignée, puis recevez une notification de rappel à l'approche de l'échéance pour ne rien manquer. Glissez les tâches dans l'ordre qui vous convient. Cochez-les, modifiez-les ou supprimez-les - tout le monde sur une liste partagée reste automatiquement synchronisé, même si le changement a été fait hors ligne.
 
-La connexion via Google est requise pour utiliser MyTasks : c'est ainsi que l'application vous identifie sur vos listes partagées et associe vos tâches à votre compte, sans mot de passe séparé à créer ou à retenir. Vous aurez besoin d'un compte Google pour vous connecter.
+La connexion via Google est requise pour utiliser My Task List : c'est ainsi que l'application vous identifie sur vos listes partagées et associe vos tâches à votre compte, sans mot de passe séparé à créer ou à retenir. Vous aurez besoin d'un compte Google pour vous connecter.
 
-MyTasks ne contient ni publicités ni traceurs tiers, et ne vend pas vos données. Vous pouvez supprimer votre compte et toutes ses données à tout moment, depuis l'application ou depuis le web - consultez la politique de confidentialité pour plus de détails.
+My Task List ne contient ni publicités ni traceurs tiers, et ne vend pas vos données. Vous pouvez supprimer votre compte et toutes ses données à tout moment, depuis l'application ou depuis le web - consultez la politique de confidentialité pour plus de détails.
