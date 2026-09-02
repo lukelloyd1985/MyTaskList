@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.os.Process
 import android.util.Log
+import android.widget.Toast
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
@@ -20,9 +21,20 @@ class MyTaskListApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // TEMPORARY diagnostic checkpoints - see MainActivity.kt for the
+        // rest of the sequence. Remove once the Play-Store-install-only
+        // startup hang is found.
+        debugToast("1: App.onCreate start")
         installCrashHandler()
+        debugToast("2: crash handler installed")
         initFirebase()
+        debugToast("3: Firebase initialized")
         NotificationHelper.createChannel(this)
+        debugToast("4: App.onCreate complete")
+    }
+
+    private fun debugToast(message: String) {
+        Toast.makeText(this, "DEBUG $message", Toast.LENGTH_SHORT).show()
     }
 
     // See CrashReportActivity's own comment for why this exists. Falls
