@@ -52,6 +52,14 @@ class MyTaskListApp : Application(), Configuration.Provider {
                         putExtra(CrashReportActivity.EXTRA_STACK_TRACE, stackTrace)
                     },
                 )
+                // TEMPORARY diagnostic change: CrashReportActivity runs in
+                // this same process, so killing immediately after
+                // startActivity() (an async IPC to ActivityManagerService)
+                // can race ahead of the new Activity actually being
+                // created and drawn - suspected cause of the Play-install
+                // startup loop (see MainActivity.kt/this file's DEBUG
+                // toasts). Give it a moment to actually appear first.
+                Thread.sleep(2000)
                 Process.killProcess(Process.myPid())
                 exitProcess(10)
             } catch (t: Throwable) {
