@@ -47,9 +47,21 @@ class AuthViewModel @Inject constructor(
                 userRepository.upsertProfile(user)
                 _uiState.value = AuthUiState(isLoading = false)
             } catch (t: Throwable) {
+                // t.message is often null for exceptions thrown by the
+                // Appwrite SDK's own network/execution calls (as opposed
+                // to this app's own error(...) calls in
+                // signInWithGoogleIdToken, which always set one) - on a
+                // device with no adb access, the exception's type and
+                // cause are the only way to see what actually happened,
+                // same reasoning as LoginScreen.kt's detailMessage().
+                val detail = buildString {
+                    append(t::class.java.simpleName)
+                    t.message?.let { append(": $it") }
+                    t.cause?.let { append(" (cause: $it)") }
+                }
                 _uiState.value = AuthUiState(
                     isLoading = false,
-                    errorMessage = t.message ?: appContext.getString(R.string.error_sign_in_failed),
+                    errorMessage = "${appContext.getString(R.string.error_sign_in_failed)} [$detail]",
                 )
             }
         }
