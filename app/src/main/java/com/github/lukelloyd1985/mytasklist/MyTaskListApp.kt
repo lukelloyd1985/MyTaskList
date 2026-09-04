@@ -29,8 +29,17 @@ class MyTaskListApp : Application(), Configuration.Provider {
         debugToast("1: App.onCreate start")
         installCrashHandler()
         debugToast("2: crash handler installed")
-        initFirebase()
-        debugToast("3: Firebase initialized")
+        // TEMPORARY diagnostic: initFirebase() skipped entirely to test
+        // whether it's the cause of the Play-install-only startup loop
+        // (DEBUG 3 never appeared, and neither did the crash handler's own
+        // DEBUG X, so whatever's failing here isn't a catchable Kotlin
+        // exception - it's the strongest remaining suspect, since it's the
+        // one thing in this path that talks to Google Play Services,
+        // which behaves differently for Play App Signing's certificate
+        // than the sideloaded release.keystore one). FCM push just won't
+        // work with this skipped - everything else should be unaffected.
+        // initFirebase()
+        debugToast("3: Firebase initialization SKIPPED")
         NotificationHelper.createChannel(this)
         debugToast("4: App.onCreate complete")
     }
