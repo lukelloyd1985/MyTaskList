@@ -90,18 +90,39 @@ class MyTaskListApp : Application(), Configuration.Provider {
         debugToast("2a: initFirebase start")
         val builder = FirebaseOptions.Builder()
         debugToast("2b: Builder() created")
-        builder.setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
-        debugToast("2c: setProjectId done")
-        builder.setApplicationId(BuildConfig.FIREBASE_APPLICATION_ID)
-        debugToast("2d: setApplicationId done")
-        builder.setApiKey(BuildConfig.FIREBASE_API_KEY)
-        debugToast("2e: setApiKey done")
-        builder.setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID)
-        debugToast("2f: setGcmSenderId done")
+
+        val projectId = BuildConfig.FIREBASE_PROJECT_ID
+        debugToast("2c: FIREBASE_PROJECT_ID = [$projectId]")
+        builder.setProjectId(projectId)
+        debugToast("2d: setProjectId done")
+
+        // Last confirmed checkpoint two rounds running was 2c (the old,
+        // coarser numbering - equivalent to 2d here) - died before ever
+        // reaching what's now 2f. Splitting "read the BuildConfig
+        // constant" from "call the Builder setter" narrows it further:
+        // if 2e shows but 2f doesn't, the value itself is fine and the
+        // SDK call is what's dying; if 2e never shows, reading the
+        // constant itself is somehow the trigger (very unlikely, but
+        // worth ruling out explicitly rather than assuming).
+        val applicationId = BuildConfig.FIREBASE_APPLICATION_ID
+        debugToast("2e: FIREBASE_APPLICATION_ID = [$applicationId]")
+        builder.setApplicationId(applicationId)
+        debugToast("2f: setApplicationId done")
+
+        val apiKey = BuildConfig.FIREBASE_API_KEY
+        debugToast("2g: FIREBASE_API_KEY = [$apiKey]")
+        builder.setApiKey(apiKey)
+        debugToast("2h: setApiKey done")
+
+        val senderId = BuildConfig.FIREBASE_SENDER_ID
+        debugToast("2i: FIREBASE_SENDER_ID = [$senderId]")
+        builder.setGcmSenderId(senderId)
+        debugToast("2j: setGcmSenderId done")
+
         val options = builder.build()
-        debugToast("2g: options built")
+        debugToast("2k: options built")
         FirebaseApp.initializeApp(this, options)
-        debugToast("2h: FirebaseApp.initializeApp() returned")
+        debugToast("2l: FirebaseApp.initializeApp() returned")
     }
 
     override val workManagerConfiguration: Configuration
