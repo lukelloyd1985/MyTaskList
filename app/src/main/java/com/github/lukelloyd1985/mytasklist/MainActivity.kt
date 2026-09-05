@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -15,7 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,11 +43,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // TEMPORARY diagnostic checkpoints, continued from MyTaskListApp.kt.
-        Toast.makeText(this, "DEBUG 5: MainActivity.onCreate start", Toast.LENGTH_SHORT).show()
         deepLink = extractDeepLink(intent)
         enableEdgeToEdge()
-        Toast.makeText(this, "DEBUG 6: about to setContent", Toast.LENGTH_SHORT).show()
         setContent {
             MyTaskListTheme {
                 MyTaskListRoot(deepLink = deepLink, onDeepLinkConsumed = { deepLink = null })
@@ -75,16 +70,6 @@ private fun MyTaskListRoot(
     onDeepLinkConsumed: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
-    // TEMPORARY diagnostic checkpoint, continued from onCreate() above.
-    // authViewModel's default value (hiltViewModel(), which constructs the
-    // whole Hilt/Appwrite dependency chain behind AuthViewModel) is
-    // resolved before this composable body starts running - so this toast
-    // firing means that construction completed successfully.
-    val debugContext = LocalContext.current
-    LaunchedEffect(Unit) {
-        Toast.makeText(debugContext, "DEBUG 7: MyTaskListRoot composing", Toast.LENGTH_SHORT).show()
-    }
-
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {}
