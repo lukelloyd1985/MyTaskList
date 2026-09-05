@@ -2,8 +2,11 @@ package com.github.lukelloyd1985.mytasklist
 
 import android.app.Application
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.util.Log
+import android.widget.Toast
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
@@ -20,9 +23,23 @@ class MyTaskListApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // TEMPORARY diagnostic checkpoints - the classic-SHA-1 fix (see
+        // README "Publishing to Google Play" step 5) did NOT resolve the
+        // Play-install-only startup crash; initFirebase() still dies the
+        // same way. These bisect *inside* the function to find the exact
+        // failing line, since "somewhere in initFirebase()" wasn't enough
+        // last time. Remove once the cause is found.
+        debugToast("1: App.onCreate start")
         installCrashHandler()
+        debugToast("2: crash handler installed")
         initFirebase()
+        debugToast("3: initFirebase() returned")
         NotificationHelper.createChannel(this)
+        debugToast("4: App.onCreate complete")
+    }
+
+    private fun debugToast(message: String) {
+        Toast.makeText(this, "DEBUG $message", Toast.LENGTH_SHORT).show()
     }
 
     // See CrashReportActivity's own comment for why this exists. Falls
@@ -32,6 +49,15 @@ class MyTaskListApp : Application(), Configuration.Provider {
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            // TEMPORARY diagnostic: fires unconditionally the instant this
+            // handler runs, before anything else below, on the main
+            // thread regardless of which thread actually crashed - so we
+            // find out in the same test round whether this is even a
+            // catchable Kotlin/Java exception this time, rather than
+            // needing a separate upload+test cycle just to check.
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, "DEBUG X: crash handler invoked, thread=${thread.name}, throwable=${throwable::class.java.name}: ${throwable.message}", Toast.LENGTH_LONG).show()
+            }
             try {
                 val stackTrace = Log.getStackTraceString(throwable)
                 startActivity(
@@ -61,13 +87,21 @@ class MyTaskListApp : Application(), Configuration.Provider {
     // anything else in the app calls FirebaseMessaging.getInstance() -
     // Application.onCreate() is the earliest hook available.
     private fun initFirebase() {
-        val options = FirebaseOptions.Builder()
-            .setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
-            .setApplicationId(BuildConfig.FIREBASE_APPLICATION_ID)
-            .setApiKey(BuildConfig.FIREBASE_API_KEY)
-            .setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID)
-            .build()
+        debugToast("2a: initFirebase start")
+        val builder = FirebaseOptions.Builder()
+        debugToast("2b: Builder() created")
+        builder.setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
+        debugToast("2c: setProjectId done")
+        builder.setApplicationId(BuildConfig.FIREBASE_APPLICATION_ID)
+        debugToast("2d: setApplicationId done")
+        builder.setApiKey(BuildConfig.FIREBASE_API_KEY)
+        debugToast("2e: setApiKey done")
+        builder.setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID)
+        debugToast("2f: setGcmSenderId done")
+        val options = builder.build()
+        debugToast("2g: options built")
         FirebaseApp.initializeApp(this, options)
+        debugToast("2h: FirebaseApp.initializeApp() returned")
     }
 
     override val workManagerConfiguration: Configuration
