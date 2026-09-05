@@ -2,6 +2,8 @@ package com.github.lukelloyd1985.mytasklist
 
 import android.app.Application
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.util.Log
 import android.widget.Toast
@@ -47,6 +49,15 @@ class MyTaskListApp : Application(), Configuration.Provider {
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            // TEMPORARY diagnostic: fires unconditionally the instant this
+            // handler runs, before anything else below, on the main
+            // thread regardless of which thread actually crashed - so we
+            // find out in the same test round whether this is even a
+            // catchable Kotlin/Java exception this time, rather than
+            // needing a separate upload+test cycle just to check.
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, "DEBUG X: crash handler invoked, thread=${thread.name}, throwable=${throwable::class.java.name}: ${throwable.message}", Toast.LENGTH_LONG).show()
+            }
             try {
                 val stackTrace = Log.getStackTraceString(throwable)
                 startActivity(
