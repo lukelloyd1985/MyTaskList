@@ -2,11 +2,8 @@ package com.github.lukelloyd1985.mytasklist
 
 import android.app.Application
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
 import android.os.Process
 import android.util.Log
-import android.widget.Toast
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
@@ -23,29 +20,9 @@ class MyTaskListApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        // TEMPORARY diagnostic checkpoints - see MainActivity.kt for the
-        // rest of the sequence. Remove once the Play-Store-install-only
-        // startup hang is found.
-        debugToast("1: App.onCreate start")
         installCrashHandler()
-        debugToast("2: crash handler installed")
-        // TEMPORARY diagnostic: initFirebase() skipped entirely to test
-        // whether it's the cause of the Play-install-only startup loop
-        // (DEBUG 3 never appeared, and neither did the crash handler's own
-        // DEBUG X, so whatever's failing here isn't a catchable Kotlin
-        // exception - it's the strongest remaining suspect, since it's the
-        // one thing in this path that talks to Google Play Services,
-        // which behaves differently for Play App Signing's certificate
-        // than the sideloaded release.keystore one). FCM push just won't
-        // work with this skipped - everything else should be unaffected.
-        // initFirebase()
-        debugToast("3: Firebase initialization SKIPPED")
+        initFirebase()
         NotificationHelper.createChannel(this)
-        debugToast("4: App.onCreate complete")
-    }
-
-    private fun debugToast(message: String) {
-        Toast.makeText(this, "DEBUG $message", Toast.LENGTH_SHORT).show()
     }
 
     // See CrashReportActivity's own comment for why this exists. Falls
@@ -55,15 +32,6 @@ class MyTaskListApp : Application(), Configuration.Provider {
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // TEMPORARY diagnostic: fires unconditionally the instant this
-            // handler runs, before the try block below, on the main thread
-            // regardless of which thread actually crashed - confirms
-            // whether an uncaught exception is being caught here at all,
-            // since even a 2s delay before killing (see below) still
-            // never showed CrashReportActivity.
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(this, "DEBUG X: crash handler invoked, thread=${thread.name}", Toast.LENGTH_LONG).show()
-            }
             try {
                 val stackTrace = Log.getStackTraceString(throwable)
                 startActivity(
@@ -72,14 +40,6 @@ class MyTaskListApp : Application(), Configuration.Provider {
                         putExtra(CrashReportActivity.EXTRA_STACK_TRACE, stackTrace)
                     },
                 )
-                // TEMPORARY diagnostic change: CrashReportActivity runs in
-                // this same process, so killing immediately after
-                // startActivity() (an async IPC to ActivityManagerService)
-                // can race ahead of the new Activity actually being
-                // created and drawn - suspected cause of the Play-install
-                // startup loop (see MainActivity.kt/this file's DEBUG
-                // toasts). Give it a moment to actually appear first.
-                Thread.sleep(2000)
                 Process.killProcess(Process.myPid())
                 exitProcess(10)
             } catch (t: Throwable) {

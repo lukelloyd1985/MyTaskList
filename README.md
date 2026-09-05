@@ -701,6 +701,35 @@ everything after that, which CI automates.
    directly-sideloaded GitHub Release APK is still signed with the upload
    key and needs that entry to keep working.
 
+   Play Console now shows **four** fingerprints on that page - SHA-1 and
+   SHA-256, each in both a "classic" and a newer "quantum-resistant"
+   variant (Google's hybrid post-quantum signing rollout, additive to the
+   traditional certificate, not a replacement of it). **Use the classic
+   SHA-1** - that's the certificate Android's package manager and
+   Google's own APIs (Firebase, GMS package verification) actually check
+   today; the quantum-resistant one is a forward-looking layer nothing
+   mainstream depends on yet. This app's release App Signing key's
+   classic SHA-1 is
+   `A6:5A:C0:AD:77:01:1F:BC:1C:7C:F8:6E:78:35:E4:6F:01:87:C6:20`
+   (recorded here since, unlike the upload keystore's fingerprints below,
+   there's no local `signingReport` for a key only Google holds).
+
+   **This same fingerprint also needs registering with Firebase**, not
+   just the Google Cloud OAuth client above: Firebase Console → Project
+   settings → General → Your apps → the
+   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint**. Skip
+   this and `FirebaseApp.initializeApp()` (see `MyTaskListApp.kt`) fails
+   on a Play-Store-installed copy in a way this app's own crash handler
+   never even sees - not the "silent, no-crash" FCM failure the shared
+   API key's restriction note above describes, but a hard, native-level
+   process kill on every launch, indistinguishable from the app simply
+   never starting (stuck on the OS's default icon-on-background starting
+   window, no crash screen, no ANR, nothing in Play Console vitals).
+   Confirmed by bisecting `MyTaskListApp.onCreate()` with temporary
+   `Toast` checkpoints (no adb access on the affected device) - the app
+   launched fine the moment `initFirebase()` was skipped, and this
+   fingerprint registration is what let it be reintroduced safely.
+
 ### 2. Let CI handle every release after that
 
 1. Play Console's old **Setup → API access** page is gone - Google
