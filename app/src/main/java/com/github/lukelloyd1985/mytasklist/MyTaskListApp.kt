@@ -91,21 +91,23 @@ class MyTaskListApp : Application(), Configuration.Provider {
         val builder = FirebaseOptions.Builder()
         debugToast("2b: Builder() created")
 
+        // Confirmed on multiple clean uninstall+reinstall runs: dies
+        // right here, between 2b and what was 2c - every checkpoint that
+        // succeeded (1, 2, 2a, 2b) used a plain static string with no
+        // interpolation; 2c was the first to both read a BuildConfig
+        // value AND interpolate it into the toast text. Splitting "read
+        // the constant" (2c, static text only) from "display it
+        // interpolated" (2c-show) isolates which one is actually
+        // implicated, rather than assuming it's Firebase-related at all.
         val projectId = BuildConfig.FIREBASE_PROJECT_ID
-        debugToast("2c: FIREBASE_PROJECT_ID = [$projectId]")
+        debugToast("2c: read FIREBASE_PROJECT_ID (not shown)")
+        debugToast("2c-show: FIREBASE_PROJECT_ID = [$projectId]")
         builder.setProjectId(projectId)
         debugToast("2d: setProjectId done")
 
-        // Last confirmed checkpoint two rounds running was 2c (the old,
-        // coarser numbering - equivalent to 2d here) - died before ever
-        // reaching what's now 2f. Splitting "read the BuildConfig
-        // constant" from "call the Builder setter" narrows it further:
-        // if 2e shows but 2f doesn't, the value itself is fine and the
-        // SDK call is what's dying; if 2e never shows, reading the
-        // constant itself is somehow the trigger (very unlikely, but
-        // worth ruling out explicitly rather than assuming).
         val applicationId = BuildConfig.FIREBASE_APPLICATION_ID
-        debugToast("2e: FIREBASE_APPLICATION_ID = [$applicationId]")
+        debugToast("2e: read FIREBASE_APPLICATION_ID (not shown)")
+        debugToast("2e-show: FIREBASE_APPLICATION_ID = [$applicationId]")
         builder.setApplicationId(applicationId)
         debugToast("2f: setApplicationId done")
 
