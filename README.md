@@ -717,18 +717,7 @@ everything after that, which CI automates.
    **This same fingerprint also needs registering with Firebase**, not
    just the Google Cloud OAuth client above: Firebase Console → Project
    settings → General → Your apps → the
-   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint**. Skip
-   this and `FirebaseApp.initializeApp()` (see `MyTaskListApp.kt`) fails
-   on a Play-Store-installed copy in a way this app's own crash handler
-   never even sees - not the "silent, no-crash" FCM failure the shared
-   API key's restriction note above describes, but a hard, native-level
-   process kill on every launch, indistinguishable from the app simply
-   never starting (stuck on the OS's default icon-on-background starting
-   window, no crash screen, no ANR, nothing in Play Console vitals).
-   Confirmed by bisecting `MyTaskListApp.onCreate()` with temporary
-   `Toast` checkpoints (no adb access on the affected device) - the app
-   launched fine the moment `initFirebase()` was skipped, and this
-   fingerprint registration is what let it be reintroduced safely.
+   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint**.
 
 ### 2. Let CI handle every release after that
 
