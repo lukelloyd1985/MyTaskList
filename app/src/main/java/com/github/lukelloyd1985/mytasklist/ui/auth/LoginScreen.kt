@@ -14,14 +14,14 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +41,8 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.github.lukelloyd1985.mytasklist.BuildConfig
 import com.github.lukelloyd1985.mytasklist.R
+import com.github.lukelloyd1985.mytasklist.diagnostics.gatherDiagnostics
+import com.github.lukelloyd1985.mytasklist.ui.components.ErrorDetailDialog
 import com.github.lukelloyd1985.mytasklist.ui.components.SocialLoginButton
 import kotlinx.coroutines.launch
 
@@ -51,11 +53,16 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    // A Snackbar disappears in a few seconds, wraps/truncates long
+    // text, and its text can't be selected or copied - none of which
+    // works for reading an exception's full detail or a diagnostics
+    // dump. ErrorDetailDialog (see its own comment) replaces it
+    // entirely for every error path this screen can hit.
+    var errorDetail by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+            errorDetail = it
             viewModel.clearError()
         }
     }
@@ -94,7 +101,7 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
                 enabled = !uiState.isLoading,
             ) {
                 scope.launch {
-                    signInWithGoogle(context, viewModel, snackbarHostState)
+                    signInWithGoogle(context, viewModel) { errorDetail = it }
                 }
             }
 
@@ -102,29 +109,42 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 24.dp))
             }
         }
+    }
 
-        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+    errorDetail?.let { detail ->
+        ErrorDetailDialog(message = detail, onDismiss = { errorDetail = null })
     }
 }
 
 // GetCredentialException's own .message is often just a generic summary
 // ("[16] Account reauth failed") - the actually-useful detail (e.g. a
 // wrapped ApiException's status code/message from Play Services) lives
-// in .cause, which the error snackbar previously discarded entirely. On
+// in .cause, which the error display previously discarded entirely. On
 // a device with no adb access, this is the only way to see it without a
 // logcat capture.
-private fun detailMessage(e: GetCredentialException): String {
+//
+// Also appends gatherDiagnostics() in full: a Play-Store-install-only
+// version of this exact error (same package, same signing cert
+// registered, same code, sideloaded APK works fine) isn't explained by
+// anything checked so far, and each round of checking one more thing is
+// a full Play Store closed-testing upload + review cycle - so this
+// bundles every device-readable fact that could plausibly matter (the
+// actual webClientId in effect, the runtime signing cert SHA-1,
+// install source, Play services version) into every failure shown,
+// rather than adding them one at a time.
+private fun detailMessage(e: GetCredentialException, context: Context, webClientId: String): String {
     val cause = e.cause
-    return when {
+    val base = when {
         cause != null -> "${e.message ?: e.type} (cause: $cause)"
         else -> e.message ?: "cancelled"
     }
+    return "$base\n\nwebClientId: $webClientId\n\n${gatherDiagnostics(context)}"
 }
 
 private suspend fun signInWithGoogle(
     context: Context,
     viewModel: AuthViewModel,
-    snackbarHostState: SnackbarHostState,
+    onError: (String) -> Unit,
 ) {
     val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
     if (webClientId.isBlank()) {
@@ -135,7 +155,7 @@ private suspend fun signInWithGoogle(
         // be checked before constructing it rather than relying on that
         // catch.
         Log.e(TAG, "GOOGLE_WEB_CLIENT_ID is blank - Google sign-in is not configured for this build")
-        snackbarHostState.showSnackbar(context.getString(R.string.error_sign_in_failed))
+        onError("GOOGLE_WEB_CLIENT_ID is blank\n\n${gatherDiagnostics(context)}")
         return
     }
     val credentialManager = CredentialManager.create(context)
@@ -156,7 +176,7 @@ private suspend fun signInWithGoogle(
     try {
         val response = credentialManager.getCredential(context, primaryRequest)
         Log.i(TAG, "Primary GetGoogleIdOption flow returned a credential")
-        handleGoogleCredential(context, response.credential, viewModel, snackbarHostState)
+        handleGoogleCredential(context, response.credential, viewModel, onError)
     } catch (e: NoCredentialException) {
         Log.w(TAG, "Primary flow found no credential (type=${e.type}), falling back to GetSignInWithGoogleOption", e)
         val fallbackOption = GetSignInWithGoogleOption.Builder(serverClientId = webClientId).build()
@@ -164,17 +184,17 @@ private suspend fun signInWithGoogle(
         try {
             val response = credentialManager.getCredential(context, fallbackRequest)
             Log.i(TAG, "Fallback GetSignInWithGoogleOption flow returned a credential")
-            handleGoogleCredential(context, response.credential, viewModel, snackbarHostState)
+            handleGoogleCredential(context, response.credential, viewModel, onError)
         } catch (e2: GetCredentialException) {
             Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message} cause=${e2.cause}", e2)
-            snackbarHostState.showSnackbar(
-                context.getString(R.string.error_google_signin_failed, e2.type, detailMessage(e2)),
+            onError(
+                context.getString(R.string.error_google_signin_failed, e2.type, detailMessage(e2, context, webClientId)),
             )
         }
     } catch (e: GetCredentialException) {
         Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message} cause=${e.cause}", e)
-        snackbarHostState.showSnackbar(
-            context.getString(R.string.error_google_signin_failed, e.type, detailMessage(e)),
+        onError(
+            context.getString(R.string.error_google_signin_failed, e.type, detailMessage(e, context, webClientId)),
         )
     }
 }
@@ -183,13 +203,13 @@ private suspend fun handleGoogleCredential(
     context: Context,
     credential: Credential,
     viewModel: AuthViewModel,
-    snackbarHostState: SnackbarHostState,
+    onError: (String) -> Unit,
 ) {
     if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
         val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
         viewModel.onGoogleIdToken(googleIdTokenCredential.idToken)
     } else {
         Log.e(TAG, "Unexpected credential type from Google: ${credential.type}")
-        snackbarHostState.showSnackbar(context.getString(R.string.error_unexpected_credential_type, credential.type))
+        onError(context.getString(R.string.error_unexpected_credential_type, credential.type))
     }
 }
