@@ -686,13 +686,14 @@ everything after that, which CI automates.
    signed with an unregistered certificate always does. Get it from Play
    Console's **App signing** page (Play Console has renamed/relocated
    this over time - currently under **Setup → App integrity**, look for
-   **App signing key certificate**) → SHA-1. A Google Cloud Android OAuth
-   client holds exactly **one** SHA-1 each - there's no "add another
-   fingerprint" on an existing client - so this means **creating a
-   separate Android OAuth client** (Create credentials → OAuth client ID
-   → Android) with the *same* package name
+   **App signing key certificate**) → SHA-1 (both the classic and
+   quantum-resistant variants - see below for why both). A Google Cloud
+   Android OAuth client holds exactly **one** SHA-1 each - there's no
+   "add another fingerprint" on an existing client - so this means
+   **creating a separate Android OAuth client per fingerprint** (Create
+   credentials → OAuth client ID → Android) with the *same* package name
    (`com.github.lukelloyd1985.mytasklist`) as the one from
-   [Backend setup](#backend-setup) step 6.2, but this new SHA-1. Google's
+   [Backend setup](#backend-setup) step 6.2, but each new SHA-1. Google's
    server-side check matches against every registered (package name,
    SHA-1) pair across all your project's Android OAuth clients, so
    multiple clients sharing one package name is the normal way to cover
@@ -704,20 +705,31 @@ everything after that, which CI automates.
    Play Console now shows **four** fingerprints on that page - SHA-1 and
    SHA-256, each in both a "classic" and a newer "quantum-resistant"
    variant (Google's hybrid post-quantum signing rollout, additive to the
-   traditional certificate, not a replacement of it). **Use the classic
-   SHA-1** - that's the certificate Android's package manager and
-   Google's own APIs (Firebase, GMS package verification) actually check
-   today; the quantum-resistant one is a forward-looking layer nothing
-   mainstream depends on yet. This app's release App Signing key's
-   classic SHA-1 is
-   `A6:5A:C0:AD:77:01:1F:BC:1C:7C:F8:6E:78:35:E4:6F:01:87:C6:20`
+   traditional certificate, not a replacement of it). **Register both
+   SHA-1 values**, as two more separate Android OAuth clients (a client
+   holds exactly one SHA-1 each, per this step's intro) - do not assume
+   the classic one alone is enough. Confirmed the hard way, on a real
+   device (Android 17, Pixel 10a): `PackageManager`'s own
+   `GET_SIGNING_CERTIFICATES` reported the certificate actually presented
+   to Credential Manager on that device is the **quantum-resistant** one,
+   not the classic one - registering only the classic fingerprint (the
+   reasonable-looking assumption at the time) left `TYPE_USER_CANCELED`/
+   "Account reauth failed" failing on that device even though every other
+   config value checked out. Which certificate a given device/OS/GMS
+   version actually presents isn't something to guess at - register both
+   fingerprints so it doesn't matter. This app's release App Signing
+   key's fingerprints are:
+   - classic SHA-1: `A6:5A:C0:AD:77:01:1F:BC:1C:7C:F8:6E:78:35:E4:6F:01:87:C6:20`
+   - quantum-resistant SHA-1: `A3:70:58:34:0F:07:46:0B:5C:1A:82:46:36:C0:18:7E:5E:BA:17:FF`
+
    (recorded here since, unlike the upload keystore's fingerprints below,
    there's no local `signingReport` for a key only Google holds).
 
-   **This same fingerprint also needs registering with Firebase**, not
-   just the Google Cloud OAuth client above: Firebase Console → Project
+   **These same fingerprints also need registering with Firebase**, not
+   just the Google Cloud OAuth clients above: Firebase Console → Project
    settings → General → Your apps → the
-   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint**.
+   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint** (once
+   per fingerprint).
 
 ### 2. Let CI handle every release after that
 
