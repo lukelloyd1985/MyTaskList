@@ -113,12 +113,24 @@ fun LoginScreen(viewModel: AuthViewModel = hiltViewModel()) {
 // in .cause, which the error snackbar previously discarded entirely. On
 // a device with no adb access, this is the only way to see it without a
 // logcat capture.
-private fun detailMessage(e: GetCredentialException): String {
+//
+// Also appends the actual webClientId this attempt used: a
+// Play-Store-install-only version of this exact error (same package,
+// same signing cert registered, same code, sideloaded APK works fine)
+// isn't explained by anything checked so far, so the next thing worth
+// ruling out empirically - not by more guessing - is whether the value
+// GOOGLE_WEB_CLIENT_ID actually resolves to in *this specific build* is
+// the one currently registered as the Web application OAuth client in
+// Google Cloud Console, rather than a stale/wrong one. Not a secret
+// (any Google Identity Services client embeds it in app code), so
+// showing it in full here is fine.
+private fun detailMessage(e: GetCredentialException, webClientId: String): String {
     val cause = e.cause
-    return when {
+    val base = when {
         cause != null -> "${e.message ?: e.type} (cause: $cause)"
         else -> e.message ?: "cancelled"
     }
+    return "$base [webClientId=$webClientId]"
 }
 
 private suspend fun signInWithGoogle(
@@ -168,13 +180,13 @@ private suspend fun signInWithGoogle(
         } catch (e2: GetCredentialException) {
             Log.e(TAG, "Fallback flow failed: type=${e2.type} message=${e2.message} cause=${e2.cause}", e2)
             snackbarHostState.showSnackbar(
-                context.getString(R.string.error_google_signin_failed, e2.type, detailMessage(e2)),
+                context.getString(R.string.error_google_signin_failed, e2.type, detailMessage(e2, webClientId)),
             )
         }
     } catch (e: GetCredentialException) {
         Log.e(TAG, "Primary flow failed: type=${e.type} message=${e.message} cause=${e.cause}", e)
         snackbarHostState.showSnackbar(
-            context.getString(R.string.error_google_signin_failed, e.type, detailMessage(e)),
+            context.getString(R.string.error_google_signin_failed, e.type, detailMessage(e, webClientId)),
         )
     }
 }
