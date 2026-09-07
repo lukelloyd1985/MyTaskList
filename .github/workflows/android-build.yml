@@ -201,27 +201,44 @@ jobs:
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
 
-      # Uploads the AAB straight to the Play Console "internal testing"
+      # Uploads the AAB straight to the Play Console "closed testing"
       # track - never production, see README "Publishing to Google Play".
       # Requires the app to already exist in Play Console and its very
       # first release to have been done manually there; see the README for
       # why and for the one-time service account setup this secret needs.
       #
-      # Every `run:` step is a fresh ./gradlew process, so
-      # signingConfigs.release in app/build.gradle.kts re-reads its env
-      # vars from scratch here - without this (even though the AAB was
-      # already built in the previous step), storePassword/keyPassword
-      # both resolve to null while storeFile still resolves (KEYSTORE_PATH
+      # Every `run:` step is a fresh ./gradlew process, so anything
+      # app/build.gradle.kts reads from an env var - signingConfigs.release
+      # AND every FIREBASE_*/APPWRITE_*/GOOGLE_WEB_CLIENT_ID
+      # buildConfigField (each falls back to "" if its env var is unset) -
+      # gets re-read from scratch here, even though the AAB was already
+      # built in the previous step. A missing var isn't just inert: it's a
+      # *different* task input than the one "Build release AAB" saw, so
+      # Gradle reruns generateReleaseBuildConfig (and everything
+      # downstream: compile, sign, bundle) right here with that var
+      # resolved to blank, and *that* silently-rebuilt bundle is what
+      # actually gets published - confirmed the hard way when
+      # FIREBASE_PROJECT_ID wasn't in this step's env and the installed
+      # app's BuildConfig.FIREBASE_PROJECT_ID measured length=0. This step
+      # must mirror every env var "Build release AAB" sets, not just
+      # signingConfigs.release's - a missing storePassword the same way
+      # resolves to null while storeFile still resolves (KEYSTORE_PATH
       # persists job-wide via $GITHUB_ENV, unlike this, which is
-      # step-scoped) and keyAlias is hardcoded so it's unaffected. That
-      # input change makes Gradle re-run signReleaseBundle right here with
-      # a null password, which fails with a message-less
-      # NullPointerException from bundletool.
-      - name: Publish to Google Play (internal track)
+      # step-scoped) and keyAlias is hardcoded so it's unaffected; that
+      # specific case fails loudly (NullPointerException from bundletool),
+      # which is how it was caught before - blank strings elsewhere don't
+      # fail the build at all, they just silently ship broken.
+      - name: Publish to Google Play
         if: ${{ github.event_name == 'release' && env.HAS_PLAY_SERVICE_ACCOUNT_SECRET == 'true' }}
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_APPLICATION_ID: ${{ secrets.FIREBASE_APPLICATION_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew publishReleaseBundle --stacktrace
 
       # Publishes the store listing text and graphics committed under
