@@ -725,11 +725,11 @@ everything after that, which CI automates.
    (recorded here since, unlike the upload keystore's fingerprints below,
    there's no local `signingReport` for a key only Google holds).
 
-   **These same fingerprints also need registering with Firebase**, not
-   just the Google Cloud OAuth clients above: Firebase Console → Project
-   settings → General → Your apps → the
-   `com.github.lukelloyd1985.mytasklist` app → **Add fingerprint** (once
-   per fingerprint).
+   Registering these two with Firebase too isn't needed on top of the
+   Google Cloud OAuth clients above - only relevant if the shared
+   Android API key's **Application restrictions** is set to **Android
+   apps** rather than **None** (see [Backend setup](#backend-setup) step
+   8); this project's key is unrestricted, so nothing to do there.
 
 ### 2. Let CI handle every release after that
 
