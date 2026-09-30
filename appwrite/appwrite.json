@@ -292,13 +292,6 @@
           "orders": ["ASC"]
         },
         {
-          "key": "assigneeIds_idx",
-          "type": "key",
-          "status": "available",
-          "attributes": ["assigneeIds"],
-          "orders": ["ASC"]
-        },
-        {
           "key": "notify_idx",
           "type": "key",
           "status": "available",
