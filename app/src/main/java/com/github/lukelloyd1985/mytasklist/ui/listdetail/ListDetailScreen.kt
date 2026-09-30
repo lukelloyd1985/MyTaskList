@@ -221,8 +221,8 @@ fun ListDetailScreen(
                     showEditor = false
                 }
             },
-            onSave = { taskId, title, description, assigneeId, assigneeName, priority, dueAt, notify ->
-                viewModel.saveTask(taskId, title, description, assigneeId, assigneeName, priority, dueAt, notify)
+            onSave = { taskId, title, description, assigneeIds, assigneeNames, priority, dueAt, notify ->
+                viewModel.saveTask(taskId, title, description, assigneeIds, assigneeNames, priority, dueAt, notify)
                 showEditor = false
             },
         )

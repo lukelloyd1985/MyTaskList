@@ -21,8 +21,9 @@ data class TaskItem(
     val listId: String = "",
     val title: String = "",
     val description: String = "",
-    val assigneeId: String = "",
-    val assigneeName: String = "",
+    /** Parallel lists: assigneeNames[i] is the display name of assigneeIds[i]. */
+    val assigneeIds: List<String> = emptyList(),
+    val assigneeNames: List<String> = emptyList(),
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val dueAt: Date? = null,
     val notify: Boolean = false,

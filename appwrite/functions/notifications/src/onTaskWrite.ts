@@ -2,11 +2,19 @@ import { Client } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
 import type { FunctionContext } from "./context";
 
+/** Assignees of a task, falling back to the legacy single assigneeId for
+ *  tasks written before multi-assignee support. */
+export function taskAssigneeIds(task: { assigneeId?: string; assigneeIds?: string[] }): string[] {
+  if (task.assigneeIds && task.assigneeIds.length > 0) return task.assigneeIds;
+  return task.assigneeId ? [task.assigneeId] : [];
+}
+
 interface TaskDoc {
   $id: string;
   listId: string;
   title?: string;
-  assigneeId?: string;
+  assigneeId?: string; // legacy single assignee
+  assigneeIds?: string[];
 }
 
 /** Notifies a task's assignee whenever the task document is written to and
@@ -37,17 +45,21 @@ export async function onTaskWrite({ req, res, error }: FunctionContext) {
     .setKey(req.headers["x-appwrite-key"] ?? "");
 
   const task = req.bodyJson as TaskDoc | undefined;
-  const assigneeId = task?.assigneeId;
+  const assigneeIds = task ? taskAssigneeIds(task) : [];
 
-  if (!task || !assigneeId) {
+  if (!task || assigneeIds.length === 0) {
     return res.json({ success: true, skipped: true });
   }
 
-  try {
-    await sendToUser(client, assigneeId, "assigned", task.title, task.listId, task.$id);
-  } catch (err) {
-    error(`Failed to notify assignee ${assigneeId}: ${err instanceof Error ? err.stack ?? err.message : err}`);
-  }
+  await Promise.all(
+    assigneeIds.map(async (assigneeId) => {
+      try {
+        await sendToUser(client, assigneeId, "assigned", task.title, task.listId, task.$id);
+      } catch (err) {
+        error(`Failed to notify assignee ${assigneeId}: ${err instanceof Error ? err.stack ?? err.message : err}`);
+      }
+    }),
+  );
 
   return res.json({ success: true });
 }

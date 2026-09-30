@@ -1,11 +1,13 @@
 import { Client, TablesDB, Query, Models } from "node-appwrite";
 import { sendToUser } from "./sendToUser";
 import type { FunctionContext } from "./context";
+import { taskAssigneeIds } from "./onTaskWrite";
 
 interface TaskDoc extends Models.Row {
   listId: string;
   title?: string;
-  assigneeId?: string;
+  assigneeId?: string; // legacy single assignee
+  assigneeIds?: string[];
   completed?: boolean;
 }
 
@@ -71,13 +73,15 @@ export async function dueDateReminders({ req, res, error }: FunctionContext) {
           return;
         }
 
-        if (task.assigneeId) {
-          try {
-            await sendToUser(client, task.assigneeId, "dueSoon", task.title, task.listId, task.$id);
-          } catch (err) {
-            error(`Failed to send due-date reminder for task ${task.$id}: ${err instanceof Error ? err.stack ?? err.message : err}`);
-          }
-        }
+        await Promise.all(
+          taskAssigneeIds(task).map(async (assigneeId) => {
+            try {
+              await sendToUser(client, assigneeId, "dueSoon", task.title, task.listId, task.$id);
+            } catch (err) {
+              error(`Failed to send due-date reminder for task ${task.$id}: ${err instanceof Error ? err.stack ?? err.message : err}`);
+            }
+          }),
+        );
 
         await tablesDB.updateRow({
           databaseId: DATABASE_ID,

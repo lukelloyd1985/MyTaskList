@@ -61,7 +61,7 @@ class ListDetailViewModel @Inject constructor(
         .onEach { taskItems ->
             val uid = currentUid ?: return@onEach
             taskItems.forEach { task ->
-                if (task.assigneeId == uid) reminderScheduler.schedule(task) else reminderScheduler.cancel(task.id)
+                if (uid in task.assigneeIds) reminderScheduler.schedule(task) else reminderScheduler.cancel(task.id)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -79,8 +79,8 @@ class ListDetailViewModel @Inject constructor(
         taskId: String?,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -93,8 +93,8 @@ class ListDetailViewModel @Inject constructor(
                     listId = listId,
                     title = title,
                     description = description,
-                    assigneeId = assigneeId,
-                    assigneeName = assigneeName,
+                    assigneeIds = assigneeIds,
+                    assigneeNames = assigneeNames,
                     priority = priority,
                     dueAt = dueAt,
                     notify = notify,
@@ -109,8 +109,8 @@ class ListDetailViewModel @Inject constructor(
                     taskId = taskId,
                     title = title,
                     description = description,
-                    assigneeId = assigneeId,
-                    assigneeName = assigneeName,
+                    assigneeIds = assigneeIds,
+                    assigneeNames = assigneeNames,
                     priority = priority,
                     dueAt = dueAt,
                     notify = notify,

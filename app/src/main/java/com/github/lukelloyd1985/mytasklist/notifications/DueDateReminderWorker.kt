@@ -27,10 +27,10 @@ class DueDateReminderWorker @AssistedInject constructor(
         val taskId = inputData.getString(KEY_TASK_ID) ?: return Result.failure()
         val listId = inputData.getString(KEY_LIST_ID) ?: return Result.failure()
         val title = inputData.getString(KEY_TITLE) ?: return Result.failure()
-        val assigneeId = inputData.getString(KEY_ASSIGNEE_ID)
+        val assigneeIds = inputData.getStringArray(KEY_ASSIGNEE_IDS).orEmpty()
 
         val currentUid = authRepository.currentUser?.uid
-        if (currentUid == null || currentUid != assigneeId) {
+        if (currentUid == null || currentUid !in assigneeIds) {
             // Task was reassigned, or user signed out, since this was scheduled.
             return Result.success()
         }
@@ -50,6 +50,6 @@ class DueDateReminderWorker @AssistedInject constructor(
         const val KEY_TASK_ID = "task_id"
         const val KEY_LIST_ID = "list_id"
         const val KEY_TITLE = "title"
-        const val KEY_ASSIGNEE_ID = "assignee_id"
+        const val KEY_ASSIGNEE_IDS = "assignee_ids"
     }
 }

@@ -80,7 +80,7 @@ users/{uid}    displayName, email, photoUrl, locale
 lists/{listId} name, icon, colorHex, visibility (PRIVATE|SHARED), ownerId,
                ownerName, memberIds[], members (JSON-encoded string -
                Appwrite has no array-of-objects attribute type)
-tasks/{taskId} listId, title, description, assigneeId, assigneeName,
+tasks/{taskId} listId, title, description, assigneeIds[], assigneeNames[],
                priority (LOW|MEDIUM|HIGH), dueAt, notify, completed,
                order, createdBy, createdByName, reminderSent
                (flat collection - listId is the sole scoping field, there

@@ -90,8 +90,8 @@ export interface AppwriteTaskDoc {
   listId: string;
   title: string;
   description: string;
-  assigneeId: string;
-  assigneeName: string;
+  assigneeIds: string[];
+  assigneeNames: string[];
   priority: TaskPriority;
   dueAt: string | null; // ISO string
   notify: boolean;

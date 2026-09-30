@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -64,8 +65,8 @@ fun TaskEditorSheet(
         taskId: String?,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -77,9 +78,10 @@ fun TaskEditorSheet(
     var dueAt by remember { mutableStateOf(initialTask?.dueAt) }
     var notify by remember { mutableStateOf(initialTask?.notify ?: false) }
     var assigneeMenuExpanded by remember { mutableStateOf(false) }
-    var selectedMember by remember {
-        mutableStateOf(assignableMembers.firstOrNull { it.uid == initialTask?.assigneeId })
+    var selectedUids by remember {
+        mutableStateOf(initialTask?.assigneeIds.orEmpty().toSet())
     }
+    val selectedMembers = assignableMembers.filter { it.uid in selectedUids }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDateMillis by remember { mutableStateOf<Long?>(null) }
@@ -126,7 +128,11 @@ fun TaskEditorSheet(
                 modifier = Modifier.padding(top = 12.dp),
             ) {
                 OutlinedTextField(
-                    value = selectedMember?.displayName ?: stringResource(R.string.label_unassigned),
+                    value = if (selectedMembers.isEmpty()) {
+                        stringResource(R.string.label_unassigned)
+                    } else {
+                        selectedMembers.joinToString(", ") { it.displayName.ifBlank { it.email } }
+                    },
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.label_assign_to)) },
@@ -140,11 +146,14 @@ fun TaskEditorSheet(
                     onDismissRequest = { assigneeMenuExpanded = false },
                 ) {
                     assignableMembers.forEach { member ->
+                        val checked = member.uid in selectedUids
                         DropdownMenuItem(
                             text = { Text(member.displayName.ifBlank { member.email }) },
+                            leadingIcon = {
+                                Checkbox(checked = checked, onCheckedChange = null)
+                            },
                             onClick = {
-                                selectedMember = member
-                                assigneeMenuExpanded = false
+                                selectedUids = if (checked) selectedUids - member.uid else selectedUids + member.uid
                             },
                         )
                     }
@@ -197,8 +206,8 @@ fun TaskEditorSheet(
                         initialTask?.id,
                         title.trim(),
                         description.trim(),
-                        selectedMember?.uid.orEmpty(),
-                        selectedMember?.displayName.orEmpty(),
+                        selectedMembers.map { it.uid },
+                        selectedMembers.map { it.displayName.ifBlank { it.email } },
                         priority,
                         dueAt,
                         notify,

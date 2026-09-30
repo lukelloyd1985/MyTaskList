@@ -19,7 +19,9 @@ interface ListDoc extends Models.Row {
 
 interface TaskDoc extends Models.Row {
   listId: string;
-  assigneeId?: string;
+  assigneeId?: string; // legacy single assignee
+  assigneeIds?: string[];
+  assigneeNames?: string[];
 }
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID ?? "mytasklist";
@@ -55,19 +57,34 @@ function buildListPermissions(ownerId: string, memberIds: string[]): string[] {
 }
 
 async function unassignTasks(tablesDB: TablesDB, listId: string, uid: string) {
-  const tasks = await listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
-    Query.equal("listId", listId),
-    Query.equal("assigneeId", uid),
+  const [multi, legacy] = await Promise.all([
+    listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
+      Query.equal("listId", listId),
+      Query.contains("assigneeIds", uid),
+    ]),
+    listAllRows<TaskDoc>(tablesDB, DATABASE_ID, TASKS_COLLECTION_ID, [
+      Query.equal("listId", listId),
+      Query.equal("assigneeId", uid),
+    ]),
   ]);
+  const tasks = [...new Map([...multi, ...legacy].map((t) => [t.$id, t])).values()];
   await Promise.all(
-    tasks.map((task) =>
-      tablesDB.updateRow({
+    tasks.map((task) => {
+      const ids = task.assigneeIds ?? [];
+      const names = task.assigneeNames ?? [];
+      const keep = ids.map((id, i) => ({ id, name: names[i] ?? "" })).filter((a) => a.id !== uid);
+      return tablesDB.updateRow({
         databaseId: DATABASE_ID,
         tableId: TASKS_COLLECTION_ID,
         rowId: task.$id,
-        data: { assigneeId: "", assigneeName: "" },
-      }),
-    ),
+        data: {
+          assigneeIds: keep.map((a) => a.id),
+          assigneeNames: keep.map((a) => a.name),
+          assigneeId: "",
+          assigneeName: "",
+        },
+      });
+    }),
   );
 }
 

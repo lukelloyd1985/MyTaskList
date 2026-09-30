@@ -69,7 +69,7 @@ fun TaskRow(
                     },
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (task.assigneeName.isNotBlank()) {
+                    if (task.assigneeNames.isNotEmpty()) {
                         Icon(
                             Icons.Filled.Person,
                             contentDescription = null,
@@ -77,7 +77,7 @@ fun TaskRow(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = task.assigneeName,
+                            text = task.assigneeNames.joinToString(", "),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, end = 8.dp),

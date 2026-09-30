@@ -38,8 +38,8 @@ interface TaskRepository {
         listId: String,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -54,8 +54,8 @@ interface TaskRepository {
         taskId: String,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -122,8 +122,8 @@ class AppwriteTaskRepository @Inject constructor(
         listId: String,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -136,8 +136,11 @@ class AppwriteTaskRepository @Inject constructor(
             "listId" to listId,
             "title" to title,
             "description" to description,
-            "assigneeId" to assigneeId,
-            "assigneeName" to assigneeName,
+            "assigneeIds" to assigneeIds,
+            "assigneeNames" to assigneeNames,
+            // Clear the pre-multi-assignee single-assignee fields.
+            "assigneeId" to "",
+            "assigneeName" to "",
             "priority" to priority.name,
             "dueAt" to dueAt?.toAppwriteIso(),
             "notify" to notify,
@@ -162,8 +165,8 @@ class AppwriteTaskRepository @Inject constructor(
         taskId: String,
         title: String,
         description: String,
-        assigneeId: String,
-        assigneeName: String,
+        assigneeIds: List<String>,
+        assigneeNames: List<String>,
         priority: TaskPriority,
         dueAt: Date?,
         notify: Boolean,
@@ -171,8 +174,11 @@ class AppwriteTaskRepository @Inject constructor(
         val data = mapOf(
             "title" to title,
             "description" to description,
-            "assigneeId" to assigneeId,
-            "assigneeName" to assigneeName,
+            "assigneeIds" to assigneeIds,
+            "assigneeNames" to assigneeNames,
+            // Clear the pre-multi-assignee single-assignee fields.
+            "assigneeId" to "",
+            "assigneeName" to "",
             "priority" to priority.name,
             "dueAt" to dueAt?.toAppwriteIso(),
             "notify" to notify,
@@ -216,13 +222,19 @@ class AppwriteTaskRepository @Inject constructor(
 
 private fun Document<Map<String, Any>>.toTaskItem(): TaskItem {
     val fields = data
+    // Tasks written before multi-assignee support only carry the legacy
+    // single assigneeId/assigneeName fields.
+    val assigneeIds = (fields["assigneeIds"] as? List<*>)?.filterIsInstance<String>()
+        ?: listOfNotNull((fields["assigneeId"] as? String)?.takeIf { it.isNotBlank() })
+    val assigneeNames = (fields["assigneeNames"] as? List<*>)?.filterIsInstance<String>()
+        ?: listOfNotNull((fields["assigneeName"] as? String)?.takeIf { it.isNotBlank() })
     return TaskItem(
         id = id,
         listId = fields["listId"] as? String ?: "",
         title = fields["title"] as? String ?: "",
         description = fields["description"] as? String ?: "",
-        assigneeId = fields["assigneeId"] as? String ?: "",
-        assigneeName = fields["assigneeName"] as? String ?: "",
+        assigneeIds = assigneeIds,
+        assigneeNames = assigneeNames,
         priority = (fields["priority"] as? String)
             ?.let { runCatching { TaskPriority.valueOf(it) }.getOrNull() }
             ?: TaskPriority.MEDIUM,
