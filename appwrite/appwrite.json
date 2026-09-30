@@ -199,6 +199,22 @@
           "default": null
         },
         {
+          "key": "assigneeIds",
+          "type": "string",
+          "required": false,
+          "array": true,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "assigneeNames",
+          "type": "string",
+          "required": false,
+          "array": true,
+          "size": 255,
+          "default": null
+        },
+        {
           "key": "priority",
           "type": "enum",
           "required": false,
@@ -273,6 +289,13 @@
           "type": "key",
           "status": "available",
           "attributes": ["assigneeId"],
+          "orders": ["ASC"]
+        },
+        {
+          "key": "assigneeIds_idx",
+          "type": "key",
+          "status": "available",
+          "attributes": ["assigneeIds"],
           "orders": ["ASC"]
         },
         {

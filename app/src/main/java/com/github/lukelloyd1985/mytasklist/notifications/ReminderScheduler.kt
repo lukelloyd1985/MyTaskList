@@ -22,7 +22,7 @@ class ReminderScheduler @Inject constructor(
     fun schedule(task: TaskItem) {
         val uniqueName = uniqueWorkName(task.id)
         val dueAt = task.dueAt
-        if (!task.notify || dueAt == null || task.completed || task.assigneeId.isBlank()) {
+        if (!task.notify || dueAt == null || task.completed || task.assigneeIds.isEmpty()) {
             cancel(task.id)
             return
         }
@@ -39,7 +39,7 @@ class ReminderScheduler @Inject constructor(
             .putString(DueDateReminderWorker.KEY_TASK_ID, task.id)
             .putString(DueDateReminderWorker.KEY_LIST_ID, task.listId)
             .putString(DueDateReminderWorker.KEY_TITLE, task.title)
-            .putString(DueDateReminderWorker.KEY_ASSIGNEE_ID, task.assigneeId)
+            .putStringArray(DueDateReminderWorker.KEY_ASSIGNEE_IDS, task.assigneeIds.toTypedArray())
             .build()
 
         val request = OneTimeWorkRequestBuilder<DueDateReminderWorker>()
