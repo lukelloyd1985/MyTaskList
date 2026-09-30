@@ -113,6 +113,14 @@ fun ListDetailScreen(
             if (draggingTaskId == null) localOpen = open
         }
 
+        // localOpen is only resynced in the effect above, i.e. one
+        // composition after `tasks` changes. Completing a task moves it into
+        // `completed` immediately, so without this filter it would briefly
+        // appear in both LazyColumn sections under the same key, which makes
+        // LazyColumn throw ("Key ... was already used") and crashes the app.
+        val openIds = open.mapTo(HashSet()) { it.id }
+        val shownOpen = localOpen.filter { it.id in openIds }
+
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             modifier = Modifier
@@ -130,7 +138,7 @@ fun ListDetailScreen(
                 }
             }
 
-            items(localOpen, key = { it.id }) { task ->
+            items(shownOpen, key = { it.id }) { task ->
                 val isDragging = task.id == draggingTaskId
                 TaskRow(
                     task = task,
