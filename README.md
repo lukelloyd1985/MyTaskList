@@ -625,7 +625,7 @@ everything after that, which CI automates.
    uploads for a language the app doesn't have a store listing for yet,
    with a 404 "Listing for language '...' not found", so a mismatch (e.g.
    picking English (UK) here but leaving the repo on `en-US`) breaks the
-   `publishListing` CI step. This repo currently uses `en-GB`.
+   `publishListing` CI step. This repo uses `en-GB` as the default and also ships an `en-US` listing (a copy of the `en-GB` wording).
 3. **Complete "App content"** (Play Console won't allow any release
    without these): Privacy policy URL (from step 1), Ads (No ads, unless
    you've added some), Content ratings questionnaire, Target audience,
