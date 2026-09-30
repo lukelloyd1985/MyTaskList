@@ -9,11 +9,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.github.lukelloyd1985.mytasklist.R
+import com.github.lukelloyd1985.mytasklist.data.local.ListOrderStore
 import com.github.lukelloyd1985.mytasklist.data.model.ListMember
 import com.github.lukelloyd1985.mytasklist.data.model.ListVisibility
 import com.github.lukelloyd1985.mytasklist.data.model.TaskList
@@ -27,12 +29,26 @@ data class ListsUiState(val errorMessage: String? = null)
 class ListsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val listRepository: ListRepository,
+    private val listOrderStore: ListOrderStore,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
+    /** The signed-in user's saved list order (ids); lists missing from it,
+     *  e.g. newly created or newly shared ones, sort after the ordered ones. */
+    private val savedOrder = MutableStateFlow<List<String>>(emptyList())
+
     val lists: StateFlow<List<TaskList>> = authRepository.authState
         .flatMapLatest { user ->
-            if (user == null) kotlinx.coroutines.flow.flowOf(emptyList()) else listRepository.observeMyLists(user.uid)
+            if (user == null) {
+                kotlinx.coroutines.flow.flowOf(emptyList())
+            } else {
+                savedOrder.value = listOrderStore.load(user.uid)
+                combine(listRepository.observeMyLists(user.uid), savedOrder) { remote, order ->
+                    val position = order.withIndex().associate { it.value to it.index }
+                    // Stable sort: unordered lists keep the repository's order.
+                    remote.sortedBy { position[it.id] ?: Int.MAX_VALUE }
+                }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -69,6 +85,12 @@ class ListsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun reorderLists(orderedListIds: List<String>) {
+        val uid = authRepository.currentUser?.uid ?: return
+        listOrderStore.save(uid, orderedListIds)
+        savedOrder.value = orderedListIds
     }
 
     fun clearError() {
