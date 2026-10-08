@@ -41,6 +41,7 @@ interface ListRepository {
 class AppwriteListRepository @Inject constructor(
     private val databases: Databases,
     private val realtime: Realtime,
+    private val functions: io.appwrite.services.Functions,
 ) : ListRepository {
 
     private val databaseId = BuildConfig.APPWRITE_DATABASE_ID
@@ -148,37 +149,34 @@ class AppwriteListRepository @Inject constructor(
         }
     }
 
+    // Granting read to another user can't be done from the client (Appwrite
+    // only lets you set permissions for roles you hold), so membership
+    // changes go through the maintenance Function, which checks the caller
+    // owns the list.
     override suspend fun addMember(listId: String, member: ListMember) {
-        val current = getListOrNull(listId) ?: return
-        if (current.memberIds.contains(member.uid)) return
-        val newMemberIds = current.memberIds + member.uid
-        val newMembers = current.members + member
-        databases.updateDocument(
-            databaseId = databaseId,
-            collectionId = listsId,
-            documentId = listId,
-            data = mapOf(
-                "memberIds" to newMemberIds,
-                "members" to encodeMembers(newMembers),
-            ),
-            permissions = listPermissions(current.ownerId, newMemberIds),
-        )
+        updateMembers(listId, "add", member.uid)
     }
 
     override suspend fun removeMember(listId: String, uid: String) {
-        val current = getListOrNull(listId) ?: return
-        val newMemberIds = current.memberIds.filterNot { it == uid }
-        val newMembers = current.members.filterNot { it.uid == uid }
-        databases.updateDocument(
-            databaseId = databaseId,
-            collectionId = listsId,
-            documentId = listId,
-            data = mapOf(
-                "memberIds" to newMemberIds,
-                "members" to encodeMembers(newMembers),
-            ),
-            permissions = listPermissions(current.ownerId, newMemberIds),
+        updateMembers(listId, "remove", uid)
+    }
+
+    private suspend fun updateMembers(listId: String, action: String, uid: String) {
+        val execution = functions.createExecution(
+            functionId = BuildConfig.APPWRITE_FUNCTION_MAINTENANCE_ID,
+            body = org.json.JSONObject()
+                .put("listId", listId)
+                .put("action", action)
+                .put("uid", uid)
+                .toString(),
+            path = "/update-members",
         )
+        val code = execution.responseStatusCode
+        if (code !in 200L..299L) {
+            val message = runCatching { org.json.JSONObject(execution.responseBody).optString("message") }
+                .getOrNull()?.takeIf { it.isNotBlank() }
+            error(message ?: "Updating list members failed (status=${execution.status}, code=$code)")
+        }
     }
 
     override suspend fun renameList(listId: String, name: String) {

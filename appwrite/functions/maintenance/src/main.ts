@@ -1,6 +1,7 @@
 import { deleteAccount } from "./deleteAccount";
 import { syncListPermissions } from "./syncListPermissions";
 import { googleSignIn } from "./googleSignIn";
+import { updateMembers } from "./updateMembers";
 import type { FunctionContext } from "./context";
 
 /** Single Appwrite Function serving two trigger types (three logical
@@ -31,7 +32,9 @@ export default async (context: FunctionContext) => {
   const trigger = context.req.headers["x-appwrite-trigger"];
   switch (trigger) {
     case "http":
-      return context.req.path === "/google-sign-in" ? googleSignIn(context) : deleteAccount(context);
+      if (context.req.path === "/google-sign-in") return googleSignIn(context);
+      if (context.req.path === "/update-members") return updateMembers(context);
+      return deleteAccount(context);
     case "event":
       return syncListPermissions(context);
     default:
