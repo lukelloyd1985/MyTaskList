@@ -88,34 +88,40 @@ class ListDetailViewModel @Inject constructor(
     ) {
         val user = authRepository.currentUser ?: return
         viewModelScope.launch {
-            if (taskId == null) {
-                val currentList = list.value
-                taskRepository.createTask(
-                    listId = listId,
-                    title = title,
-                    description = description,
-                    assigneeIds = assigneeIds,
-                    assigneeNames = assigneeNames,
-                    priority = priority,
-                    dueAt = dueAt,
-                    notify = notify,
-                    createdBy = user.uid,
-                    createdByName = user.displayName.ifBlank { user.email },
-                    listOwnerId = currentList?.ownerId ?: user.uid,
-                    listMemberIds = currentList?.memberIds ?: emptyList(),
-                )
-            } else {
-                taskRepository.updateTask(
-                    listId = listId,
-                    taskId = taskId,
-                    title = title,
-                    description = description,
-                    assigneeIds = assigneeIds,
-                    assigneeNames = assigneeNames,
-                    priority = priority,
-                    dueAt = dueAt,
-                    notify = notify,
-                )
+            try {
+                if (taskId == null) {
+                    val currentList = list.value
+                    taskRepository.createTask(
+                        listId = listId,
+                        title = title,
+                        description = description,
+                        assigneeIds = assigneeIds,
+                        assigneeNames = assigneeNames,
+                        priority = priority,
+                        dueAt = dueAt,
+                        notify = notify,
+                        createdBy = user.uid,
+                        createdByName = user.displayName.ifBlank { user.email },
+                        listOwnerId = currentList?.ownerId ?: user.uid,
+                        listMemberIds = currentList?.memberIds ?: emptyList(),
+                    )
+                } else {
+                    taskRepository.updateTask(
+                        listId = listId,
+                        taskId = taskId,
+                        title = title,
+                        description = description,
+                        assigneeIds = assigneeIds,
+                        assigneeNames = assigneeNames,
+                        priority = priority,
+                        dueAt = dueAt,
+                        notify = notify,
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                Toast.makeText(appContext, t.message ?: t.toString(), Toast.LENGTH_LONG).show()
             }
         }
     }

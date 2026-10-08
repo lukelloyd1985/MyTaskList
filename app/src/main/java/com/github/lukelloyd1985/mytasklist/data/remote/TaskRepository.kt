@@ -8,6 +8,7 @@ import io.appwrite.Role
 import io.appwrite.models.Document
 import io.appwrite.row
 import io.appwrite.services.Databases
+import io.appwrite.services.Functions
 import io.appwrite.services.Realtime
 import io.appwrite.table
 import kotlinx.coroutines.awaitAll
@@ -73,6 +74,7 @@ interface TaskRepository {
 class AppwriteTaskRepository @Inject constructor(
     private val databases: Databases,
     private val realtime: Realtime,
+    private val functions: Functions,
 ) : TaskRepository {
 
     private val databaseId = BuildConfig.APPWRITE_DATABASE_ID
@@ -155,8 +157,13 @@ class AppwriteTaskRepository @Inject constructor(
             collectionId = tasksId,
             documentId = ID.unique(),
             data = data,
-            permissions = taskPermissions(listOwnerId, listMemberIds),
+            // Only the caller's own role can be granted from the client;
+            // other members' access is added by the maintenance Function.
+            permissions = taskPermissions(listOf(createdBy)),
         )
+        if ((listOf(listOwnerId) + listMemberIds).distinct() != listOf(createdBy)) {
+            syncTaskPermissions(document.id)
+        }
         return document.id
     }
 
@@ -210,8 +217,22 @@ class AppwriteTaskRepository @Inject constructor(
         }
     }
 
-    private fun taskPermissions(ownerId: String, memberIds: List<String>): List<String> =
-        (listOf(ownerId) + memberIds).distinct().flatMap { uid ->
+    private suspend fun syncTaskPermissions(taskId: String) {
+        val execution = functions.createExecution(
+            functionId = BuildConfig.APPWRITE_FUNCTION_MAINTENANCE_ID,
+            body = org.json.JSONObject().put("taskId", taskId).toString(),
+            path = "/sync-task",
+        )
+        val code = execution.responseStatusCode
+        if (code !in 200L..299L) {
+            val message = runCatching { org.json.JSONObject(execution.responseBody).optString("message") }
+                .getOrNull()?.takeIf { it.isNotBlank() }
+            error(message ?: "Sharing the task with list members failed (status=${execution.status}, code=$code)")
+        }
+    }
+
+    private fun taskPermissions(userIds: List<String>): List<String> =
+        userIds.distinct().flatMap { uid ->
             listOf(
                 Permission.read(Role.user(uid)),
                 Permission.update(Role.user(uid)),
