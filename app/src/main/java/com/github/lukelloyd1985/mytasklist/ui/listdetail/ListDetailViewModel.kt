@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,23 +173,34 @@ class ListDetailViewModel @Inject constructor(
         if (normalized.isBlank()) return
         viewModelScope.launch {
             _inviteState.value = InviteUiState(isLoading = true)
-            val profile = userRepository.findByEmail(normalized)
-            if (profile == null) {
-                _inviteState.value = InviteUiState(
-                    errorMessage = appContext.getString(R.string.error_invite_no_user_found, normalized),
+            // Appwrite failures (permissions, missing index, network) throw
+            // AppwriteException; uncaught inside viewModelScope that crashes
+            // the app, so surface the message through the invite error instead.
+            try {
+                val profile = userRepository.findByEmail(normalized)
+                if (profile == null) {
+                    _inviteState.value = InviteUiState(
+                        errorMessage = appContext.getString(R.string.error_invite_no_user_found, normalized),
+                    )
+                    return@launch
+                }
+                listRepository.addMember(
+                    listId,
+                    ListMember(
+                        uid = profile.uid,
+                        displayName = profile.displayName,
+                        email = profile.email,
+                        photoUrl = profile.photoUrl,
+                    ),
                 )
-                return@launch
+                _inviteState.value = InviteUiState()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                _inviteState.value = InviteUiState(
+                    errorMessage = t.message ?: t.toString(),
+                )
             }
-            listRepository.addMember(
-                listId,
-                ListMember(
-                    uid = profile.uid,
-                    displayName = profile.displayName,
-                    email = profile.email,
-                    photoUrl = profile.photoUrl,
-                ),
-            )
-            _inviteState.value = InviteUiState()
         }
     }
 
