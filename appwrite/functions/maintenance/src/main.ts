@@ -36,7 +36,12 @@ export default async (context: FunctionContext) => {
       if (context.req.path === "/google-sign-in") return googleSignIn(context);
       if (context.req.path === "/update-members") return updateMembers(context);
       if (context.req.path === "/sync-task") return syncTask(context);
-      return deleteAccount(context);
+      // Account deletion is destructive, so it only runs for the app's
+      // default-path call - an unrecognised path (e.g. a client newer than
+      // the deployed Function) must never fall through to it.
+      if (context.req.path === "/" || context.req.path === "") return deleteAccount(context);
+      context.error(`maintenance: unknown path "${context.req.path}"`);
+      return context.res.json({ success: false, message: `Unknown path "${context.req.path}"` }, 404);
     case "event":
       return syncListPermissions(context);
     default:
