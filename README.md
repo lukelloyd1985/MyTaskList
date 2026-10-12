@@ -82,7 +82,8 @@ lists/{listId} name, icon, colorHex, visibility (PRIVATE|SHARED), ownerId,
                Appwrite has no array-of-objects attribute type)
 tasks/{taskId} listId, title, description, assigneeIds[], assigneeNames[],
                priority (LOW|MEDIUM|HIGH), dueAt, notify, completed,
-               order, createdBy, createdByName, reminderSent
+               order, createdBy, createdByName, reminderSent,
+               notifiedAssigneeIds[]
                (flat collection - listId is the sole scoping field, there
                is no lists/{listId}/tasks subcollection)
 ```
