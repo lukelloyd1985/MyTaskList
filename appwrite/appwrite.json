@@ -274,6 +274,14 @@
           "required": false,
           "array": false,
           "default": false
+        },
+        {
+          "key": "notifiedAssigneeIds",
+          "type": "string",
+          "required": false,
+          "array": true,
+          "size": 255,
+          "default": null
         }
       ],
       "indexes": [
