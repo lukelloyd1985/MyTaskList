@@ -54,6 +54,9 @@
     <string name="cd_add_task">Add task</string>
     <string name="tasks_empty_state">No tasks yet - tap + to add one.</string>
     <string name="completed_count">Completed (%1$d)</string>
+    <string name="action_clear_completed">Clear</string>
+    <string name="dialog_clear_completed_title">Clear completed tasks?</string>
+    <string name="dialog_clear_completed_message">This permanently deletes the %1$d completed tasks in this list.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">New task</string>

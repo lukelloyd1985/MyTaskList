@@ -52,6 +52,9 @@
     <string name="cd_add_task">Ajouter une tâche</string>
     <string name="tasks_empty_state">Aucune tâche pour l\'instant - appuyez sur + pour en ajouter une.</string>
     <string name="completed_count">Terminées (%1$d)</string>
+    <string name="action_clear_completed">Effacer</string>
+    <string name="dialog_clear_completed_title">Effacer les tâches terminées ?</string>
+    <string name="dialog_clear_completed_message">Les %1$d tâches terminées de cette liste seront supprimées définitivement.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Nouvelle tâche</string>

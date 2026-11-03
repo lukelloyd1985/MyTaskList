@@ -10,6 +10,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -134,6 +137,23 @@ class ListDetailViewModel @Inject constructor(
         viewModelScope.launch {
             reminderScheduler.cancel(taskId)
             taskRepository.deleteTask(listId, taskId)
+        }
+    }
+
+    fun clearCompleted() {
+        val completedIds = tasks.value.filter { it.completed }.map { it.id }
+        if (completedIds.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                completedIds.forEach { reminderScheduler.cancel(it) }
+                coroutineScope {
+                    completedIds.map { id -> async { taskRepository.deleteTask(listId, id) } }.awaitAll()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                Toast.makeText(appContext, t.message ?: t.toString(), Toast.LENGTH_LONG).show()
+            }
         }
     }
 

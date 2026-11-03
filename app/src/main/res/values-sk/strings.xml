@@ -53,6 +53,9 @@
     <string name="cd_add_task">Pridať úlohu</string>
     <string name="tasks_empty_state">Zatiaľ žiadne úlohy - pridajte novú ťuknutím na +.</string>
     <string name="completed_count">Dokončené (%1$d)</string>
+    <string name="action_clear_completed">Vymazať</string>
+    <string name="dialog_clear_completed_title">Vymazať dokončené úlohy?</string>
+    <string name="dialog_clear_completed_message">Dokončené úlohy v tomto zozname (%1$d) sa natrvalo odstránia.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Nová úloha</string>

@@ -52,6 +52,9 @@
     <string name="cd_add_task">Añadir tarea</string>
     <string name="tasks_empty_state">Aún no hay tareas - toca + para añadir una.</string>
     <string name="completed_count">Completadas (%1$d)</string>
+    <string name="action_clear_completed">Borrar</string>
+    <string name="dialog_clear_completed_title">¿Borrar las tareas completadas?</string>
+    <string name="dialog_clear_completed_message">Se eliminarán permanentemente las %1$d tareas completadas de esta lista.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Nueva tarea</string>

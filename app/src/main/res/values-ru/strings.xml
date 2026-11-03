@@ -54,6 +54,9 @@
     <string name="cd_add_task">Добавить задачу</string>
     <string name="tasks_empty_state">Пока нет задач - нажмите +, чтобы добавить.</string>
     <string name="completed_count">Выполнено (%1$d)</string>
+    <string name="action_clear_completed">Очистить</string>
+    <string name="dialog_clear_completed_title">Удалить выполненные задачи?</string>
+    <string name="dialog_clear_completed_message">Выполненные задачи в этом списке (%1$d) будут удалены безвозвратно.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Новая задача</string>

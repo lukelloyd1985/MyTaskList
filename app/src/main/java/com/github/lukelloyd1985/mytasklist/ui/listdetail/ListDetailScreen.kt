@@ -3,6 +3,9 @@ package com.github.lukelloyd1985.mytasklist.ui.listdetail
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -12,7 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +60,7 @@ fun ListDetailScreen(
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     var editingTask by remember { mutableStateOf<TaskItem?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
     // Opens initialTaskId's editor sheet as soon as it shows up in the
     // loaded tasks (arriving from a notification tap - see
     // MyTaskListNavHost's deep-link handling). Only ever fires once: without
@@ -199,12 +205,22 @@ fun ListDetailScreen(
 
             if (completed.isNotEmpty()) {
                 item {
-                    Text(
-                        stringResource(R.string.completed_count, completed.size),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 4.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.completed_count, completed.size),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(onClick = { showClearConfirm = true }) {
+                            Text(stringResource(R.string.action_clear_completed))
+                        }
+                    }
                 }
                 items(completed, key = { it.id }) { task ->
                     TaskRow(
@@ -232,6 +248,24 @@ fun ListDetailScreen(
             onSave = { taskId, title, description, assigneeIds, assigneeNames, priority, dueAt, notify ->
                 viewModel.saveTask(taskId, title, description, assigneeIds, assigneeNames, priority, dueAt, notify)
                 showEditor = false
+            },
+        )
+    }
+
+    if (showClearConfirm) {
+        val completedCount = tasks.count { it.completed }
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text(stringResource(R.string.dialog_clear_completed_title)) },
+            text = { Text(stringResource(R.string.dialog_clear_completed_message, completedCount)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearConfirm = false
+                    viewModel.clearCompleted()
+                }) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
