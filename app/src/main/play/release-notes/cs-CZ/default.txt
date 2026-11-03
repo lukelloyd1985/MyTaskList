@@ -1,1 +1,3 @@
-Sdílené seznamy úkolů pro domácnost, zahradu a všechno ostatní. Přihlaste se přes Google, vytvářejte soukromé nebo sdílené seznamy a přiřazujte úkoly s termíny a připomenutími.
+• Novinka: všechny dokončené úkoly ze seznamu odstraníte jedním klepnutím.
+• Opraveno: upozornění na přiřazený úkol se nyní odesílá jen ve chvíli, kdy vám byl úkol přiřazen, ne při jeho dokončení, přeřazení nebo úpravě.
+• Opraveno: vytvoření úkolu nebo správa členů ve sdíleném seznamu mohly selhat.

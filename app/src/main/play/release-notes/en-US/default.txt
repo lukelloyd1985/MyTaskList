@@ -1,1 +1,3 @@
-Shared task lists for your home, garden, and everything in between. Sign in with Google, create private or shared lists, and assign tasks with due dates and reminders.
+• New: clear all completed tasks from a list with one tap.
+• Fixed: task assignment notifications are now only sent when a task has just been assigned to you, not when it is completed, reordered or edited.
+• Fixed: creating a task or managing members in a shared list could fail.

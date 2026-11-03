@@ -1,1 +1,3 @@
-Listes de tâches partagées pour la maison, le jardin et tout le reste. Connectez-vous avec Google, créez des listes privées ou partagées, et attribuez des tâches avec échéances et rappels.
+• Nouveau : supprimez toutes les tâches terminées d'une liste d'une simple pression.
+• Corrigé : les notifications d'attribution de tâche ne sont désormais envoyées que lorsqu'une tâche vient de vous être attribuée, et non lorsqu'elle est terminée, réordonnée ou modifiée.
+• Corrigé : la création d'une tâche ou la gestion des membres d'une liste partagée pouvait échouer.
