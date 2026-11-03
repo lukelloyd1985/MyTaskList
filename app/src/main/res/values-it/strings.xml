@@ -52,6 +52,9 @@
     <string name="cd_add_task">Aggiungi attività</string>
     <string name="tasks_empty_state">Ancora nessuna attività - tocca + per aggiungerne una.</string>
     <string name="completed_count">Completate (%1$d)</string>
+    <string name="action_clear_completed">Cancella</string>
+    <string name="dialog_clear_completed_title">Cancellare le attività completate?</string>
+    <string name="dialog_clear_completed_message">Le %1$d attività completate in questo elenco verranno eliminate definitivamente.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Nuova attività</string>

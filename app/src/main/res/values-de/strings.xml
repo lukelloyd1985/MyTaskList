@@ -52,6 +52,9 @@
     <string name="cd_add_task">Aufgabe hinzufügen</string>
     <string name="tasks_empty_state">Noch keine Aufgaben - tippen Sie auf +, um eine hinzuzufügen.</string>
     <string name="completed_count">Erledigt (%1$d)</string>
+    <string name="action_clear_completed">Leeren</string>
+    <string name="dialog_clear_completed_title">Erledigte Aufgaben löschen?</string>
+    <string name="dialog_clear_completed_message">Die %1$d erledigten Aufgaben in dieser Liste werden endgültig gelöscht.</string>
 
     <!-- Task editor -->
     <string name="task_editor_title_new">Neue Aufgabe</string>
