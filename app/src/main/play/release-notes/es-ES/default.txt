@@ -1,3 +1,1 @@
-• Novedad: elimina todas las tareas completadas de una lista con un solo toque.
-• Corregido: las notificaciones de tarea asignada solo se envían cuando se te acaba de asignar una tarea, no al completarla, reordenarla o editarla.
-• Corregido: crear una tarea o gestionar miembros en una lista compartida podía fallar.
+Novedad: elimina todas las tareas completadas de una lista con un solo toque.

@@ -1,3 +1,1 @@
-• Neu: Alle erledigten Aufgaben einer Liste lassen sich mit einem Tipp entfernen.
-• Behoben: Benachrichtigungen zu zugewiesenen Aufgaben werden jetzt nur noch gesendet, wenn Ihnen eine Aufgabe gerade zugewiesen wurde – nicht beim Erledigen, Neuordnen oder Bearbeiten.
-• Behoben: Das Erstellen von Aufgaben oder die Verwaltung von Mitgliedern in einer geteilten Liste konnte fehlschlagen.
+Neu: Alle erledigten Aufgaben einer Liste lassen sich mit einem Tipp entfernen.

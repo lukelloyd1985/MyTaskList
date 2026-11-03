@@ -1,3 +1,1 @@
-• Novinka: všetky dokončené úlohy zo zoznamu odstránite jedným klepnutím.
-• Opravené: upozornenia na pridelenú úlohu sa teraz odosielajú iba vtedy, keď vám bola úloha práve pridelená, nie pri jej dokončení, preusporiadaní alebo úprave.
-• Opravené: vytvorenie úlohy alebo správa členov v zdieľanom zozname mohli zlyhať.
+Novinka: všetky dokončené úlohy zo zoznamu odstránite jedným klepnutím.

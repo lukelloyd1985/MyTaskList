@@ -1,3 +1,1 @@
-• Novità: elimina tutte le attività completate di una lista con un tocco.
-• Risolto: le notifiche di attività assegnata vengono ora inviate solo quando un'attività ti è appena stata assegnata, non quando viene completata, riordinata o modificata.
-• Risolto: la creazione di un'attività o la gestione dei membri in una lista condivisa poteva non riuscire.
+Novità: elimina tutte le attività completate di una lista con un tocco.

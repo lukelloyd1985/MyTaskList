@@ -1,3 +1,1 @@
-• Nouveau : supprimez toutes les tâches terminées d'une liste d'une simple pression.
-• Corrigé : les notifications d'attribution de tâche ne sont désormais envoyées que lorsqu'une tâche vient de vous être attribuée, et non lorsqu'elle est terminée, réordonnée ou modifiée.
-• Corrigé : la création d'une tâche ou la gestion des membres d'une liste partagée pouvait échouer.
+Nouveau : supprimez toutes les tâches terminées d'une liste d'une simple pression.
